@@ -56,7 +56,8 @@ internal object WorkspaceRelationalReadMapper {
 
         val homeApps = homeItems.filter { it.itemType == WorkspaceItemType.APP }
         val homeWidgets = homeItems.filter { it.itemType == WorkspaceItemType.WIDGET }
-        if (homeApps.size + homeWidgets.size != homeItems.size) return null
+        val homeFolders = homeItems.filter { it.itemType == WorkspaceItemType.FOLDER }
+        if (homeApps.size + homeWidgets.size + homeFolders.size != homeItems.size) return null
         if (homeApps.any { !validCanonicalApp(it, "legacy:home:") }) return null
         if (dockItems.any { !validCanonicalApp(it, "legacy:dock:") }) return null
         if (homeApps.mapNotNull { it.appKey }.distinct().size != homeApps.size) return null
@@ -71,10 +72,23 @@ internal object WorkspaceRelationalReadMapper {
                     item.spanY <= 0
             }
         ) return null
+        if (
+            homeFolders.any { item ->
+                item.itemId.isBlank() ||
+                    !item.itemId.startsWith("folder:home:") ||
+                    item.appKey.isNullOrBlank() ||
+                    item.cellX == null ||
+                    item.cellY == null ||
+                    item.spanX != 1 ||
+                    item.spanY != 1
+            }
+        ) return null
         if (dockItems.any { it.cellX != null || it.cellY != null }) return null
 
         val homeCompatibility =
-            homeWidgets.isEmpty() && homeApps.all { it.cellX == null && it.cellY == null }
+            homeWidgets.isEmpty() &&
+                homeFolders.isEmpty() &&
+                homeApps.all { it.cellX == null && it.cellY == null }
         val homeSpatial = homeItems.all { it.cellX != null && it.cellY != null }
         if (!homeCompatibility && !homeSpatial) return null
         if (homeSpatial) {

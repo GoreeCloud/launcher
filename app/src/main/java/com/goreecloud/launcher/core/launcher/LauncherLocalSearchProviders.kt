@@ -1,6 +1,10 @@
 package com.goreecloud.launcher.core.launcher
 
 import android.Manifest
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
@@ -36,6 +40,64 @@ object LauncherLocalSearchPermissions {
         val permission = permissionFor(providerId) ?: return true
         return ContextCompat.checkSelfPermission(context, permission) ==
             android.content.pm.PackageManager.PERMISSION_GRANTED
+    }
+}
+
+/**
+ * Ephemeral provider health only: no typed query, contact, call, message or file data is retained.
+ * Search must distinguish Android permission denial and provider failure from an actual no-match.
+ */
+enum class LauncherLocalSearchIssue {
+    PERMISSION_REQUIRED,
+    ANDROID_RESTRICTED,
+    SOURCE_UNAVAILABLE,
+}
+
+object LauncherLocalSearchDiagnostics {
+    private val mutableIssues = MutableStateFlow<Map<String, LauncherLocalSearchIssue>>(emptyMap())
+    val issues = mutableIssues.asStateFlow()
+
+    fun record(providerId: String, issue: LauncherLocalSearchIssue?) {
+        mutableIssues.update { current ->
+            current.toMutableMap().also { next ->
+                if (issue == null) next.remove(providerId) else next[providerId] = issue
+            }
+        }
+    }
+}
+
+private suspend fun guardedLocalSearch(
+    context: Context,
+    providerId: String,
+    search: suspend () -> List<LauncherSearchResult>,
+): List<LauncherSearchResult> {
+    if (!LauncherLocalSearchPermissions.isGranted(context, providerId)) {
+        LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.PERMISSION_REQUIRED)
+        return emptyList()
+    }
+    return try {
+        search().also { LauncherLocalSearchDiagnostics.record(providerId, null) }
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (_: SecurityException) {
+        LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.ANDROID_RESTRICTED)
+        emptyList()
+    } catch (_: Exception) {
+        LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.SOURCE_UNAVAILABLE)
+        emptyList()
+    }
+}
+
+/** Match formatted phone numbers even when call-log and contact providers store punctuation. */
+object LauncherLocalPhoneSearchPolicy {
+    fun score(name: String, number: String, rawQuery: String): Int? {
+        val digits = rawQuery.filter(Char::isDigit)
+        if (rawQuery.isNotBlank() && rawQuery.none(Char::isLetter) && digits.length < 2) {
+            return null // Avoid broad one-digit scans of sensitive phone/call data.
+        }
+        LauncherSearchTextRanking.score(name, number, rawQuery)?.let { return it }
+        if (digits.length < 2 || rawQuery.any(Char::isLetter)) return null
+        return if (number.filter(Char::isDigit).contains(digits)) 160 else null
     }
 }
 
@@ -113,47 +175,119 @@ class LauncherContactsSearchProvider(context: Context) : LauncherSearchProvider,
     override fun search(rawQuery: String): List<LauncherSearchResult> = emptyList()
 
     override suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult> =
-        withContext(Dispatchers.IO) {
-            val rawQuery = request.rawQuery.trim()
-            if (rawQuery.isBlank() || !LauncherLocalSearchPermissions.isGranted(appContext, id)) return@withContext emptyList()
-            val projection = arrayOf(
-                ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
-                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
-                ContactsContract.CommonDataKinds.Phone.NUMBER,
-            )
-            val wildcard = "%${escapeLike(rawQuery)}%"
-            val selection =
-                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} LIKE ? ESCAPE '\\' OR " +
-                    "${ContactsContract.CommonDataKinds.Phone.NUMBER} LIKE ? ESCAPE '\\'"
-            val results = mutableListOf<LauncherSearchResult>()
-            appContext.contentResolver.query(
-                ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-                projection,
-                selection,
-                arrayOf(wildcard, wildcard),
-                "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
-            )?.use { cursor ->
-                val contactIdIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-                val nameIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY)
-                val numberIndex = cursor.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
-                while (cursor.moveToNext() && results.size < MAX_RESULTS) {
-                    val contactId = cursor.getLong(contactIdIndex)
-                    val name = cursor.getString(nameIndex).orEmpty()
-                    val number = cursor.getString(numberIndex).orEmpty()
-                    val score = LauncherSearchTextRanking.score(name, number, rawQuery) ?: continue
-                    val contactUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, contactId.toString())
-                    results += LauncherSearchResult(
-                        providerId = id,
-                        resultId = "$contactId:$number",
-                        title = name.ifBlank { number },
-                        subtitle = number.takeIf(String::isNotBlank),
-                        category = LauncherSearchCategory.CONTACT,
-                        score = score,
-                        action = LauncherOpenUriSearchAction(Intent.ACTION_VIEW, contactUri.toString()),
+        guardedLocalSearch(appContext, id) {
+            withContext(Dispatchers.IO) {
+                val term = request.rawQuery.trim()
+                if (term.isBlank()) return@withContext emptyList()
+
+                val results = mutableListOf<LauncherSearchResult>()
+                val seenContactIds = mutableSetOf<Long>()
+
+                // Phone-filter URI handles matching both contact names and formatted numbers.
+                val phoneUri = Uri.withAppendedPath(
+                    ContactsContract.CommonDataKinds.Phone.CONTENT_FILTER_URI,
+                    Uri.encode(term),
+                )
+                val phoneColumns = arrayOf(
+                    ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
+                    ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                    ContactsContract.CommonDataKinds.Phone.NUMBER,
+                )
+                val phoneCursor = appContext.contentResolver.query(
+                    phoneUri,
+                    phoneColumns,
+                    null,
+                    null,
+                    "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
+                ) ?: throw IllegalStateException("Phone contacts provider is unavailable")
+                phoneCursor.use { cursor ->
+                    val idColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
                     )
+                    val nameColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME_PRIMARY,
+                    )
+                    val numberColumn = cursor.getColumnIndexOrThrow(
+                        ContactsContract.CommonDataKinds.Phone.NUMBER,
+                    )
+                    while (cursor.moveToNext() && results.size < MAX_RESULTS) {
+                        val contactId = cursor.getLong(idColumn)
+                        if (contactId in seenContactIds) continue
+                        val name = cursor.getString(nameColumn).orEmpty()
+                        val number = cursor.getString(numberColumn).orEmpty()
+                        val score = LauncherLocalPhoneSearchPolicy.score(name, number, term)
+                            ?: continue
+                        seenContactIds += contactId
+                        val contactUri = Uri.withAppendedPath(
+                            ContactsContract.Contacts.CONTENT_URI,
+                            contactId.toString(),
+                        )
+                        results += LauncherSearchResult(
+                            providerId = id,
+                            resultId = contactId.toString(),
+                            title = name.ifBlank { number },
+                            subtitle = number.takeIf(String::isNotBlank),
+                            category = LauncherSearchCategory.CONTACT,
+                            score = score,
+                            action = LauncherOpenUriSearchAction(
+                                Intent.ACTION_VIEW,
+                                contactUri.toString(),
+                            ),
+                        )
+                    }
                 }
+
+                // The phone directory excludes contacts without a number. Query the general
+                // name-filtered contacts directory as well; results remain local, bounded,
+                // deduplicated, and require the same explicit READ_CONTACTS opt-in.
+                if (results.size < MAX_RESULTS) {
+                    val contactUri = Uri.withAppendedPath(
+                        ContactsContract.Contacts.CONTENT_FILTER_URI,
+                        Uri.encode(term),
+                    )
+                    val contactColumns = arrayOf(
+                        ContactsContract.Contacts._ID,
+                        ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                    )
+                    val contactCursor = appContext.contentResolver.query(
+                        contactUri,
+                        contactColumns,
+                        null,
+                        null,
+                        "${ContactsContract.Contacts.DISPLAY_NAME_PRIMARY} COLLATE NOCASE ASC",
+                    ) ?: throw IllegalStateException("Contacts provider is unavailable")
+                    contactCursor.use { cursor ->
+                        val idColumn = cursor.getColumnIndexOrThrow(ContactsContract.Contacts._ID)
+                        val nameColumn = cursor.getColumnIndexOrThrow(
+                            ContactsContract.Contacts.DISPLAY_NAME_PRIMARY,
+                        )
+                        while (cursor.moveToNext() && results.size < MAX_RESULTS) {
+                            val contactId = cursor.getLong(idColumn)
+                            if (contactId in seenContactIds) continue
+                            val name = cursor.getString(nameColumn).orEmpty()
+                            val score = LauncherSearchTextRanking.score(name, null, term)
+                                ?: continue
+                            seenContactIds += contactId
+                            results += LauncherSearchResult(
+                                providerId = id,
+                                resultId = contactId.toString(),
+                                title = name,
+                                subtitle = null,
+                                category = LauncherSearchCategory.CONTACT,
+                                score = score,
+                                action = LauncherOpenUriSearchAction(
+                                    Intent.ACTION_VIEW,
+                                    Uri.withAppendedPath(
+                                        ContactsContract.Contacts.CONTENT_URI,
+                                        contactId.toString(),
+                                    ).toString(),
+                                ),
+                            )
+                        }
+                    }
+                }
+                results
             }
-            results
         }
 
     companion object {
@@ -168,31 +302,30 @@ class LauncherCallHistorySearchProvider(context: Context) : LauncherSearchProvid
     override fun search(rawQuery: String): List<LauncherSearchResult> = emptyList()
 
     override suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult> =
-        withContext(Dispatchers.IO) {
+        guardedLocalSearch(appContext, id) {
+            withContext(Dispatchers.IO) {
             val rawQuery = request.rawQuery.trim()
             if (rawQuery.isBlank() || !LauncherLocalSearchPermissions.isGranted(appContext, id)) return@withContext emptyList()
             val projection = arrayOf(CallLog.Calls._ID, CallLog.Calls.CACHED_NAME, CallLog.Calls.NUMBER, CallLog.Calls.DATE)
-            val wildcard = "%${escapeLike(rawQuery)}%"
-            val selection =
-                "${CallLog.Calls.CACHED_NAME} LIKE ? ESCAPE '\\' OR " +
-                    "${CallLog.Calls.NUMBER} LIKE ? ESCAPE '\\'"
             val results = mutableListOf<LauncherSearchResult>()
-            appContext.contentResolver.query(
+            val cursor = appContext.contentResolver.query(
                 CallLog.Calls.CONTENT_URI,
                 projection,
-                selection,
-                arrayOf(wildcard, wildcard),
+                null,
+                null,
                 "${CallLog.Calls.DATE} DESC",
-            )?.use { cursor ->
+            ) ?: throw IllegalStateException("Call history provider is unavailable")
+            cursor.use { cursor ->
                 val idIndex = cursor.getColumnIndexOrThrow(CallLog.Calls._ID)
                 val nameIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
                 val numberIndex = cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
-                while (cursor.moveToNext() && results.size < MAX_RESULTS) {
+                var scanned = 0
+                while (cursor.moveToNext() && results.size < MAX_RESULTS && scanned++ < MAX_SCANNED) {
                     val rowId = cursor.getLong(idIndex)
                     val name = cursor.getString(nameIndex).orEmpty()
                     val number = cursor.getString(numberIndex).orEmpty()
                     val title = name.ifBlank { number }
-                    val score = LauncherSearchTextRanking.score(title, number, rawQuery) ?: continue
+                    val score = LauncherLocalPhoneSearchPolicy.score(title, number, rawQuery) ?: continue
                     results += LauncherSearchResult(
                         providerId = id,
                         resultId = rowId.toString(),
@@ -207,9 +340,12 @@ class LauncherCallHistorySearchProvider(context: Context) : LauncherSearchProvid
             results
         }
 
+        }
+
     companion object {
         const val PROVIDER_ID = "launcher.call-history"
         private const val MAX_RESULTS = 16
+        private const val MAX_SCANNED = 250
     }
 }
 
@@ -219,7 +355,8 @@ class LauncherMessagesSearchProvider(context: Context) : LauncherSearchProvider,
     override fun search(rawQuery: String): List<LauncherSearchResult> = emptyList()
 
     override suspend fun searchAsync(request: LauncherSearchRequest): List<LauncherSearchResult> =
-        withContext(Dispatchers.IO) {
+        guardedLocalSearch(appContext, id) {
+            withContext(Dispatchers.IO) {
             val rawQuery = request.rawQuery.trim()
             if (rawQuery.isBlank() || !LauncherLocalSearchPermissions.isGranted(appContext, id)) return@withContext emptyList()
             val projection = arrayOf(Telephony.Sms._ID, Telephony.Sms.ADDRESS, Telephony.Sms.BODY, Telephony.Sms.DATE)
@@ -228,13 +365,14 @@ class LauncherMessagesSearchProvider(context: Context) : LauncherSearchProvider,
                 "${Telephony.Sms.ADDRESS} LIKE ? ESCAPE '\\' OR " +
                     "${Telephony.Sms.BODY} LIKE ? ESCAPE '\\'"
             val results = mutableListOf<LauncherSearchResult>()
-            appContext.contentResolver.query(
+            val cursor = appContext.contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
                 projection,
                 selection,
                 arrayOf(wildcard, wildcard),
                 "${Telephony.Sms.DATE} DESC",
-            )?.use { cursor ->
+            ) ?: throw IllegalStateException("Messages provider is unavailable")
+            cursor.use { cursor ->
                 val idIndex = cursor.getColumnIndexOrThrow(Telephony.Sms._ID)
                 val addressIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
                 val bodyIndex = cursor.getColumnIndexOrThrow(Telephony.Sms.BODY)
@@ -256,6 +394,8 @@ class LauncherMessagesSearchProvider(context: Context) : LauncherSearchProvider,
                 }
             }
             results
+        }
+
         }
 
     companion object {

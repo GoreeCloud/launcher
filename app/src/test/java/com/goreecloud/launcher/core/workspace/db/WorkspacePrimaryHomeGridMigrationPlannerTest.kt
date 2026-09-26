@@ -170,6 +170,34 @@ class WorkspacePrimaryHomeGridMigrationPlannerTest {
     }
 
     @Test
+    fun acceptsAlreadySpatialFoldersAlongsideApps() {
+        val items = listOf(
+            primaryItem(rank = 0, appKey = "app-a").copy(cellX = 0, cellY = 0),
+            WorkspaceItemEntity(
+                itemId = "folder:home:test",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                itemType = WorkspaceItemType.FOLDER,
+                appKey = "folder-test",
+                rank = 1,
+                cellX = 1,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            ),
+        )
+
+        assertEquals(
+            WorkspacePrimaryHomeGridMigrationPlanningResult.AlreadySpatial,
+            WorkspacePrimaryHomeGridMigrationPlanner.plan(
+                page = primaryPage(),
+                items = items,
+                columns = 4,
+                rows = 4,
+            ),
+        )
+    }
+
+    @Test
     fun acceptsAlreadySpatialStateWhenItIsValidInsideRequestedGrid() {
         val alreadySpatial = listOf(
             primaryItem(rank = 0, appKey = "app-a").copy(cellX = 0, cellY = 0),

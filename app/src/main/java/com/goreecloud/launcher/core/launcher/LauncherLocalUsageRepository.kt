@@ -22,10 +22,11 @@ private val Context.launcherLocalUsageStore by preferencesDataStore(
 )
 
 /**
- * Minimal local-only launch-frequency store.
+ * Minimal local-only launch-suggestion store.
  *
- * Only an application workspace key and an aggregate launch count are retained. No timestamps,
- * queries, destinations, dwell time, network data, or cross-application behavior are collected.
+ * Only application workspace keys, aggregate launch counts, and a bounded most-recently-launched
+ * ordering are retained. Recency is represented only by order: no timestamps, queries,
+ * destinations, dwell time, network data, or cross-application behavior are collected.
  */
 class LauncherLocalUsageRepository(
     private val dataStore: DataStore<Preferences>,
@@ -34,12 +35,17 @@ class LauncherLocalUsageRepository(
 
     private object Keys {
         val launchCounts = stringPreferencesKey("launch_counts_v1")
+        val recentAppKeys = stringPreferencesKey("recent_app_keys_v1")
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val launchCounts: Flow<Map<String, Long>> = dataStore.data
         .map { values -> LauncherLocalUsageCodec.decode(values[Keys.launchCounts]) }
+        .distinctUntilChanged()
+
+    val recentAppKeys: Flow<List<String>> = dataStore.data
+        .map { values -> LauncherLocalUsageCodec.decodeRecentKeys(values[Keys.recentAppKeys]) }
         .distinctUntilChanged()
 
     fun recordLaunch(appKey: String): Job = scope.launch {
@@ -59,11 +65,23 @@ class LauncherLocalUsageRepository(
                     .take(MAX_TRACKED_APPS)
                     .associate { it.key to it.value },
             )
+
+            val recent = LauncherLocalUsageCodec
+                .decodeRecentKeys(values[Keys.recentAppKeys])
+                .filterNot { it == appKey }
+                .toMutableList()
+            recent.add(0, appKey)
+            values[Keys.recentAppKeys] = LauncherLocalUsageCodec.encodeRecentKeys(
+                recent.take(MAX_TRACKED_APPS),
+            )
         }
     }
 
     fun clear(): Job = scope.launch {
-        dataStore.edit { values -> values.remove(Keys.launchCounts) }
+        dataStore.edit { values ->
+            values.remove(Keys.launchCounts)
+            values.remove(Keys.recentAppKeys)
+        }
     }
 
     companion object {
@@ -95,6 +113,19 @@ internal object LauncherLocalUsageCodec {
             result[key] = count
         }
         return result
+    }
+
+    fun encodeRecentKeys(keys: List<String>): String =
+        keys.asSequence()
+            .filter { it.isNotBlank() }
+            .distinct()
+            .joinToString(RECORD_SEPARATOR, transform = ::encodeKey)
+
+    fun decodeRecentKeys(raw: String?): List<String> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return raw.split(RECORD_SEPARATOR)
+            .mapNotNull(::decodeKey)
+            .distinct()
     }
 
     private fun encodeKey(value: String): String =

@@ -47,14 +47,67 @@ object WorkspaceWidgetKeyCodec {
 
 object WorkspaceWidgetCatalog {
     const val CLOCK = "goreecloud.clock"
+    const val COMPACT_CLOCK = "goreecloud.clock-compact"
+    const val ANALOG_CLOCK = "goreecloud.clock-analog"
+    const val DATE = "goreecloud.date"
+    const val SEARCH = "goreecloud.search"
+    const val QUICK_ACTIONS = "goreecloud.quick-actions"
+    const val BATTERY = "goreecloud.battery"
     const val LAUNCHER_STATUS = "goreecloud.launcher-status"
 
-    val builtInTypeIds: Set<String> = setOf(CLOCK, LAUNCHER_STATUS)
+    val builtInTypeIds: Set<String> = linkedSetOf(
+        SEARCH,
+        QUICK_ACTIONS,
+        BATTERY,
+        DATE,
+        CLOCK,
+        COMPACT_CLOCK,
+        ANALOG_CLOCK,
+        LAUNCHER_STATUS,
+    )
 
     fun defaultSpan(typeId: String): Pair<Int, Int>? = when (typeId) {
         CLOCK -> 2 to 2
+        COMPACT_CLOCK -> 2 to 1
+        ANALOG_CLOCK -> 2 to 2
+        DATE -> 2 to 1
+        SEARCH -> 4 to 1
+        QUICK_ACTIONS -> 4 to 2
+        BATTERY -> 2 to 1
         LAUNCHER_STATUS -> 2 to 1
         else -> null
+    }
+
+    fun displayName(typeId: String): String = when (typeId) {
+        CLOCK -> "Digital clock"
+        COMPACT_CLOCK -> "Compact clock"
+        ANALOG_CLOCK -> "Analog clock"
+        DATE -> "Date"
+        SEARCH -> "Universal Search"
+        QUICK_ACTIONS -> "Quick actions"
+        BATTERY -> "Battery"
+        LAUNCHER_STATUS -> "Launcher Status"
+        else -> "GoreeCloud widget"
+    }
+
+    fun description(typeId: String): String = when (typeId) {
+        CLOCK -> "Time and date with a roomy glance layout."
+        COMPACT_CLOCK -> "A compact time-first widget for tighter Home layouts."
+        ANALOG_CLOCK -> "A quiet analog clock with Glaze styling."
+        DATE -> "Day, date, and month at a glance."
+        SEARCH -> "Open Launcher Universal Search from Home."
+        QUICK_ACTIONS -> "Fast access to Apps, Search, Edit Home, and Settings."
+        BATTERY -> "Local battery level and charging state with no extra permission."
+        LAUNCHER_STATUS -> "Local Launcher readiness and operating state."
+        else -> "GoreeCloud widget"
+    }
+
+    fun matchesQuery(typeId: String, query: String): Boolean {
+        val needle = query.trim()
+        if (needle.isEmpty()) return true
+        return displayName(typeId).contains(needle, ignoreCase = true) ||
+            description(typeId).contains(needle, ignoreCase = true) ||
+            typeId.contains(needle, ignoreCase = true)
     }
 }
 
@@ -86,6 +139,21 @@ object WorkspaceWidgetPlacementPolicy {
             }
         }
         return null
+    }
+
+    fun move(
+        grid: WorkspaceGridPlacement.Grid,
+        existing: List<WorkspaceGridPlacement.Placement>,
+        itemId: String,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceGridPlacement.Placement? {
+        val current = existing.singleOrNull { it.itemId == itemId } ?: return null
+        val updated = current.copy(cellX = cellX, cellY = cellY)
+        val next = existing.map { if (it.itemId == itemId) updated else it }
+        return if (
+            WorkspaceGridPlacement.validate(grid, next) == WorkspaceGridPlacement.Validation.Valid
+        ) updated else null
     }
 
     fun resize(

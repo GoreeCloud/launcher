@@ -10,6 +10,7 @@ ns = "{http://schemas.android.com/apk/res/android}"
 permissions = {x.attrib.get(ns + "name") for x in root.findall("uses-permission")}
 allowed_permissions = {
     "android.permission.SET_WALLPAPER",
+    "android.permission.REQUEST_DELETE_PACKAGES",
     "android.permission.READ_CONTACTS",
     "android.permission.READ_CALL_LOG",
     "android.permission.READ_SMS",
@@ -17,6 +18,10 @@ allowed_permissions = {
 unexpected_permissions = permissions - allowed_permissions
 if unexpected_permissions:
     print("Unexpected permissions:", sorted(unexpected_permissions))
+    sys.exit(1)
+
+if "android.permission.REQUEST_DELETE_PACKAGES" not in permissions:
+    print("Missing REQUEST_DELETE_PACKAGES required for the user-confirmed Android uninstall flow.")
     sys.exit(1)
 
 telephony_feature = next(

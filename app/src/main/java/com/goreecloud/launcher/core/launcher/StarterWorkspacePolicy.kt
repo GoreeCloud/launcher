@@ -5,12 +5,39 @@ data class StarterWorkspaceCandidate(
     val label: String,
     val packageName: String,
     val localLaunchCount: Long = 0L,
+    val localRecencyRank: Int? = null,
 )
 
 data class StarterWorkspaceSelection(
     val favoriteKeys: List<String>,
     val dockKeys: List<String>,
 )
+
+/**
+ * Builds the live default Home suggestion order without mutating persisted workspace placement.
+ *
+ * Recent Launcher launches lead, Dock apps are excluded to avoid duplicate presentation, and saved
+ * Home favorites fill any remaining slots. The caller decides when suggestion mode is appropriate;
+ * manual Home editing can disable it so user placement remains authoritative.
+ */
+object LauncherHomeSuggestionsPolicy {
+    fun selectKeys(
+        recentAppKeys: List<String>,
+        savedFavoriteKeys: List<String>,
+        dockKeys: List<String>,
+        limit: Int = 10,
+    ): List<String> {
+        if (limit <= 0) return emptyList()
+        val dock = dockKeys.toSet()
+        return buildList {
+            (recentAppKeys + savedFavoriteKeys).forEach { key ->
+                if (size >= limit) return@buildList
+                if (key.isBlank() || key in dock || key in this) return@forEach
+                add(key)
+            }
+        }
+    }
+}
 
 /**
  * Picks an intentional first-run launcher layout without pretending to know the user's final
@@ -86,9 +113,14 @@ object StarterWorkspacePolicy {
 
         val favorites = mutableListOf<String>()
         val rankedByLocalUse = usable
-            .filter { it.key !in used && it.localLaunchCount > 0L }
+            .filter {
+                it.key !in used &&
+                    (it.localRecencyRank != null || it.localLaunchCount > 0L)
+            }
             .sortedWith(
-                compareByDescending<StarterWorkspaceCandidate> { it.localLaunchCount }
+                compareBy<StarterWorkspaceCandidate> {
+                    it.localRecencyRank ?: Int.MAX_VALUE
+                }.thenByDescending { it.localLaunchCount }
                     .thenByDescending { it.label.contains("goreecloud", ignoreCase = true) }
                     .thenBy { it.label.lowercase() },
             )

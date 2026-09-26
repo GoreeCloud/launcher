@@ -7,6 +7,7 @@ CHANGELOGS.md
 COMPETITIVE-OBJECTIVES.md
 FEATURES.md
 IMPLEMENTED-FEATURES.md
+ICON-PACK-AUTHORING.md
 LICENSE
 NOTES.md
 PLANNED-FEATURES.md
@@ -18,6 +19,7 @@ app/proguard-rules.pro
 app/schemas/com.goreecloud.launcher.core.workspace.db.LauncherDatabase/1.json
 app/src/androidTest/java/com/goreecloud/launcher/ActivatedHomeLifecycleRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
+app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherUninstallRequestRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementObserverRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritativePlacementRuntimeTest.kt
 app/src/androidTest/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessRuntimeTest.kt
@@ -44,9 +46,11 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpaper
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherConnectedSearchProviders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFilesSearchProvider.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFolders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeDragPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherHomeLabelOverrides.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselineRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherIconPacks.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherLocalSearchProviders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImport.kt
@@ -65,6 +69,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPr
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderUserControlPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearch.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherUninstallRequest.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/StarterWorkspacePolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthority.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/WorkspaceDragPlacement.kt
@@ -79,6 +84,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceAuthoritati
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceCutoverReadinessCoordinator.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceEntities.kt
+app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceFolderRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomeItemPageMover.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceHomePageContext.kt
 app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceLegacyImportMapper.kt
@@ -107,6 +113,7 @@ app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsNavigation.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSurfaceTransitionPolicy.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherTransitionDiagnostics.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherWallpaperPickerSheet.kt
 app/src/main/java/com/goreecloud/launcher/ui/LayoutLockHoldControl.kt
 app/src/main/java/com/goreecloud/launcher/ui/PagedHomeSurface.kt
 app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
@@ -132,10 +139,12 @@ app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/LauncherHomeIntentPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchRootIsolationTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFolderCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherIconSingleFlightLoaderTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInstalledAppBaselinePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherInventoryRefreshScopeTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLabelSortKeyTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFoldersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherLocalUsageCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferenceImportTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortablePreferencesTest.kt
@@ -153,6 +162,7 @@ app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPr
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPreferencesRepositoryTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderUserControlPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUniversalSearchTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherUninstallRequestPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/StarterWorkspacePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/GlazeMotionExperimentalConsumerTest.kt
 app/src/test/java/com/goreecloud/launcher/core/workspace/WorkspaceAuthorityTest.kt

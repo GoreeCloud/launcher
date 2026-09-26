@@ -69,11 +69,19 @@ object LauncherConnectedSearchProviderRegistry {
             providerId = GOOGLE_DRIVE_PROVIDER_ID,
             displayName = "Google Drive",
             authorizationRequirement = LauncherSearchAuthorizationRequirement.ACCOUNT,
-            requiresResolution = true,
+            // Keep Drive visible even when it does not publish an exported search Activity.
+            // An explicit tap may open its website; automatic local Search never sends queries.
+            requiresResolution = false,
             buildIntent = { query ->
-                Intent(Intent.ACTION_SEARCH)
-                    .setPackage(GOOGLE_DRIVE_PACKAGE)
-                    .putExtra(SearchManager.QUERY, query)
+                Intent(Intent.ACTION_VIEW, Uri.Builder()
+                    .scheme("https")
+                    .authority("drive.google.com")
+                    .appendPath("drive")
+                    .appendPath("u")
+                    .appendPath("0")
+                    .appendPath("search")
+                    .appendQueryParameter("q", query)
+                    .build())
             },
         ),
         LauncherConnectedSearchDefinition(

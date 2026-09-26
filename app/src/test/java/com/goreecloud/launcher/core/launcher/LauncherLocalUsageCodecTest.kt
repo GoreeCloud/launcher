@@ -25,6 +25,31 @@ class LauncherLocalUsageCodecTest {
     }
 
     @Test
+    fun recentKeyRoundTripPreservesOrderAndDeduplicates() {
+        val encoded = LauncherLocalUsageCodec.encodeRecentKeys(
+            listOf(
+                "10:com.example.new/.MainActivity",
+                "10:com.example.older/.MainActivity",
+                "10:com.example.new/.MainActivity",
+            ),
+        )
+
+        assertEquals(
+            listOf(
+                "10:com.example.new/.MainActivity",
+                "10:com.example.older/.MainActivity",
+            ),
+            LauncherLocalUsageCodec.decodeRecentKeys(encoded),
+        )
+    }
+
+    @Test
+    fun malformedRecentKeysFailSoft() {
+        val decoded = LauncherLocalUsageCodec.decodeRecentKeys("not-base64%%%")
+        assertTrue(decoded.isEmpty())
+    }
+
+    @Test
     fun malformedRecordsFailSoftWithoutInventingUsage() {
         val decoded = LauncherLocalUsageCodec.decode(
             "not-base64\u001F4\u001Ealso-bad\u001Fnope",

@@ -24,6 +24,11 @@ sealed interface WorkspaceWidgetMutationResult {
         val spanX: Int,
         val spanY: Int,
     ) : WorkspaceWidgetMutationResult
+    data class Moved(
+        val itemId: String,
+        val cellX: Int,
+        val cellY: Int,
+    ) : WorkspaceWidgetMutationResult
     data class Resized(
         val itemId: String,
         val spanX: Int,
@@ -99,6 +104,52 @@ class WorkspaceWidgetRepository(
                 return WorkspaceWidgetMutationResult.StoredWorkspaceChanged
             }
             WorkspaceWidgetMutationResult.Removed(itemId)
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            WorkspaceWidgetMutationResult.Failed(exception::class.java.simpleName)
+        }
+    }
+
+    suspend fun moveWidget(
+        itemId: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceWidgetMutationResult {
+        if (!isRoomAuthoritative()) return WorkspaceWidgetMutationResult.Reserved
+        if (columns <= 0 || rows <= 0) return WorkspaceWidgetMutationResult.InvalidWorkspace
+        val dao = workspaceDaoOrNull() ?: return WorkspaceWidgetMutationResult.Unavailable
+        return try {
+            val page = primaryPage(dao) ?: return WorkspaceWidgetMutationResult.InvalidWorkspace
+            val items = primaryItems(dao)
+            val widget = items.singleOrNull {
+                it.itemId == itemId && it.itemType == WorkspaceItemType.WIDGET
+            } ?: return WorkspaceWidgetMutationResult.NotFound
+            if (WorkspaceWidgetKeyCodec.decode(widget.appKey) == null) {
+                return WorkspaceWidgetMutationResult.InvalidWorkspace
+            }
+            val placements = items.mapNotNull(WorkspaceItemEntity::toSpatialPlacement)
+            if (placements.size != items.size) {
+                return WorkspaceWidgetMutationResult.InvalidWorkspace
+            }
+            val moved = WorkspaceWidgetPlacementPolicy.move(
+                grid = WorkspaceGridPlacement.Grid(columns, rows),
+                existing = placements,
+                itemId = itemId,
+                cellX = cellX,
+                cellY = cellY,
+            ) ?: return WorkspaceWidgetMutationResult.NoSpace
+            val updated = items.map { item ->
+                if (item.itemId == itemId) {
+                    item.copy(cellX = moved.cellX, cellY = moved.cellY)
+                } else item
+            }
+            if (!dao.replacePrimaryHomeItemsIfSnapshotMatches(page, items, updated)) {
+                return WorkspaceWidgetMutationResult.StoredWorkspaceChanged
+            }
+            WorkspaceWidgetMutationResult.Moved(itemId, moved.cellX, moved.cellY)
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {

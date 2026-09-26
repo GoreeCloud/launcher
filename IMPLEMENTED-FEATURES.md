@@ -60,6 +60,7 @@ Validation:
 - Scoped Android package visibility for `MAIN` + `LAUNCHER` activities instead of broad `QUERY_ALL_PACKAGES` access.
 - `LauncherApps`-based launchable-application discovery across available profiles, package/profile refresh handling, and launchable-activity deduplication.
 - Application launching from Launcher-owned Home, Apps, Search, and supported secondary-page surfaces.
+- Shared app-icon loading keeps a bounded stale-while-revalidate bitmap during package/profile cache invalidation and falls back from Android's badged activity icon to the authoritative activity icon when decoding fails, reducing transient placeholder icons without persisting third-party artwork.
 
 ### Home, workspace, pages, and Dock
 
@@ -69,13 +70,15 @@ Validation:
 - Persisted Favorites and a bounded five-item Dock.
 - Default 5 × 6 Home grid for a new Launcher preference store, while the existing supported grid presets remain configurable.
 - One-time starter layout that prefers Phone, Messages, Email/Mail, Browser, and Camera for the five Dock positions when matching apps are available.
-- One-time starter Home placement of up to 10 apps in the bottom two rows directly above the Dock; existing Launcher-local aggregate launch counts are used for ranking when available, otherwise deterministic common/GoreeCloud app-role fallback is used.
-- Starter placement never fabricates usage history or requests Android Usage Access; after the starter is applied, user edits remain authoritative and the Home is not silently reshuffled.
+- One-time starter Home placement of up to 10 apps in the bottom two rows directly above the Dock; Launcher-local most-recent launch order is preferred when available, aggregate launch counts remain a compatibility fallback, and deterministic common/GoreeCloud app-role fallback fills any remaining slots.
+- With **Show recent apps on Home** enabled (default), the normal primary Home view keeps up to 10 Launcher-recent apps directly above the Dock, excludes Dock duplicates, and fills missing recent slots from saved Home favorites. This suggestion view does not mutate persisted workspace placement.
+- Suggested-but-unpinned recent apps launch normally but are not treated as draggable persisted favorites. A manual Home app placement/edit disables recent suggestions so the user's saved layout becomes authoritative; the setting can be re-enabled explicitly.
+- Recent-app suggestions never request Android Usage Access and do not fabricate system-wide activity history. Launcher records only launches performed through Launcher while the setting is enabled.
 - Long-press Home edit mode with visible grid/edit affordances and icon management actions.
 - Unified drag/drop between Home and Dock, Dock reordering, Home reordering by cell, and App Drawer copy-to-Home/copy-to-Dock placement while preserving Drawer inventory.
 - Home icon rename, Android App info, uninstall request, and placement controls; context actions disappear during active drag.
 - Optional **Add new apps to Home** behavior in Settings, disabled by default, using a persisted local primary-profile launchable-app baseline so installs missed while Launcher is not running can be detected on the next inventory refresh without a manifest receiver or new Android permission.
-- Minimal local app-activity ranking data stores only application workspace key plus aggregate Launcher launch count; users can disable its suggestion use and clear the counts.
+- Minimal local app-activity ranking data stores only application workspace keys, aggregate Launcher launch counts, and a bounded most-recently-launched ordering. Recency is represented only by order: no timestamps, dwell time, cross-app history, queries, or network data are collected. Users can disable its suggestion use and clear the local usage data.
 - Persisted Home-grid presets and application presentation settings.
 - Direct primary-Home drag placement into configured grid cells, including guarded occupied-cell swaps and empty-cell placement.
 - Persisted Home layout lock that gates implemented workspace mutation paths while ordinary launching and page selection remain usable.
@@ -89,7 +92,8 @@ Validation:
 
 ### Widgets
 
-- Launcher-owned GoreeCloud Clock and Launcher Status built-in Home widgets.
+- Launcher-owned first-party Home widget catalog includes **Universal Search**, **Quick actions** (Apps, Search, Edit Home, Settings), **Battery**, **Date**, Digital clock, Compact clock, Analog clock, and **Launcher Status**.
+- Universal Search and Quick actions route only to existing Launcher-owned surfaces. Battery observes Android's protected battery-state broadcast without polling, network access, location, telemetry, retained history, or a new runtime permission.
 - Android third-party widget selection through the platform AppWidget picker with provider configuration before persistence when required.
 - AppWidgetHost/AppWidgetHostView lifecycle integration without requesting privileged `BIND_APPWIDGET` authority.
 - Host widget-ID cleanup for canceled/failed selection and successful widget removal.
@@ -128,6 +132,8 @@ Validation:
 GoreeCloud Launcher owns the user-facing Universal Search experience. Current implemented Development capabilities include:
 
 - A distinct Launcher-owned Universal Search surface that remains usable without GoreeCloud Search or GoreeCloud Index.
+- PR #248 Development source reduces the idle Universal Search presentation to one focused Glaze search field with a leading search glyph, **“Find anything on your device…”** prompt, and an in-field settings control; result panels, status messaging, categories, and provider handoffs remain hidden until typing or another explicit action makes them relevant.
+- Universal Search source management remains directly reachable from that settings control without reintroducing a persistent management row or weakening the existing opt-in/privacy boundary.
 - Installed-app search backed by Android `LauncherApps` inventory.
 - Trusted local Launcher actions/settings destinations.
 - Deterministic local ranking, aggregation, deduplication, and fail-soft provider behavior.

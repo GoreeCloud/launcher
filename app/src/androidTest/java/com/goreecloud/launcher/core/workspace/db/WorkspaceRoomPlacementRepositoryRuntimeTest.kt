@@ -150,6 +150,45 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
                 updatedItems = migratedPrimary + widget,
             ),
         )
+        val folderRepository = WorkspaceFolderRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.Added(
+                itemId = "folder:home:runtime",
+                folderId = "folder-id-runtime",
+                cellX = 0,
+                cellY = 1,
+            ),
+            folderRepository.addFolderToHome(
+                itemId = "folder:home:runtime",
+                folderId = "folder-id-runtime",
+                columns = 4,
+                rows = 5,
+            ),
+        )
+        // Folder placement is a snapshot-conditional Room mutation: occupied app and widget
+        // cells must reject moves without dropping membership, identity, or the original cell.
+        assertEquals(
+            WorkspaceFolderMutationResult.NoSpace,
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 0, 0),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.NoSpace,
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 2, 0),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.Moved(
+                "folder:home:runtime", "folder-id-runtime", 1, 1,
+            ),
+            folderRepository.moveFolderToCell("folder-id-runtime", 4, 5, 1, 1),
+        )
+        val folder = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single { it.itemType == WorkspaceItemType.FOLDER }
+        assertEquals(1, folder.cellX)
+        assertEquals(1, folder.cellY)
         assertEquals(
             WorkspaceRoomReadResult.Loaded(
                 WorkspaceRelationalSnapshot(INITIAL_FAVORITES, INITIAL_DOCK)
@@ -190,6 +229,46 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
         assertEquals(widget.cellY, retainedWidget.cellY)
         assertEquals(widget.spanX, retainedWidget.spanX)
         assertEquals(widget.spanY, retainedWidget.spanY)
+        val retainedFolder = spatialReplacement.single {
+            it.itemType == WorkspaceItemType.FOLDER
+        }
+        assertEquals(folder.itemId, retainedFolder.itemId)
+        assertEquals(folder.appKey, retainedFolder.appKey)
+        assertEquals(folder.cellX, retainedFolder.cellX)
+        assertEquals(folder.cellY, retainedFolder.cellY)
+        assertEquals(folder.spanX, retainedFolder.spanX)
+        assertEquals(folder.spanY, retainedFolder.spanY)
+        assertEquals(
+            WorkspaceFolderMutationResult.Removed(folder.itemId, folder.appKey!!),
+            folderRepository.removeFolderFromHome(folder.appKey!!),
+        )
+        assertTrue(
+            database.workspaceDao()
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .none { it.itemType == WorkspaceItemType.FOLDER }
+        )
+        // Real Room writes must reject collisions and preserve the widget's identity and size.
+        val widgetRepository = WorkspaceWidgetRepository(
+            authorityRepository = authorityRepository,
+            workspaceDaoProvider = { database.workspaceDao() },
+        )
+        assertEquals(
+            WorkspaceWidgetMutationResult.NoSpace,
+            widgetRepository.moveWidget(retainedWidget.itemId, 4, 5, 0, 0),
+        )
+        assertEquals(
+            WorkspaceWidgetMutationResult.Moved(retainedWidget.itemId, 1, 2),
+            widgetRepository.moveWidget(retainedWidget.itemId, 4, 5, 1, 2),
+        )
+        val movedWidget = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .single { it.itemId == retainedWidget.itemId }
+        assertEquals(retainedWidget.appKey, movedWidget.appKey)
+        assertEquals(retainedWidget.spanX, movedWidget.spanX)
+        assertEquals(retainedWidget.spanY, movedWidget.spanY)
+        assertEquals(1, movedWidget.cellX)
+        assertEquals(2, movedWidget.cellY)
+
         assertTrue(
             spatialReplacement.all {
                 it.cellX != null &&
@@ -197,6 +276,99 @@ class WorkspaceRoomPlacementRepositoryRuntimeTest {
                     it.cellX in 0 until 4 &&
                     it.cellY in 0 until 5
             }
+        )
+
+        // Real Room cross-page folder roundtrip must keep app membership, identity and the
+        // collision-safe placement of unrelated items. Never clone a folder or overwrite apps.
+        val extraFolder = folderRepository.addFolderToHome(
+            itemId = "folder:home:cross-page-roundtrip",
+            folderId = "folder-id-cross-page",
+            columns = 4,
+            rows = 5,
+        )
+        assertTrue(extraFolder is WorkspaceFolderMutationResult.Added)
+        val secondaryPageId = "home:secondary:folder-test"
+        database.workspaceDao().upsertPages(
+            listOf(WorkspacePageEntity(
+                pageId = secondaryPageId,
+                containerType = WorkspaceContainerType.HOME,
+                rank = 1,
+            )),
+        )
+        database.workspaceDao().upsertItems(
+            listOf(WorkspaceItemEntity(
+                itemId = "app:secondary:keep",
+                pageId = secondaryPageId,
+                itemType = WorkspaceItemType.APP,
+                appKey = "10:com.example.secondary/.MainActivity",
+                rank = 0,
+                cellX = 0,
+                cellY = 0,
+                spanX = 1,
+                spanY = 1,
+            )),
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.InvalidWorkspace,
+            folderRepository.moveFolderToPage(
+                "folder-id-cross-page", "home:unknown", 4, 5,
+            ),
+        )
+        val movedOut = folderRepository.moveFolderToPage(
+            "folder-id-cross-page", secondaryPageId, 4, 5,
+        )
+        assertEquals(
+            WorkspaceFolderMutationResult.MovedToPage(
+                "folder:home:cross-page-roundtrip",
+                "folder-id-cross-page",
+                WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                secondaryPageId,
+                1,
+                0,
+            ),
+            movedOut,
+        )
+        val secondary = database.workspaceDao().readItems(listOf(secondaryPageId))
+        assertEquals(2, secondary.size)
+        assertTrue(secondary.any { it.itemId == "app:secondary:keep" && it.cellX == 0 })
+        assertTrue(secondary.any {
+            it.itemId == "folder:home:cross-page-roundtrip" &&
+                it.appKey == "folder-id-cross-page" && it.cellX == 1 && it.cellY == 0
+        })
+        // Earlier in this test the widget moved from (2, 0) to (1, 2). That vacated
+        // (2, 0), now the first free primary cell: use current authoritative geometry,
+        // not the original first-available cell before the widget was moved.
+        val unchangedPrimaryBeforeReturn = database.workspaceDao()
+            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+            .sortedBy { it.itemId }
+        assertEquals(
+            WorkspaceFolderMutationResult.MovedToPage(
+                "folder:home:cross-page-roundtrip",
+                "folder-id-cross-page",
+                secondaryPageId,
+                WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                2,
+                0,
+            ),
+            folderRepository.moveFolderToPage(
+                "folder-id-cross-page", WorkspaceLegacyImportMapper.HOME_PAGE_ID, 4, 5,
+            ),
+        )
+        assertEquals(
+            unchangedPrimaryBeforeReturn,
+            database.workspaceDao()
+                .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
+                .filterNot { it.itemId == "folder:home:cross-page-roundtrip" }
+                .sortedBy { it.itemId },
+        )
+        assertTrue(
+            database.workspaceDao().readItems(
+                listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID, secondaryPageId),
+            ).count { it.itemId == "folder:home:cross-page-roundtrip" } == 1,
+        )
+        assertTrue(
+            database.workspaceDao().readItems(listOf(secondaryPageId)).single().itemId ==
+                "app:secondary:keep",
         )
 
         val legacyStateAfterRoomWrite = authorityRepository.state.first()

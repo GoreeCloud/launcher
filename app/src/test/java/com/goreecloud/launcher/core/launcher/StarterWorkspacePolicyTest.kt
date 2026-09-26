@@ -69,6 +69,54 @@ class StarterWorkspacePolicyTest {
     }
 
     @Test
+    fun recencyOrderingWinsOverFrequencyForDefaultHomeFavorites() {
+        val selection = StarterWorkspacePolicy.select(
+            listOf(
+                candidate("phone", "Phone"),
+                candidate("messages", "Messages"),
+                candidate("mail", "Mail"),
+                candidate("browser", "Browser"),
+                candidate("camera", "Camera"),
+                candidate("newest", "Newest").copy(localLaunchCount = 1, localRecencyRank = 0),
+                candidate("middle", "Middle").copy(localLaunchCount = 2, localRecencyRank = 1),
+                candidate("older", "Older").copy(localLaunchCount = 100, localRecencyRank = 2),
+                candidate("calendar", "Calendar"),
+            ),
+            maxFavorites = 3,
+        )
+
+        assertEquals(
+            listOf("newest", "middle", "older"),
+            selection.favoriteKeys,
+        )
+    }
+
+    @Test
+    fun homeSuggestionsPreferLaunchOrderWithoutDockDuplicates() {
+        assertEquals(
+            listOf("new", "older", "savedA", "savedB"),
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                recentAppKeys = listOf("dock", "new", "older", "new"),
+                savedFavoriteKeys = listOf("savedA", "dock", "savedB"),
+                dockKeys = listOf("dock"),
+                limit = 4,
+            ),
+        )
+    }
+
+    @Test
+    fun homeSuggestionsUseDefaultTenItemBound() {
+        assertEquals(
+            (0 until 10).map { "item-$it" },
+            LauncherHomeSuggestionsPolicy.selectKeys(
+                recentAppKeys = (0 until 14).map { "item-$it" },
+                savedFavoriteKeys = emptyList(),
+                dockKeys = emptyList(),
+            ),
+        )
+    }
+
+    @Test
     fun tenStarterAppsOccupyBottomTwoRowsOfFiveBySixHome() {
         assertEquals(
             listOf(

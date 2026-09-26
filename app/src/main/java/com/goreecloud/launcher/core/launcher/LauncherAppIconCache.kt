@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
 internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 12 * 1024
+internal const val LAUNCHER_ICON_STALE_CACHE_MAX_KIB = 4 * 1024
 internal const val LAUNCHER_ICON_PRELOAD_COUNT = 128
 internal const val LAUNCHER_ICON_PRELOAD_PARALLELISM = 3
 
@@ -138,14 +139,25 @@ internal object LauncherAppIconCache {
 
     private val cache = object : LruCache<LauncherIconCacheKey, Bitmap>(LAUNCHER_ICON_CACHE_MAX_KIB) {
         override fun sizeOf(key: LauncherIconCacheKey, value: Bitmap): Int =
-            ((value.allocationByteCount.toLong() + 1023L) / 1024L)
-                .coerceAtLeast(1L)
-                .coerceAtMost(Int.MAX_VALUE.toLong())
-                .toInt()
+            bitmapSizeKib(value)
     }
 
+    /**
+     * Short-lived stale-while-revalidate fallback.
+     *
+     * Package/profile refreshes should not flash a generic placeholder while Android's replacement
+     * icon is being decoded. Stale entries are process-local, bounded, and removed as soon as a
+     * fresh authoritative icon is available.
+     */
+    private val staleCache =
+        object : LruCache<LauncherIconCacheKey, Bitmap>(LAUNCHER_ICON_STALE_CACHE_MAX_KIB) {
+            override fun sizeOf(key: LauncherIconCacheKey, value: Bitmap): Int =
+                bitmapSizeKib(value)
+        }
+
     fun peek(app: LauncherActivityInfo): Bitmap? = synchronized(stateLock) {
-        cache.get(app.cacheKey())
+        val key = app.cacheKey()
+        cache.get(key) ?: staleCache.get(key)
     }
 
     /**
@@ -208,16 +220,24 @@ internal object LauncherAppIconCache {
                         width = LAUNCHER_ICON_DECODE_SIZE_PX,
                         height = LAUNCHER_ICON_DECODE_SIZE_PX,
                     )
+                }.getOrNull() ?: runCatching {
+                    // Some OEM/activity resources intermittently fail through the badged path.
+                    // Android's authoritative activity icon is the safe visual fallback.
+                    app.getIcon(0).toBitmap(
+                        width = LAUNCHER_ICON_DECODE_SIZE_PX,
+                        height = LAUNCHER_ICON_DECODE_SIZE_PX,
+                    )
                 }.getOrNull()
 
-                if (decoded == null) {
-                    null
-                } else {
-                    synchronized(stateLock) {
-                        if (stampFor(app) != requestedStamp) {
-                            null
-                        } else {
-                            cache.get(key) ?: decoded.also { cache.put(key, it) }
+                synchronized(stateLock) {
+                    if (stampFor(app) != requestedStamp) {
+                        staleCache.get(key)
+                    } else if (decoded == null) {
+                        staleCache.get(key)
+                    } else {
+                        cache.get(key) ?: decoded.also {
+                            cache.put(key, it)
+                            staleCache.remove(key)
                         }
                     }
                 }
@@ -230,7 +250,10 @@ internal object LauncherAppIconCache {
         packageGenerations[packageKey] = (packageGenerations[packageKey] ?: 0L) + 1L
         cache.snapshot().keys
             .filter { key -> key.user == user && key.componentName.packageName == packageName }
-            .forEach(cache::remove)
+            .forEach { key ->
+                cache.get(key)?.let { staleCache.put(key, it) }
+                cache.remove(key)
+            }
     }
 
     fun clear() {
@@ -239,6 +262,7 @@ internal object LauncherAppIconCache {
             generation += 1L
             packageGenerations.clear()
             cache.evictAll()
+            staleCache.evictAll()
         }
     }
 
@@ -259,4 +283,10 @@ internal object LauncherAppIconCache {
 
     private fun LauncherActivityInfo.cacheKey(): LauncherIconCacheKey =
         LauncherIconCacheKey(user = user, componentName = componentName)
+
+    private fun bitmapSizeKib(value: Bitmap): Int =
+        ((value.allocationByteCount.toLong() + 1023L) / 1024L)
+            .coerceAtLeast(1L)
+            .coerceAtMost(Int.MAX_VALUE.toLong())
+            .toInt()
 }

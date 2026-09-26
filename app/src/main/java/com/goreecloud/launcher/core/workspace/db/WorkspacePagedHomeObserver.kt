@@ -44,6 +44,13 @@ data class WorkspaceRenderedHomeWidget(
     val spanY: Int,
 )
 
+data class WorkspaceRenderedHomeFolder(
+    val itemId: String,
+    val folderId: String,
+    val cellX: Int,
+    val cellY: Int,
+)
+
 data class WorkspaceRenderedHomePage(
     val pageId: String,
     val rank: Int,
@@ -59,6 +66,7 @@ data class WorkspaceRenderedHomePage(
         )
     },
     val widgetPlacements: List<WorkspaceRenderedHomeWidget> = emptyList(),
+    val folderPlacements: List<WorkspaceRenderedHomeFolder> = emptyList(),
 )
 
 object WorkspacePagedHomeMapper {
@@ -109,13 +117,33 @@ object WorkspacePagedHomeMapper {
                     spanY = item.spanY,
                 )
             }
+            val folderItems = pageItems.filter { it.itemType == WorkspaceItemType.FOLDER }
+            val renderedFolders = folderItems.map { item ->
+                val folderId = item.appKey
+                    ?.takeIf { it.isNotBlank() }
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeFolderItem")
+                val cellX = item.cellX
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeFolderItem")
+                val cellY = item.cellY
+                    ?: return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeFolderItem")
+                if (item.spanX != 1 || item.spanY != 1) {
+                    return WorkspacePagedHomeState.RecoveryRequired("MalformedHomeFolderItem")
+                }
+                WorkspaceRenderedHomeFolder(
+                    itemId = item.itemId,
+                    folderId = folderId,
+                    cellX = cellX,
+                    cellY = cellY,
+                )
+            }
             WorkspaceRenderedHomePage(
                 pageId = page.pageId,
                 rank = page.rank,
                 appKeys = appItems.map { checkNotNull(it.appKey) },
                 unsupportedItemCount = pageItems.count {
                     it.itemType != WorkspaceItemType.APP &&
-                        it.itemType != WorkspaceItemType.WIDGET
+                        it.itemType != WorkspaceItemType.WIDGET &&
+                        it.itemType != WorkspaceItemType.FOLDER
                 },
                 appPlacements = appItems.map { item ->
                     WorkspaceRenderedHomeApp(
@@ -127,6 +155,7 @@ object WorkspacePagedHomeMapper {
                     )
                 },
                 widgetPlacements = renderedWidgets,
+                folderPlacements = renderedFolders,
             )
         }
         return WorkspacePagedHomeState.Ready(rendered)

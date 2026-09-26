@@ -1,6 +1,7 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
+import android.os.Process
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,15 +50,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.drawable.toBitmap
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
+import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeSpatialDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
@@ -240,9 +240,29 @@ fun HomePageDots(
     }
 }
 
+private sealed interface PagedHomeVisualItem {
+    val key: String
+    val cellOrder: Int
+
+    data class App(
+        val info: LauncherActivityInfo,
+        override val cellOrder: Int,
+    ) : PagedHomeVisualItem {
+        override val key: String = "app:" + info.workspaceKey()
+    }
+
+    data class Folder(
+        val info: LauncherFolder,
+        override val cellOrder: Int,
+    ) : PagedHomeVisualItem {
+        override val key: String = "folder:" + info.id
+    }
+}
+
 @Composable
 fun ReadOnlyPagedHomeSurface(
     apps: List<LauncherActivityInfo>,
+    folders: List<LauncherFolder>,
     page: WorkspaceRenderedHomePage,
     pages: List<WorkspaceRenderedHomePage>,
     homeColumns: Int,
@@ -255,12 +275,54 @@ fun ReadOnlyPagedHomeSurface(
     onMoveAppToPage: (LauncherActivityInfo, String) -> Unit,
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
+    onRenameFolder: (String, String) -> Unit,
+    onDeleteFolder: (LauncherFolder) -> Unit,
+    onAddAppToFolder: (String, LauncherActivityInfo) -> Unit,
+    onRemoveAppFromFolder: (String, LauncherActivityInfo) -> Unit,
+    onRemoveFolderFromHome: (LauncherFolder) -> Unit,
+    onMoveFolderToPage: (LauncherFolder, String) -> Unit,
     layoutLocked: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
         page.appKeys.mapNotNull(appsByKey::get)
     }
+    val personalApps = remember(apps) {
+        apps.filter { it.user == Process.myUserHandle() }
+    }
+    val personalAppsByKey = remember(personalApps) {
+        personalApps.associateBy { it.workspaceKey() }
+    }
+    val foldersById = remember(folders) { folders.associateBy { it.id } }
+    val pageFolders = remember(foldersById, page.folderPlacements) {
+        page.folderPlacements.mapNotNull { placement ->
+            foldersById[placement.folderId]
+        }
+    }
+    val visualItems = remember(pageApps, pageFolders, page.appPlacements, page.folderPlacements, homeColumns) {
+        val appPlacements = page.appPlacements.associateBy { it.appKey }
+        val folderPlacements = page.folderPlacements.associateBy { it.folderId }
+        buildList<PagedHomeVisualItem> {
+            pageApps.forEachIndexed { index, app ->
+                val placement = appPlacements[app.workspaceKey()]
+                add(PagedHomeVisualItem.App(
+                    app,
+                    if (placement?.cellX != null && placement.cellY != null) {
+                        placement.cellY * homeColumns + placement.cellX
+                    } else 100_000 + index,
+                ))
+            }
+            pageFolders.forEach { folder ->
+                val placement = folderPlacements[folder.id]
+                if (placement != null) add(PagedHomeVisualItem.Folder(
+                    folder,
+                    placement.cellY * homeColumns + placement.cellX,
+                ))
+            }
+        }.sortedWith(compareBy({ it.cellOrder }, { it.key }))
+    }
+    var openedFolderId by remember(page.pageId) { mutableStateOf<String?>(null) }
+    var pickingFolderId by remember(page.pageId) { mutableStateOf<String?>(null) }
     val targetPages = remember(pages, page.pageId) {
         pages.filterNot {
             it.pageId == page.pageId || it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
@@ -302,7 +364,7 @@ fun ReadOnlyPagedHomeSurface(
                 }
             }
 
-            if (pageApps.isEmpty()) {
+            if (visualItems.isEmpty()) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center,
@@ -325,26 +387,86 @@ fun ReadOnlyPagedHomeSurface(
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
                 ) {
-                    items(pageApps, key = { it.workspaceKey() }) { app ->
-                        PagedAppTile(
-                            app = app,
-                            displayLabel = homeLabelOverrides[app.workspaceKey()] ?: app.label.toString(),
-                            homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
-                            showLabel = showLabels,
-                            iconScale = iconScale,
-                            targetPages = targetPages,
-                            layoutLocked = layoutLocked,
-                            onLaunchApp = onLaunchApp,
-                            onSetHomeLabelOverride = { label -> onSetHomeLabelOverride(app, label) },
-                            onRequestUninstall = { onRequestUninstall(app) },
-                            onMoveAppToPage = onMoveAppToPage,
-                            onMoveAppWithinPage = onMoveAppWithinPage,
-                            onMoveAppOneCell = onMoveAppOneCell,
-                        )
+                    items(visualItems, key = { it.key }) { entry ->
+                        when (entry) {
+                            is PagedHomeVisualItem.App -> {
+                                val app = entry.info
+                                PagedAppTile(
+                                    app = app,
+                                    displayLabel = homeLabelOverrides[app.workspaceKey()]
+                                        ?: app.label.toString(),
+                                    homeLabelOverride = homeLabelOverrides[app.workspaceKey()],
+                                    showLabel = showLabels,
+                                    iconScale = iconScale,
+                                    targetPages = targetPages,
+                                    layoutLocked = layoutLocked,
+                                    onLaunchApp = onLaunchApp,
+                                    onSetHomeLabelOverride = { label ->
+                                        onSetHomeLabelOverride(app, label)
+                                    },
+                                    onRequestUninstall = { onRequestUninstall(app) },
+                                    onMoveAppToPage = onMoveAppToPage,
+                                    onMoveAppWithinPage = onMoveAppWithinPage,
+                                    onMoveAppOneCell = onMoveAppOneCell,
+                                )
+                            }
+                            is PagedHomeVisualItem.Folder -> HomeFolderTile(
+                                folder = entry.info,
+                                allApps = personalApps,
+                                showLabel = showLabels,
+                                editMode = false,
+                                onOpen = { openedFolderId = entry.info.id },
+                                modifier = Modifier.fillMaxWidth().height(96.dp),
+                            )
+                        }
                     }
                 }
             }
         }
+        openedFolderId?.let { id -> pageFolders.firstOrNull { it.id == id } }
+            ?.let { folder ->
+                LauncherFolderContentsSheet(
+                    folder = folder,
+                    appsByKey = personalAppsByKey,
+                    isOnHome = true,
+                    onLaunchApp = onLaunchApp,
+                    onRemoveApp = { app -> onRemoveAppFromFolder(folder.id, app) },
+                    onAddApps = {
+                        openedFolderId = null
+                        pickingFolderId = folder.id
+                    },
+                    onRename = { name -> onRenameFolder(folder.id, name) },
+                    onAddToHome = {},
+                    onRemoveFromHome = {
+                        openedFolderId = null
+                        onRemoveFolderFromHome(folder)
+                    },
+                    moveTargets = pages.filter { candidate ->
+                        candidate.folderPlacements.none { it.folderId == folder.id }
+                    },
+                    onMoveToPage = { destination ->
+                        openedFolderId = null
+                        onMoveFolderToPage(folder, destination)
+                    },
+                    onDelete = {
+                        openedFolderId = null
+                        onDeleteFolder(folder)
+                    },
+                    onDismiss = { openedFolderId = null },
+                )
+            }
+        pickingFolderId?.let { id -> pageFolders.firstOrNull { it.id == id } }
+            ?.let { folder ->
+                LauncherFolderAppPickerSheet(
+                    folder = folder,
+                    availableApps = personalApps,
+                    onAddApp = { app -> onAddAppToFolder(folder.id, app) },
+                    onDismiss = {
+                        pickingFolderId = null
+                        openedFolderId = folder.id
+                    },
+                )
+            }
     }
 }
 
@@ -365,9 +487,7 @@ private fun PagedAppTile(
     onMoveAppWithinPage: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onMoveAppOneCell: (LauncherActivityInfo, WorkspaceHomeSpatialDirection) -> Unit,
 ) {
-    val icon = remember(app.componentName, app.user) {
-        runCatching { app.getBadgedIcon(0).toBitmap(128, 128).asImageBitmap() }.getOrNull()
-    }
+    val icon = rememberLauncherAppIcon(app)
     var manageOpen by remember(app.componentName, app.user) { mutableStateOf(false) }
 
     Column(
@@ -383,7 +503,9 @@ private fun PagedAppTile(
             Image(
                 bitmap = icon,
                 contentDescription = displayLabel,
-                modifier = Modifier.size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp),
+                modifier = Modifier
+                    .size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp)
+                    .launcherIconMask(),
             )
         } else {
             Surface(

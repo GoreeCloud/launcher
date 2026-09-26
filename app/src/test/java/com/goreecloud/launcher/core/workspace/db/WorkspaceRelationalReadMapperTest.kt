@@ -9,6 +9,42 @@ import org.junit.Test
 
 class WorkspaceRelationalReadMapperTest {
     @Test
+    fun spatialFoldersDoNotPolluteFavoriteProjection() {
+        val pages = WorkspaceLegacyImportMapper.map(
+            favoriteKeys = emptyList(),
+            dockKeys = emptyList(),
+        ).pages
+        val items = listOf(
+            WorkspaceItemEntity(
+                itemId = "legacy:home:app-a",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                itemType = WorkspaceItemType.APP,
+                appKey = "app-a",
+                rank = 0,
+                cellX = 0,
+                cellY = 0,
+            ),
+            WorkspaceItemEntity(
+                itemId = "folder:home:test",
+                pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                itemType = WorkspaceItemType.FOLDER,
+                appKey = "folder-id",
+                rank = 1,
+                cellX = 1,
+                cellY = 0,
+            ),
+        )
+
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf("app-a"),
+                dockKeys = emptyList(),
+            ),
+            WorkspaceRelationalReadMapper.map(pages, items),
+        )
+    }
+
+    @Test
     fun canonicalRowsReconstructFavoriteAndDockOrder() {
         val expected = WorkspaceLegacyImportMapper.map(
             favoriteKeys = listOf("profile:alpha", "profile:beta"),

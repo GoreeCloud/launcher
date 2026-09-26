@@ -404,6 +404,64 @@ abstract class WorkspaceDao {
         return true
     }
 
+    /**
+     * Folder-only add/remove variant of the full HOME compare-and-swap.
+     *
+     * The regular HOME placement method requires an identical set of item IDs and is
+     * deliberately not valid for adding or deleting a folder. This narrow variant
+     * permits exactly one added OR removed folder identity, never an app/widget,
+     * while comparing every page and item inside the same Room transaction.
+     */
+    @Transaction
+    open suspend fun replaceHomeItemsIncludingFolderIdentityChangesIfSnapshotMatches(
+        expectedPages: List<WorkspacePageEntity>,
+        expectedItems: List<WorkspaceItemEntity>,
+        updatedItems: List<WorkspaceItemEntity>,
+    ): Boolean {
+        if (expectedPages.isEmpty()) return false
+        val currentPages = readPagesByContainer(WorkspaceContainerType.HOME)
+        if (currentPages != expectedPages ||
+            currentPages.first().pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID ||
+            currentPages.map { it.rank } != currentPages.indices.toList()
+        ) return false
+
+        val pageIds = currentPages.map { it.pageId }
+        val currentItems = readItems(pageIds).canonicalItems()
+        val expectedCanonical = expectedItems.canonicalItems()
+        val updatedCanonical = updatedItems.canonicalItems()
+        val currentById = currentItems.associateBy { it.itemId }
+        val expectedById = expectedCanonical.associateBy { it.itemId }
+        val updatedById = updatedCanonical.associateBy { it.itemId }
+        if (
+            currentById.size != currentItems.size ||
+            expectedById.size != expectedCanonical.size ||
+            updatedById.size != updatedCanonical.size ||
+            currentItems != expectedCanonical ||
+            updatedCanonical.any { it.pageId !in pageIds }
+        ) return false
+
+        val added = updatedById.keys - expectedById.keys
+        val removed = expectedById.keys - updatedById.keys
+        if (
+            !((added.size == 1 && removed.isEmpty()) ||
+                (removed.size == 1 && added.isEmpty())) ||
+            added.any { updatedById[it]?.itemType != WorkspaceItemType.FOLDER } ||
+            removed.any { expectedById[it]?.itemType != WorkspaceItemType.FOLDER }
+        ) return false
+        if (
+            updatedCanonical.groupBy { it.pageId }.values.any { pageItems ->
+                pageItems.map { it.rank }.sorted() != pageItems.indices.toList()
+            }
+        ) return false
+
+        deleteItemsByPages(pageIds)
+        if (updatedCanonical.isNotEmpty()) upsertItems(updatedCanonical)
+        check(readItems(pageIds).canonicalItems() == updatedCanonical) {
+            "HOME folder identity-changing replacement readback verification failed"
+        }
+        return true
+    }
+
     private suspend fun planPortableHomePlacementsUnsafe(
         snapshot: WorkspacePortableSnapshot.Snapshot,
     ): WorkspacePortableHomeRestoreCommit {

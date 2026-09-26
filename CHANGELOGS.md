@@ -31,6 +31,89 @@ The migrated historical record is stored in these repository-local segments:
 
 The source parser identified 71 meaningful dated or titled historical sections/entries in the legacy changelog material. Those sections were accounted for through the seven normalized segments, including historical roadmap-synchronization events as provenance rather than current governance. PR #198 and later source/governance changes that extend the imported retained chronology are recorded directly below.
 
+## September 26, 2026 — PR #248 incorporates representative-device Launcher feedback
+
+**Change type:** Home suggestions; app-icon reliability; Launcher identity derivative; Universal Search follow-up; Development candidate.
+
+Representative-device testing after Android CI #892 confirmed that the simplified Universal Search entry is materially cleaner while exposing additional Launcher defects and follow-up requirements.
+
+Implemented in the current PR #248 candidate:
+
+- extends the existing local-only usage store with a bounded most-recently-launched app ordering in addition to aggregate launch counts;
+- represents recency only by ordering, without timestamps, dwell time, Android Usage Access, cross-application history, query history, or network telemetry;
+- makes the default Home suggestion view keep up to ten Launcher-recent apps above the Dock, excluding Dock duplicates and filling gaps from saved favorites without mutating persisted workspace placement; suggested-but-unpinned apps are launchable but are not treated as draggable saved favorites; manual Home app edits disable the suggestion mode so user placement takes authority;
+- keeps a bounded process-local stale-while-revalidate icon fallback during package/profile cache invalidation so a previously decoded official icon can remain visible while its replacement is decoded;
+- retries Android's authoritative activity icon when the badged-icon decode path fails, reducing transient/random placeholder presentation without persisting third-party artwork; and
+- recenters/refines the Android adaptive Launcher foreground while preserving the canonical four-tile plus center-accent identity contract and required GoreeCloud color/opacity tokens.
+
+Validation correction:
+
+- intermediate icon revisions were intentionally rejected by `scripts/check_identity.py` when they removed the center accent or canonical identity tokens; those failures remain audit evidence and the guard was not weakened;
+- the identity-valid Search/icon checkpoint `9c18d1af4996b9ebac9bdbf15aabbff62708d8b6` passed Android CI #902 / `36255771493` across all configured lanes before the later live recent-Home integration;
+- a later superseded runtime run exposed that persisted-Home gesture tests were sharing recent-app suggestion state; those tests now clear that local suggestion state before exercising their directly seeded favorite, preserving the product behavior while making the lifecycle tests deterministic. Fresh exact-head validation remains required for the resulting candidate.
+
+Still open:
+
+- issue #252 tracks true inline connected-source results and predictions for Brave Search, Google Drive, Dropbox, Gmail, and other approved providers. The current explicit-handoff model is retained until real provider authorization/API adapters exist; Launcher must not silently transmit typed queries or scrape authenticated provider sessions to imitate inline integration.
+- representative-device verification is still required for live recent-app ordering/hand-off-to-manual-layout behavior, disappearance of random icon placeholders, adaptive-icon visual centering across masks/themed icons, and the broader issue #80 acceptance matrix.
+
+**Lifecycle boundary:** PR #248 remains unmerged Development source. This work does not establish Release Candidate, production, Stable, or representative-device acceptance.
+
+## September 26, 2026 — PR #248 simplifies the Universal Search entry state
+
+**Change type:** Universal Search presentation; Glaze UI progressive disclosure; owner-reported UX refinement; Development candidate.
+
+PR #248 now opens Universal Search in a deliberately minimal idle state. Before typing, the user sees only one refined Glaze search field with the existing leading search glyph, the prompt **“Find anything on your device…”**, and a trailing settings control for Universal Search sources and related controls. The previous idle-state explanatory/status content and separate **Manage sources** row are not rendered.
+
+After the user begins typing, the existing result panel, grouped categories, source-status feedback, and explicit connected-provider handoffs may appear as relevant. Source management remains available through the in-field settings control. Android/system Back returns from source management to Search and closes Search from the primary search state.
+
+The change does not alter provider execution, source enablement, Android permission authority, local-first processing, profile isolation, query retention, or explicit third-party handoff policy. Android runtime coverage now verifies the minimal idle state, the source-settings entry path, and transition to the result panel after typing.
+
+**Lifecycle boundary:** This remains unmerged Development source on draft PR #248. Fresh exact-head CI and representative-device visual, keyboard/IME, TalkBack/Switch Access, large-text, landscape, touch-target, gesture, latency, and privacy acceptance remain required under issue #80.
+
+## September 24, 2026 — PR #248 restores the long-press Uninstall handoff
+
+**Change type:** App actions; Android package management handoff; owner-reported Development defect.
+
+PR #248 restores the long-press **Uninstall** action by declaring Android's normal `REQUEST_DELETE_PACKAGES` capability and routing the action to the package-specific `UNINSTALL_PACKAGE` system flow instead of the generic data-deletion intent. The request still targets only the current Android profile. For Work or other secondary-profile apps, the same action opens Android's profile-specific App Info surface with a clear instruction to use that profile's Uninstall control. If an OEM cannot open the direct uninstall confirmation for a same-profile app, Launcher now also fails soft to Android App Info instead of leaving the action as a dead end.
+
+The Launcher does not silently delete packages. Android remains authoritative for the uninstall confirmation and final package-removal decision. The change adds a testable uninstall-request contract, JVM regression coverage for the action/package URI contract and blank-package rejection, and a manifest validation requirement so the uninstall capability cannot silently disappear.
+
+**Lifecycle boundary:** This remains Development source. Exact-head CI and representative-device confirmation that Android's uninstall confirmation opens, cancel preserves the app, confirm removes an ordinary uninstallable app, and restricted/system/profile cases fail safely remain required under issue #80.
+
+## September 24, 2026 — PR #248 wallpaper-picker accessibility semantics
+
+**Change type:** Accessibility; wallpaper selection; Glaze UI interaction semantics; Development stabilization.
+
+PR #248 now exposes each built-in wallpaper choice as an explicit single-selection radio option instead of a generic clickable surface. The picker and collection titles are also exposed as accessibility headings, while the visual cards remain the same Launcher-owned preview and apply flow.
+
+This is a presentation/accessibility correction only. It adds no Android permission, network behavior, telemetry, wallpaper mutation before the existing explicit **Apply** action, or new product authority.
+
+**Lifecycle boundary:** This source remains Development. Exact-head CI, representative-device TalkBack/Switch Access, large-text/landscape input, visual contrast, wallpaper application/recovery, signing, Release Candidate, production, and Stable acceptance remain open under issue #80.
+
+## September 23, 2026 — PR #248 broadened Launcher-owned Home widgets
+
+**Change type:** Home widgets; local-first utilities; user navigation; battery-state presentation; Development candidate.
+
+PR #248 expands the first-party widget catalog beyond clock-centric choices:
+
+- adds a **Universal Search** 4 × 1 widget that opens Launcher-owned Universal Search;
+- adds a **Quick actions** 4 × 2 widget for Apps, Search, Edit Home, and Launcher Settings;
+- adds a **Battery** 2 × 1 widget for local percentage and charging state;
+- retains Date, Digital clock, Compact clock, Analog clock, and Launcher Status;
+- derives the picker from the canonical built-in catalog instead of maintaining a second hardcoded list; and
+- adds JVM regression coverage for utility widget identity, naming, descriptions, and default spans;
+- marks the widget-gallery title and catalog sections as accessibility headings, hides decorative preview glyphs from assistive semantics, and adds stable UI semantics for the unified picker search; and
+- adds Android runtime coverage that opens the widget picker from Edit Home, exercises unified filtering, and verifies that a built-in widget remains an actionable accessibility node without mutating Home.
+
+Privacy/performance boundary:
+
+- no new Android runtime permission, location access, network request, telemetry, query persistence, or third-party data authority is added;
+- Battery listens only to Android's protected battery-state broadcast and unregisters with the widget lifecycle instead of polling; and
+- Search/Quick actions invoke existing Launcher-owned surfaces only.
+
+**Lifecycle boundary:** PR #248 remains Development until its exact final head passes the configured CI lanes and the still-open issue #80 representative-device widget visual/touch/accessibility/resizing, profile/platform, performance, recovery, signing, and release gates are satisfied. This entry does not claim Release Candidate, production, Stable, or physical-device acceptance.
+
 ## September 23, 2026 — PR #240 stabilized selected file Search roots
 
 **Change type:** Universal Search; Storage Access Framework lifecycle; failure isolation; Development stabilization.

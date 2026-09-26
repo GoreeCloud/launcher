@@ -100,6 +100,17 @@ object WorkspacePrimaryHomeGridMigrationPlanner {
                         return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
                     }
                 }
+                WorkspaceItemType.FOLDER -> {
+                    if (
+                        item.appKey.isNullOrBlank() ||
+                        item.cellX == null ||
+                        item.cellY == null ||
+                        item.spanX != 1 ||
+                        item.spanY != 1
+                    ) {
+                        return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
+                    }
+                }
                 else -> return WorkspacePrimaryHomeGridMigrationPlanningResult.InvalidPrimaryItems
             }
         }

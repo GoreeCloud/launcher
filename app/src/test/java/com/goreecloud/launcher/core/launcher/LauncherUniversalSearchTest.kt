@@ -288,6 +288,46 @@ class LauncherUniversalSearchTest {
         )
     }
 
+    @Test
+    fun phoneNumberSearchIgnoresFormattingWithoutMatchingUnrelatedNumbers() {
+        assertEquals(
+            160,
+            LauncherLocalPhoneSearchPolicy.score("Taylor", "+1 (555) 120-2099", "555120"),
+        )
+        assertEquals(
+            300,
+            LauncherLocalPhoneSearchPolicy.score("Taylor Adams", "+1 (555) 120-2099", "tay"),
+        )
+        assertNull(LauncherLocalPhoneSearchPolicy.score("Taylor", "+1 (555) 120-2099", "442288"))
+        assertNull(LauncherLocalPhoneSearchPolicy.score("Taylor", "+1 (555) 120-2099", "tay22"))
+        assertNull(LauncherLocalPhoneSearchPolicy.score("Taylor", "+1 (555) 120-2099", "1"))
+    }
+
+    @Test
+    fun localSourceDiagnosticsDistinguishPermissionRestrictionAndProviderFailure() {
+        val providerId = LauncherMessagesSearchProvider.PROVIDER_ID
+        try {
+            LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.PERMISSION_REQUIRED)
+            assertEquals(
+                LauncherLocalSearchIssue.PERMISSION_REQUIRED,
+                LauncherLocalSearchDiagnostics.issues.value[providerId],
+            )
+            LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.ANDROID_RESTRICTED)
+            assertEquals(
+                LauncherLocalSearchIssue.ANDROID_RESTRICTED,
+                LauncherLocalSearchDiagnostics.issues.value[providerId],
+            )
+            LauncherLocalSearchDiagnostics.record(providerId, LauncherLocalSearchIssue.SOURCE_UNAVAILABLE)
+            assertEquals(
+                LauncherLocalSearchIssue.SOURCE_UNAVAILABLE,
+                LauncherLocalSearchDiagnostics.issues.value[providerId],
+            )
+        } finally {
+            LauncherLocalSearchDiagnostics.record(providerId, null)
+        }
+        assertTrue(providerId !in LauncherLocalSearchDiagnostics.issues.value)
+    }
+
     private fun searchResult(
         providerId: String,
         resultId: String,

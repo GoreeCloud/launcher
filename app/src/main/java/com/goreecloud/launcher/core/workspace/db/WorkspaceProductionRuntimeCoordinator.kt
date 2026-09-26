@@ -78,6 +78,10 @@ class WorkspaceProductionRuntimeCoordinator(
         authorityRepository = authorityRepository,
         workspaceDaoProvider = workspaceDaoProvider,
     )
+    private val folderRepository = WorkspaceFolderRepository(
+        authorityRepository = authorityRepository,
+        workspaceDaoProvider = workspaceDaoProvider,
+    )
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun observePlacement(): Flow<WorkspaceAuthoritativePlacementState> = combine(
@@ -237,6 +241,99 @@ class WorkspaceProductionRuntimeCoordinator(
     ): WorkspaceAuthoritativeWriteResult =
         placementRepository.reorderDockByDrop(key, targetDockKey)
 
+    suspend fun addFolderToHome(
+        itemId: String,
+        folderId: String,
+        columns: Int,
+        rows: Int,
+    ): WorkspaceFolderMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return when (spatial) {
+                WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceFolderMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceFolderMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    WorkspaceFolderMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    WorkspaceFolderMutationResult.Failed(spatial.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved,
+                is WorkspacePrimaryHomeSpatialResult.Ready,
+                -> WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+        }
+        val result = folderRepository.addFolderToHome(
+            itemId = itemId,
+            folderId = folderId,
+            columns = columns,
+            rows = rows,
+        )
+        if (result is WorkspaceFolderMutationResult.Added) refresh()
+        return result
+    }
+
+    suspend fun movePrimaryHomeFolderToCell(
+        folderId: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceFolderMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return when (spatial) {
+                WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceFolderMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceFolderMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    WorkspaceFolderMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    WorkspaceFolderMutationResult.Failed(spatial.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved,
+                is WorkspacePrimaryHomeSpatialResult.Ready ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+        }
+        val result = folderRepository.moveFolderToCell(folderId, columns, rows, cellX, cellY)
+        if (result is WorkspaceFolderMutationResult.Moved) refresh()
+        return result
+    }
+
+    suspend fun moveHomeFolderToPage(
+        folderId: String,
+        targetPageId: String,
+        columns: Int,
+        rows: Int,
+    ): WorkspaceFolderMutationResult {
+        val primaryReady = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (primaryReady !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return when (primaryReady) {
+                WorkspacePrimaryHomeSpatialResult.Reserved -> WorkspaceFolderMutationResult.Reserved
+                WorkspacePrimaryHomeSpatialResult.Unavailable -> WorkspaceFolderMutationResult.Unavailable
+                WorkspacePrimaryHomeSpatialResult.InvalidWorkspace ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+                WorkspacePrimaryHomeSpatialResult.StoredWorkspaceChanged ->
+                    WorkspaceFolderMutationResult.StoredWorkspaceChanged
+                is WorkspacePrimaryHomeSpatialResult.Failed ->
+                    WorkspaceFolderMutationResult.Failed(primaryReady.failureType)
+                is WorkspacePrimaryHomeSpatialResult.Moved,
+                is WorkspacePrimaryHomeSpatialResult.Ready ->
+                    WorkspaceFolderMutationResult.InvalidWorkspace
+            }
+        }
+        val result = folderRepository.moveFolderToPage(folderId, targetPageId, columns, rows)
+        if (result is WorkspaceFolderMutationResult.MovedToPage) refresh()
+        return result
+    }
+
+    suspend fun removeFolderFromHome(folderId: String): WorkspaceFolderMutationResult {
+        val result = folderRepository.removeFolderFromHome(folderId)
+        if (result is WorkspaceFolderMutationResult.Removed) refresh()
+        return result
+    }
+
     suspend fun addBuiltInWidget(
         itemId: String,
         typeId: String,
@@ -286,6 +383,22 @@ class WorkspaceProductionRuntimeCoordinator(
     suspend fun removeWidget(itemId: String): WorkspaceWidgetMutationResult {
         val result = widgetRepository.removeWidget(itemId)
         if (result is WorkspaceWidgetMutationResult.Removed) refresh()
+        return result
+    }
+
+    suspend fun moveWidget(
+        itemId: String,
+        columns: Int,
+        rows: Int,
+        cellX: Int,
+        cellY: Int,
+    ): WorkspaceWidgetMutationResult {
+        val spatial = ensurePrimaryHomeSpatialGrid(columns, rows)
+        if (spatial !is WorkspacePrimaryHomeSpatialResult.Ready) {
+            return spatial.toWidgetMutationResult()
+        }
+        val result = widgetRepository.moveWidget(itemId, columns, rows, cellX, cellY)
+        if (result is WorkspaceWidgetMutationResult.Moved) refresh()
         return result
     }
 

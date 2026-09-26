@@ -68,6 +68,45 @@ class WorkspacePagedHomeMapperTest {
     }
 
     @Test
+    fun mapsHomeFoldersAsSupportedSpatialItems() {
+        val result = WorkspacePagedHomeMapper.map(
+            pages = listOf(
+                WorkspacePageEntity(
+                    WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    WorkspaceContainerType.HOME,
+                    0,
+                ),
+            ),
+            items = listOf(
+                WorkspaceItemEntity(
+                    itemId = "folder:home:1",
+                    pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                    itemType = WorkspaceItemType.FOLDER,
+                    appKey = "folder-id",
+                    rank = 0,
+                    cellX = 2,
+                    cellY = 1,
+                ),
+            ),
+        )
+
+        assertTrue(result is WorkspacePagedHomeState.Ready)
+        val page = (result as WorkspacePagedHomeState.Ready).pages.single()
+        assertEquals(
+            listOf(
+                WorkspaceRenderedHomeFolder(
+                    itemId = "folder:home:1",
+                    folderId = "folder-id",
+                    cellX = 2,
+                    cellY = 1,
+                ),
+            ),
+            page.folderPlacements,
+        )
+        assertEquals(0, page.unsupportedItemCount)
+    }
+
+    @Test
     fun malformedHomeWidgetFailsClosed() {
         val result = WorkspacePagedHomeMapper.map(
             pages = listOf(

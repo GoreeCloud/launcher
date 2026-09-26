@@ -121,6 +121,14 @@ Core Launcher Universal Search must remain functional when GoreeCloud Search and
 
 Android remains authoritative for installed/launchable application identity through `LauncherApps` and the applicable profile/package contracts. Launcher Universal Search must consume authoritative source contracts rather than inventing competing application identity.
 
+### Progressive-disclosure presentation requirement
+
+Opening Universal Search from a Home gesture or other Launcher-owned entry point must begin in a deliberately minimal state. Before the user types, the surface presents only one refined Glaze search field: a search glyph on the left, the prompt **“Find anything on your device…”**, and a settings control on the far right for Universal Search sources and related search settings.
+
+The idle Search surface must not display a redundant **Universal Search** title, explanatory privacy subtitle, category list, source inventory, result placeholder, or management row. Results, categories, provider-status notices, connected-provider handoffs, and other contextual controls may appear only after the query or an explicit user action makes them relevant.
+
+The interaction goal is: **open Search → see one search field → type**. Progressive disclosure must simplify presentation without weakening source consent, profile isolation, local-first execution, explicit connected-provider handoff, permission, privacy, or accessibility requirements.
+
 ### Search as a discovery and action layer
 
 Universal Search is both a discovery surface and an action surface. Depending on source capability and authorization, results may expose actions such as:
