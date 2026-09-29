@@ -1,0 +1,202 @@
+schema_version: "0.4"
+
+component:
+  type: application
+  id: goreecloud-launcher
+  product_name: GoreeCloud Launcher
+  repository: GoreeCloud/launcher
+
+lifecycle: development
+version: "0.1.0-dev"
+
+supported_platforms:
+  - android
+
+api:
+  versions: []
+  endpoints: []
+
+platform_systems:
+  manager:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+    notes: Canonical Mesh registration and accepted GoreeCloud Manager platform visibility are not established for Launcher.
+  privacy_shield:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - docs/development/workspace-portable-snapshot.md
+      - docs/development/launcher-portable-preferences.md
+      - docs/development/portable-restore-coordinator.md
+      - docs/development/portable-restore-preview.md
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournal.kt
+    notes: Launcher is local-first and the current portable codecs, pair-compatibility validation, reviewed-apply guard, bounded persistence path, and private device-local interruption journal remain privacy-minimized. The recovery journal is not part of either portable export format and adds no account, network, telemetry, or cross-device authority. Accepted Privacy Shield integration and production privacy validation are not established.
+  wardveil_security:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournal.kt
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreRecoveryCoordinator.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprint.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+      - app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournalTest.kt
+      - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
+      - docs/development/portable-restore-coordinator.md
+      - docs/development/portable-restore-preview.md
+    notes: Launcher restore validation fails closed on incompatible payloads and unsupported target identity state. Exact-state planning refuses a workspace changed before apply, recovery fingerprints include device/profile-resolved appKey and all persisted placement fields, journal integrity is validated, third states are not overwritten, and failed rollback preserves recovery evidence. Accepted Wardveil Security integration and production validation are not established.
+  everkeep:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournal.kt
+      - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreRecoveryCoordinator.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprint.kt
+      - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+      - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
+      - docs/development/workspace-portable-snapshot.md
+      - docs/development/launcher-portable-preferences.md
+      - docs/development/portable-restore-coordinator.md
+      - docs/development/portable-restore-preview.md
+    notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
+  glaze_ui:
+    result: applicable-blocked
+    version: "1.6.0"
+    evidence:
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeV16PresentationPolicy.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeAtmosphere.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeTheme.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalog.kt
+      - app/src/main/java/com/goreecloud/launcher/ui/theme/ThemeManagerSurface.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeMetricsContractTest.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeV16PresentationPolicyTest.kt
+      - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
+      - scripts/check_glaze_ui.py
+      - docs/glaze-ui-adoption.md
+    notes: Authoritative Launcher source maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and implements repository-local presentation policy. Glaze remains applicable-blocked because authoritative runtime accessibility/performance wiring, rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
+  mesh:
+    result: applicable-blocked
+    version: null
+    evidence: []
+    notes: Canonical GoreeCloud Mesh registration, capability publication, producer evidence, and runtime acceptance are not established for Launcher.
+    capabilities: []
+    dependencies: []
+    published_events: []
+    consumed_events: []
+  identity:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+    notes: Core Launcher use is local and does not require an account, but accepted GoreeCloud Identity integration for future identity-aware or synchronized capabilities is not established. Current appKey values are device/profile-resolved runtime keys and are not treated as portable cross-device identities.
+  policy:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - goreecloud.platform.yaml
+    notes: GoreeCloud Policy is applicable to Launcher policy representation, administrative restrictions, privacy/security decisions, and evidence boundaries, but no accepted Launcher runtime Policy evaluation, distribution, enforcement-coordination, explanation, freshness, exception, or production acceptance exists.
+  observability:
+    result: applicable-blocked
+    version: null
+    evidence:
+      - README.md
+      - goreecloud.platform.yaml
+    notes: Launcher has Android-local Development behavior and CI evidence, but accepted GoreeCloud Observability health, metrics, events, diagnostics, performance/power, dependency-health, provenance/freshness, alerting, collection-gap, and representative-device runtime acceptance are not established.
+
+health:
+  health_endpoint: null
+  readiness_endpoint: null
+
+continuity:
+  backup:
+    required: true
+    requirements:
+      - Define the approved Launcher-owned backup scope beyond the current workspace-placement and explicit-preference subsets.
+      - Include only state whose preservation is authorized under applicable Privacy Shield and Everkeep requirements.
+  restore:
+    required: true
+    requirements:
+      - Preserve strict validation of both current portable formats before either read-only preview or the combined LauncherPortableRestoreWriter path proceeds.
+      - Reject a combined pair before preview or persistence when workspace grid columns/rows do not exactly match the portable Home-grid preference columns/rows.
+      - Keep preview output limited to aggregate workspace geometry/counts plus the seven reviewed preference values and opaque review token, without page/item identities, package/profile state, widget bindings, or persistence authority.
+      - Preserve the concrete writer's exact-state planning, durable pre-Room recovery journal, guarded Room apply, atomic target-preference-plus-journal finalization, readback verification, and fail-closed rollback/journal-preservation semantics without representing Room and DataStore as one physical crash-atomic transaction.
+      - Preserve explicit interrupted-state reconciliation for journal-only, Room-applied/preferences-old, and already-applied states; keep corrupt or third states RecoveryRequired without overwrite.
+      - Keep the current workspace restore limited to the exact already-resolved HOME APP identity set; do not invent package/profile/folder/shortcut/widget rebinding from a format that does not carry those identities.
+      - Define and validate clean-target Android package, profile, folder, shortcut, dock, widget, and provider rebinding or deterministic reconstruction behavior before complete restore is claimed.
+      - Establish accepted production startup sequencing for interruption reconciliation, Everkeep integration, representative-device failure/recovery acceptance, and production recovery evidence before recovery qualification.
+  export:
+    required: true
+    requirements:
+      - Preserve the existing goreecloud-launcher-workspace-snapshot/1 and goreecloud-launcher-preferences/1 Development formats without silently widening their authority.
+      - Keep the private portable-restore recovery journal out of portable output and synchronization.
+      - Keep package discovery, profile identity, widget bindings, hidden-app state, credentials, and unrelated system state out of portable output unless separately approved.
+  portability:
+    required: true
+    requirements:
+      - Preserve workspace ordering, placement integrity, and the explicit Launcher preference values represented by the current versioned codecs.
+      - Require pair-level Home-grid consistency whenever the two current formats are treated as one restore candidate.
+      - Preserve review/apply consistency when a user-facing preview precedes persistence.
+      - Keep clean-target/cross-device identity reconstruction fail-closed until a separately approved format and rebinding policy can express the necessary Android identities.
+      - Validate complete product scope, clean-target import or deterministic reconstruction, and conflict behavior before product-wide portability is claimed.
+
+external_dependencies:
+  - name: Android platform
+    purpose: Android HOME role, LauncherApps discovery, package/profile lifecycle, wallpaper presentation, accessibility services, and application execution environment.
+    required: true
+    version_constraint: ">=29"
+
+compatibility:
+  platform_contract: "0.4"
+  glaze_ui_required: "1.6.0"
+  requires:
+    - goreecloud-platform-contract==0.4
+    - glaze-ui==1.6.0
+    - android-api>=29
+  provides:
+    - goreecloud-launcher-workspace-snapshot/1
+    - goreecloud-launcher-preferences/1
+
+evidence:
+  acceptance_tests: []
+  release: []
+
+conformance:
+  status: nonconformant
+  validated_at: null
+  evidence:
+    - README.md
+    - SPECIFICATIONS.md
+    - docs/glaze-ui-adoption.md
+    - scripts/check_glaze_ui.py
+    - docs/development/workspace-portable-snapshot.md
+    - docs/development/launcher-portable-preferences.md
+    - docs/development/portable-restore-coordinator.md
+    - docs/development/portable-restore-preview.md
+    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherTransactionalPortableRestoreWriter.kt
+    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournal.kt
+    - app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreRecoveryCoordinator.kt
+    - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprint.kt
+    - app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceDao.kt
+    - app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreJournalTest.kt
+    - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
+    - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
+  blockers:
+    - "Launcher source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but consumer acceptance remains blocked: authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete."
+    - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
+    - Wardveil Security integration and acceptance are not established.
+    - Privacy Shield integration and acceptance are not established.
+    - Everkeep integration plus complete Launcher backup and clean-target restore acceptance remain incomplete. Bounded same-resolved-identity interruption journaling/reconciliation now exists in Development source, but production startup sequencing, cross-device identity reconstruction, complete recovery scope, representative-device failure injection, and production recovery acceptance remain outstanding.
+    - GoreeCloud Mesh registration, capability publication, and runtime acceptance are not established.
+    - Manager platform visibility and administrative integration acceptance are not established.
+    - GoreeCloud Policy runtime evaluation, enforcement-coordination, explanation, freshness, exception, and evidence integration/acceptance are not established.
+    - GoreeCloud Observability health, metrics, events, diagnostics, performance/power, dependency-health, provenance/freshness, alerting, collection-gap, and representative-device runtime acceptance are not established.
+    - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
+    - Signed representative-device HOME-role, lifecycle, accessibility, restore, rollback, upgrade, and release-candidate acceptance remain outstanding.
+    - Production signing, distribution, deployment, release approval, and Stable qualification remain outstanding.

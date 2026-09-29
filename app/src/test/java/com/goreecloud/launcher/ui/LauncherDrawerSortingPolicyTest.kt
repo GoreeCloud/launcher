@@ -1,0 +1,155 @@
+package com.goreecloud.launcher.ui
+
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class LauncherDrawerSortingPolicyTest {
+    private data class Entry(val label: String, val stableKey: String)
+
+    @Test
+    fun appsAndFoldersInterleaveAlphabeticallyWithoutEmptyGridSlots() {
+        val entries = listOf(
+            Entry("Camera", "app:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Zebra", "app:zebra"),
+            Entry("Calculator", "app:calculator"),
+            Entry("Media", "folder:media"),
+        )
+        val sorted = LauncherDrawerSortingPolicy.order(entries, { it.label }, { it.stableKey })
+        assertEquals(
+            listOf("folder:banking", "app:calculator", "app:camera", "folder:media", "app:zebra"),
+            sorted.map { it.stableKey },
+        )
+        assertEquals(entries.size, sorted.size)
+    }
+
+    @Test
+    fun caseFoldAndStableKeysMakeTiesDeterministic() {
+        val entries = listOf(
+            Entry("Camera", "folder:camera"),
+            Entry("camera", "app:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("CAMERA", "app:camera-2"),
+        )
+        val sorted = LauncherDrawerSortingPolicy.order(entries, { it.label }, { it.stableKey })
+        assertEquals(
+            listOf("folder:banking", "app:camera", "app:camera-2", "folder:camera"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
+    fun canonicallyEquivalentUnicodeLabelsShareStableAppFolderTieBreaks() {
+        val entries = listOf(
+            Entry("Caf\u00e9", "folder:cafe"),
+            Entry("Camera", "app:camera"),
+            Entry("Cafe\u0301", "app:cafe"),
+        )
+        val expected = listOf("app:cafe", "folder:cafe", "app:camera")
+        val labelsFirst = LauncherDrawerSortingPolicy.order(entries, { it.label }, { it.stableKey })
+        val keysFirst = LauncherDrawerSortingPolicy.order(entries.reversed(), { it.label }, { it.stableKey })
+        assertEquals(expected, labelsFirst.map { it.stableKey })
+        assertEquals(expected, keysFirst.map { it.stableKey })
+    }
+
+    @Test
+    fun reverseAlphabeticalKeepsEquivalentLabelTieBreaksStable() {
+        val entries = listOf(
+            Entry("Alpha", "folder:alpha"),
+            Entry("Zulu", "app:zulu"),
+            Entry("alpha", "app:alpha"),
+            Entry("Media", "folder:media"),
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.REVERSE_ALPHABETICAL,
+        )
+
+        assertEquals(
+            listOf("app:zulu", "folder:media", "app:alpha", "folder:alpha"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
+    fun gridGeometryKeepsIconAndLabelSlotsFixedAcrossSpacingModes() {
+        val grid = LauncherDrawerSpacing.entries.map { spacing ->
+            LauncherDrawerGridPolicy.geometry(compact = false, spacing = spacing)
+        }
+        val compact = LauncherDrawerSpacing.entries.map { spacing ->
+            LauncherDrawerGridPolicy.geometry(compact = true, spacing = spacing)
+        }
+
+        assertEquals(
+            setOf(LauncherDrawerGridPolicy.ICON_SLOT_HEIGHT_DP),
+            (grid + compact).map { it.iconSlotHeightDp }.toSet(),
+        )
+        assertEquals(
+            setOf(LauncherDrawerGridPolicy.GRID_LABEL_SLOT_HEIGHT_DP),
+            grid.map { it.labelSlotHeightDp }.toSet(),
+        )
+        assertEquals(
+            setOf(LauncherDrawerGridPolicy.COMPACT_LABEL_SLOT_HEIGHT_DP),
+            compact.map { it.labelSlotHeightDp }.toSet(),
+        )
+    }
+
+    @Test
+    fun gridTileHeightAlwaysFitsReservedIconAndLabelSlots() {
+        LauncherDrawerSpacing.entries.forEach { spacing ->
+            listOf(false, true).forEach { compact ->
+                val geometry = LauncherDrawerGridPolicy.geometry(compact, spacing)
+                val labelGapDp = if (compact) 3 else 4
+                val verticalPaddingDp = 4
+                assertTrue(
+                    geometry.tileHeightDp >=
+                        geometry.iconSlotHeightDp +
+                        geometry.labelSlotHeightDp +
+                        labelGapDp +
+                        verticalPaddingDp,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun drawerPageIndicatorKeepsAccessibleTargetWithSmallVisualDots() {
+        assertTrue(
+            LauncherDrawerPageIndicatorPolicy.TOUCH_TARGET_DP >= 48,
+        )
+        assertEquals(
+            8,
+            LauncherDrawerPageIndicatorPolicy.visualSizeDp(selected = true),
+        )
+        assertEquals(
+            6,
+            LauncherDrawerPageIndicatorPolicy.visualSizeDp(selected = false),
+        )
+        assertTrue(
+            LauncherDrawerPageIndicatorPolicy.SELECTED_VISUAL_DP <
+                LauncherDrawerPageIndicatorPolicy.TOUCH_TARGET_DP,
+        )
+        assertTrue(
+            LauncherDrawerPageIndicatorPolicy.IDLE_VISUAL_DP <
+                LauncherDrawerPageIndicatorPolicy.TOUCH_TARGET_DP,
+        )
+    }
+
+    @Test
+    fun emptyAndSingleEntryListsDoNotRequireScaffolding() {
+        assertEquals(
+            emptyList<Entry>(),
+            LauncherDrawerSortingPolicy.order(emptyList<Entry>(), { it.label }, { it.stableKey }),
+        )
+        val lone = Entry("Banking", "folder:banking")
+        assertEquals(
+            listOf(lone),
+            LauncherDrawerSortingPolicy.order(listOf(lone), { it.label }, { it.stableKey }),
+        )
+    }
+}
