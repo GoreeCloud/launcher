@@ -1,5 +1,12 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 29, 2026 — legacy Room 3.0.2 reconciliation candidate
+
+Legacy Launcher PR #79 upgraded the Room 3 Gradle plugin, runtime, and compiler from 3.0.1 to 3.0.2, but that dependency delta was absent from the mandatory cutover tree. This candidate restores only that version change against the current Launcher source.
+
+The change does not alter Room schema authority, migration definitions, workspace behavior, backup/restore scope, or lifecycle state. Exact-head build, unit, lint, schema, and Android runtime validation remain required before integration.
+
+
 ## September 29, 2026 — Home horizontal-swipe arbitration correction
 
 The Home page gesture arbiter no longer permanently abandons a clear horizontal page swipe merely because a child Home surface consumed an earlier movement sample for press or long-press bookkeeping. Page selection still requires the existing horizontal-distance and direction-dominance thresholds, is committed only after pointer release so the Home subtree is not replaced mid-gesture, and is disabled whenever an app drag session is active so drag/drop and paging cannot compete for authority.
