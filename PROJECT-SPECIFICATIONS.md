@@ -1,6 +1,6 @@
 # GoreeCloud Launcher — Project Specifications
 
-> **Current repository authority — September 29, 2026:** GoreeCloud Launcher is maintained in `GoreeCloud/android-app-defaults` under `apps/launcher/`. The standalone `GoreeCloud/launcher` repository is historical Git provenance only. The mandatory cutover imported exact Development revision `1eb8dd6d8178f6d730b100559e8f8d149501d18c` and merged into monorepo `main` as `20ca33c7c0c565f361deda206c9c950154dec327`. This repository-location statement supersedes legacy repository or “current candidate” wording preserved below when that wording predates the cutover. Historical legacy PR/commit references remain valid evidence, but new project-specification maintenance belongs here.
+> **Current repository authority — September 29, 2026:** GoreeCloud Launcher is maintained in `GoreeCloud/android-app-defaults` under `apps/launcher/`. The standalone `GoreeCloud/launcher` repository is a temporary legacy source pending final reconciliation and required deletion. The mandatory cutover imported exact Development revision `1eb8dd6d8178f6d730b100559e8f8d149501d18c` and merged into monorepo `main` as `20ca33c7c0c565f361deda206c9c950154dec327`. This repository-location statement supersedes legacy repository or “current candidate” wording preserved below when that wording predates the cutover. Historical legacy PR/commit references remain valid evidence, but new project-specification maintenance belongs here.
 
 
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
