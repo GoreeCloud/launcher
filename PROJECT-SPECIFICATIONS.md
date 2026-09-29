@@ -632,7 +632,7 @@ Configuration:
 - .gitignore: Android / Kotlin / Gradle.
 - Issues: Enabled.
 - Discussions: Optional; initially disabled to reduce maintenance overhead.
-- Wiki: Disabled; documentation belongs in the repository and Google Drive authoritative records.
+- Wiki: Disabled; current authoritative project documentation belongs in this repository. Historical Google Drive project-specification material is migration provenance only.
 - Actions: Enabled.
 - Dependabot/security updates: Enabled where supported.
 - Secret scanning: Enabled where supported.
