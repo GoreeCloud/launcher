@@ -1,5 +1,10 @@
 # GoreeCloud Launcher
 
+> **Repository authority:** Active development is maintained in `GoreeCloud/android-app-defaults` under `apps/launcher/`. The standalone `GoreeCloud/launcher` repository is historical provenance only.
+>
+> **Project governance:** [PROJECT-SPECIFICATIONS.md](PROJECT-SPECIFICATIONS.md) is the canonical project specification and [PROJECT-RECORD.md](PROJECT-RECORD.md) preserves significant history and evidence.
+
+
 GoreeCloud Launcher is GoreeCloud's privacy-first, original Android HOME application and the intended native home, application-navigation, personalization, contextual-access, and Universal Search experience for GoreeCloud devices. Launcher is not a fork or visual clone of another launcher.
 
 ## Status
