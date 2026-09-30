@@ -2,6 +2,7 @@ package com.goreecloud.launcher.ui
 
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import org.junit.Assert.assertEquals
@@ -104,6 +105,50 @@ class HomePageManagerPolicyTest {
                 page = secondary,
                 pages = listOf(secondary, primary),
                 layoutLocked = false,
+            ),
+        )
+    }
+
+    @Test
+    fun firstComposedHomePageSnapsWithoutEntryAnimation() {
+        assertFalse(
+            shouldAnimateHomePageEntry(
+                hasRendered = false,
+                previousTransitionKey = "home:0",
+                transitionKey = "home:secondary",
+                transition = LauncherHomePageTransition.SLIDE,
+            ),
+        )
+    }
+
+    @Test
+    fun actualPageKeyChangeStillUsesConfiguredTransition() {
+        assertTrue(
+            shouldAnimateHomePageEntry(
+                hasRendered = true,
+                previousTransitionKey = "home:secondary",
+                transitionKey = "home:tertiary",
+                transition = LauncherHomePageTransition.SLIDE,
+            ),
+        )
+    }
+
+    @Test
+    fun transitionPreferenceChangeDoesNotReplayCurrentPageEntry() {
+        assertFalse(
+            shouldAnimateHomePageEntry(
+                hasRendered = true,
+                previousTransitionKey = "home:secondary",
+                transitionKey = "home:secondary",
+                transition = LauncherHomePageTransition.FADE,
+            ),
+        )
+        assertFalse(
+            shouldAnimateHomePageEntry(
+                hasRendered = true,
+                previousTransitionKey = "home:secondary",
+                transitionKey = "home:tertiary",
+                transition = LauncherHomePageTransition.NONE,
             ),
         )
     }

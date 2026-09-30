@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — remove redundant first-composition Home page animation
+
+The multi-page Home path no longer starts a fresh 180–220 ms Slide/Fade/Zoom entrance animation merely because the Activity has switched between the Primary Launcher root and a newly composed secondary Home surface. A newly composed page now starts at its settled visual state.
+
+Configured Home transition styles are preserved for a real page-key change inside an already-composed page surface. Focused JVM policy coverage locks first-composition snap, real key-change animation, and no replay when only the transition preference changes.
+
+This is intentionally a bounded latency mitigation. It does not yet replace the Primary↔secondary whole-subtree swap with a follow-finger pager, and it does not establish representative-device frame-time, jank, input-latency, power, accessibility, or form-factor acceptance.
+
+**Acceptance boundary:** Development candidate; fresh exact-head CI is required before integration.
+
+
 ## September 30, 2026 — movable Universal Search Home surface
 
 Launcher Settings now exposes four explicit Home Search presentations: **Swipe down**, **Movable**, fixed **Top**, and fixed **Bottom**. Swipe down remains the default and fail-safe behavior.
@@ -10,7 +21,7 @@ Fixed Top/Bottom Search continues to use the existing Glass/Clear/Solid bar pres
 
 This tranche builds on merged post-consolidation stabilization: PR #103 drawer/Home interactions, PR #104 exact-profile Work folders, and PR #105 bounded confirmation of transient active-profile inventory losses.
 
-**Acceptance boundary:** Development candidate. Fresh exact-head CI is required before integration. Representative-device movable/fixed Search placement, Home-space fallback/retry, accessibility, large text, form factors, gesture coexistence, jank, and power acceptance remain open.
+**Acceptance boundary:** PR #106 is merged after exact-head Development validation. Representative-device movable/fixed Search placement, Home-space fallback/retry, accessibility, large text, form factors, gesture coexistence, jank, and power acceptance remain open.
 
 
 ## September 30, 2026 — App Drawer and Home interaction stabilization

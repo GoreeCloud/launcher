@@ -2,17 +2,17 @@
 
 ## September 30, 2026 interaction-stabilization continuation
 
-Merged PRs #103–#105 now cover the current mainline drawer/Home/profile stability tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, and bounded confirmation before publishing suspicious inventory loss from a still-active Android profile.
+Merged PRs #103–#106 now cover the current mainline drawer/Home/profile/Search stabilization tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, bounded confirmation before publishing suspicious inventory loss from a still-active Android profile, and genuine **Movable** Universal Search backed by the existing Room 4 × 1 Search widget.
 
-The current Development branch additionally implements a genuine **Movable** Universal Search Home mode by managing the existing Room-backed 4 × 1 Search widget. Fixed **Top** and **Bottom** bars remain available, **Swipe down** remains the new-install/default mode, and a bottom-bar fallback remains visible when the movable widget cannot yet fit. Fresh exact-head validation is required before this branch can be integrated.
+The current Development performance branch removes one known avoidable delay: a Home page surface that is being composed for the first time no longer replays the configured 180–220 ms Slide/Fade/Zoom entry animation after the Activity-level Primary↔secondary surface switch. Configured page transitions remain available for actual page-key changes within an already-composed surface. Fresh exact-head validation is required before this mitigation can be integrated.
 
-Still open after source integration: representative-device verification that User/Work inventories remain complete through package/profile churn, physical-device Home/App Drawer jank and frame pacing, movable/fixed Search accessibility and large-text/form-factor behavior, widget visual acceptance, connected-source acceptance, recovery/update continuity, and release qualification.
+Still open after this bounded mitigation: replace or amortize the Primary↔secondary whole-subtree swap with a mature follow-finger paging model while preserving one Room workspace authority; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Runtime source baseline:** `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240 merged September 23, 2026). Repository-native feature records were reconciled after that runtime merge through PR #241.  
+**Current authoritative main:** `98c32e15353894fc21180f2ffca519273ecf9885` after merged PR #106. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose
@@ -33,7 +33,7 @@ PR #201 merged the replacement feature records and retired `FEATURE-ROADMAP.md` 
 
 The former roadmap synchronization obligation (`GOV-01`) is superseded by the September 22, 2026 repository-native standard. Google Drive is no longer a permitted active, mirrored, backup, convenience, or historical-shadow roadmap authority.
 
-## Current unmerged integration candidate
+## Historical standalone integration candidate (superseded by monorepo consolidation)
 
 Draft PR #248 remains the direct-to-`main` Development integration candidate and remains Draft/unmerged. The candidate preserves the owner-feedback Glance/system-bar, folder, Search, Dock, drawer, page-management, icon-reliability, and onboarding work while continuing active representative-device stabilization. Ordinary Home page dots use a compact presentation with page-context semantics; Home Search, optional quick actions, the persistent/adaptive Dock, refreshed folder surfaces, Launcher-owned built-in widgets, unavailable-widget fallback, and the **Add apps** picker share the GLAZE UI V1.6 presentation-policy direction. Larger folders use bounded compact pages with a grid-integrated Add tile and overflow fallback; the picker remains adaptive under larger text. The first-use wizard and replayable Home hint explain exact App Drawer placement, direct Home-widget movement, movable Glance, folder behavior, connected-Search opt-in, and the two current Settings routes. Current owner feedback also drives a searchable Launcher Settings category home with original line icons, a direct default-HOME status banner, and compact App Drawer sort/new-folder/Settings header actions. The Settings organization uses mature launcher information architecture only as reference while retaining GoreeCloud-owned source and Glaze presentation. Fresh starter workspaces seed movable Glance only when Room placement succeeds; upgraded workspaces are not mutated in the background and an older fixed clock/date card converts only after an explicit long-press while Home is unlocked and has room.
 
