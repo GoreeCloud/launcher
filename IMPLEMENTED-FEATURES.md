@@ -1,5 +1,14 @@
 # GoreeCloud Launcher — Implemented Features
 
+## September 30, 2026 — compact app context menu and HOME resume stabilization
+
+- The primary app long-press experience now stays on one compact Glaze context menu; the redundant **More options** handoff and legacy `AppPlacementDialog` are removed.
+- Home-origin app contexts expose **Remove**. Saved Home apps use the existing Home-placement toggle, while automatic Recent/Most-used suggestions can be suppressed locally without uninstalling the application or removing it from Apps.
+- Android HOME re-entry dismisses full-screen Edit Home/widget-picker state and returns to the primary Home surface.
+- Core application inventory, Launcher preferences, and authoritative workspace snapshots no longer render first-run placeholder defaults while their stores are still loading, and resume no longer forces full inventory/workspace reinitialization. This removes the intentional sources of the reported onboarding flash and Home icon/widget reload.
+- Focused preference coverage verifies that automatic-suggestion suppression persists independently of the configured automatic Home mode.
+
+**Acceptance boundary:** Development source on PR #99. Exact-head CI and representative physical-device return-to-Home/context-menu/accessibility validation remain open; these changes do not establish Release Candidate, production, or Stable acceptance.
 ## September 28, 2026 — accessible App Drawer page indicators
 
 Paged App Drawer layouts now keep the existing restrained **6/8 dp** visual dots inside explicit **48 dp** interaction surfaces. Each page target exposes a stable test tag plus a page-position accessibility label and selected state while preserving the compact Glaze visual treatment. Focused policy coverage locks the interaction floor separately from the visual-dot geometry.

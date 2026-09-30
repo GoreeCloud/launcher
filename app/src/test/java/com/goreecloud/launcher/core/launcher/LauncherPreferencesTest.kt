@@ -62,6 +62,31 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun hiddenHomeSuggestionsPersistIndependentlyFromManualPlacementPreferences() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("hidden-home-suggestions.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            val first = "0:com.example/.One"
+            val second = "0:com.example/.Two"
+
+            repository.setHomeSuggestionHidden(first, true).join()
+            repository.setHomeSuggestionHidden(second, true).join()
+            assertEquals(setOf(first, second), repository.hiddenHomeSuggestionKeys.first())
+
+            repository.setHomeSuggestionHidden(first, false).join()
+            assertEquals(setOf(second), repository.hiddenHomeSuggestionKeys.first())
+            assertEquals(LauncherHomeAppMode.NONE, repository.experiencePreferences.first().homeAppMode)
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun replayStartupWizardReopensSetupWithoutResettingConfiguration() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

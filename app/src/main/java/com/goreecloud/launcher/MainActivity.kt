@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -87,6 +88,7 @@ import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreRecoveryCoordinator
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupGate
 import com.goreecloud.launcher.core.launcher.LauncherPortableRestoreStartupSequence
+import com.goreecloud.launcher.core.launcher.LauncherPreferences
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderControlState
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult
@@ -390,21 +392,49 @@ class MainActivity : ComponentActivity() {
                 return@setContent
             }
 
-            val apps by appsRepository.apps.collectAsStateWithLifecycle(initialValue = emptyList())
+            val appsState by produceState<List<LauncherActivityInfo>?>(initialValue = null) {
+                appsRepository.apps.collect { value = it }
+            }
+            val launcherPreferencesState by produceState<LauncherPreferences?>(initialValue = null) {
+                launcherPreferencesRepository.preferences.collect { value = it }
+            }
+            val experiencePreferencesState by produceState<LauncherExperiencePreferences?>(initialValue = null) {
+                launcherPreferencesRepository.experiencePreferences.collect { value = it }
+            }
+            val placementState by produceState<WorkspaceAuthoritativePlacementState?>(initialValue = null) {
+                workspaceRuntimeCoordinator.observePlacement().collect { value = it }
+            }
+            val pagedHomeState by produceState<WorkspacePagedHomeState?>(initialValue = null) {
+                workspaceRuntimeCoordinator.observeHomePages().collect { value = it }
+            }
+
+            if (
+                appsState == null ||
+                launcherPreferencesState == null ||
+                experiencePreferencesState == null ||
+                placementState == null ||
+                pagedHomeState == null
+            ) {
+                GlazeTheme(themeMode) {
+                    Box(Modifier.fillMaxSize())
+                }
+                return@setContent
+            }
+
+            val apps = appsState!!
+            val launcherPreferences = launcherPreferencesState!!
+            val experiencePreferences = experiencePreferencesState!!
+            val placement = placementState!!
+            val pagedHome = pagedHomeState!!
+
             val availableAndroidWidgets = remember(apps) {
                 appWidgetHostController.installedProviders()
             }
             val availableIconPacks = remember(apps) {
                 LauncherIconPackRepository(this@MainActivity).discover()
             }
-            val launcherPreferences by launcherPreferencesRepository.preferences.collectAsStateWithLifecycle(
-                initialValue = launcherPreferencesRepository.defaults,
-            )
             val drawerLayoutMode by launcherPreferencesRepository.drawerLayoutMode.collectAsStateWithLifecycle(
                 initialValue = LauncherDrawerLayoutMode.GRID,
-            )
-            val experiencePreferences by launcherPreferencesRepository.experiencePreferences.collectAsStateWithLifecycle(
-                initialValue = LauncherExperiencePreferences(),
             )
             val visualPreferencesRepository = remember {
                 LauncherVisualPreferencesRepository(applicationContext)
@@ -425,14 +455,11 @@ class MainActivity : ComponentActivity() {
             val homeLabelOverrides by launcherPreferencesRepository.homeLabelOverrides.collectAsStateWithLifecycle(
                 initialValue = emptyMap(),
             )
+            val hiddenHomeSuggestionKeys by launcherPreferencesRepository.hiddenHomeSuggestionKeys.collectAsStateWithLifecycle(
+                initialValue = emptySet(),
+            )
             val folders by folderRepository.folders.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
-            )
-            val placement by workspaceRuntimeCoordinator.observePlacement().collectAsStateWithLifecycle(
-                initialValue = WorkspaceAuthoritativePlacementState.WaitingForInitialization
-            )
-            val pagedHome by workspaceRuntimeCoordinator.observeHomePages().collectAsStateWithLifecycle(
-                initialValue = WorkspacePagedHomeState.WaitingForRoom
             )
             val isDefaultHome by defaultHomeState.collectAsStateWithLifecycle()
             val homeResetSequenceValue by homeResetSequence.collectAsStateWithLifecycle()
@@ -1148,6 +1175,7 @@ class MainActivity : ComponentActivity() {
                             homePageTransition = visualPreferences.homePageTransition,
                             recentAppKeys = localRecentAppKeys,
                             localLaunchCounts = localLaunchCounts,
+                            hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
@@ -1544,6 +1572,7 @@ class MainActivity : ComponentActivity() {
                             onSetHomeLabelOverride = { app, label ->
                                 launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
                             },
+                            onSetHomeSuggestionHidden = launcherPreferencesRepository::setHomeSuggestionHidden,
                             onRequestUninstall = ::requestUninstall,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->
@@ -1701,19 +1730,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (::appsRepository.isInitialized) {
-            appsRepository.refreshInventory()
-        }
+        // LauncherApps callbacks remain collected for the Activity lifetime, so returning Home must
+        // not force a full inventory rescan that makes icons visibly reload.
         LauncherNotificationBadges.refreshAccess(this)
         refreshHomeRoleState()
-        if (
-            ::workspaceRuntimeCoordinator.isInitialized &&
-            LauncherPortableRestoreStartupGate.allowsMutations(portableRestoreRecoveryResult.value)
-        ) {
-            lifecycleScope.launch {
-                workspaceRuntimeCoordinator.reconcileAndActivate()
-            }
-        }
+        // Workspace startup reconciliation is performed during initialization and mutation paths.
+        // Re-running it for every HOME resume causes unnecessary Room churn and widget rebind work.
     }
 
     private fun refreshHomeRoleState() {
