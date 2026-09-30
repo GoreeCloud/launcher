@@ -19,6 +19,7 @@ import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
@@ -57,6 +58,26 @@ internal fun launcherInventoryRefreshScope(
     LauncherInventoryChange.PACKAGES_UNAVAILABLE,
     LauncherInventoryChange.PROFILE_TOPOLOGY,
     -> LauncherInventoryRefreshScope.FULL
+}
+
+internal fun <T, U, K> launcherInventoryHasActiveProfileLoss(
+    previous: List<T>,
+    candidate: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+    keyOf: (T) -> K,
+): Boolean {
+    if (previous.isEmpty()) return false
+    val active = activeProfiles.toHashSet()
+    if (active.isEmpty()) return false
+    val candidateKeys = candidate.asSequence()
+        .filter { item -> userOf(item) in active }
+        .map(keyOf)
+        .toHashSet()
+    return previous.asSequence()
+        .filter { item -> userOf(item) in active }
+        .map(keyOf)
+        .any { key -> key !in candidateKeys }
 }
 
 internal enum class LauncherDrawerProfileKind(
@@ -105,6 +126,11 @@ internal fun <T, U> launcherDrawerProfilePages(
     }
 }
 
+private data class LauncherInventoryScan(
+    val apps: List<LauncherActivityInfo>,
+    val activeProfiles: Set<UserHandle>,
+)
+
 private data class LauncherPackageScope(
     val packageName: String,
     val user: UserHandle,
@@ -119,6 +145,10 @@ private sealed interface LauncherInventoryRefreshRequest {
 }
 
 class LauncherAppsRepository(context: Context) {
+    private companion object {
+        const val FULL_REFRESH_CONFIRMATION_DELAY_MS = 250L
+    }
+
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(LauncherApps::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
@@ -151,7 +181,30 @@ class LauncherAppsRepository(context: Context) {
                 }
 
                 if (requiresFullRefresh || !initialized) {
-                    val snapshot = runCatching { loadApps(previous = currentSnapshot) }.getOrNull() ?: continue
+                    val firstScan =
+                        runCatching { loadApps(previous = currentSnapshot) }.getOrNull() ?: continue
+                    var snapshot = firstScan.apps
+                    if (
+                        initialized &&
+                        launcherInventoryHasActiveProfileLoss(
+                            previous = currentSnapshot,
+                            candidate = snapshot,
+                            activeProfiles = firstScan.activeProfiles,
+                            userOf = { app -> app.user },
+                            keyOf = { app ->
+                                "${app.user.hashCode()}:${app.componentName.flattenToString()}"
+                            },
+                        )
+                    ) {
+                        // A single broad + package-scoped scan can still transiently omit apps on
+                        // some OEM/profile transitions. Confirm an active-profile loss before
+                        // publishing it so the drawer does not visibly blank and then repopulate.
+                        delay(FULL_REFRESH_CONFIRMATION_DELAY_MS)
+                        val confirmedScan =
+                            runCatching { loadApps(previous = currentSnapshot) }.getOrNull()
+                                ?: continue
+                        snapshot = confirmedScan.apps
+                    }
                     currentSnapshot = snapshot
                     initialized = true
                     LauncherAppIconCache.preload(snapshot, appContext.packageManager)
@@ -345,8 +398,9 @@ class LauncherAppsRepository(context: Context) {
      */
     private fun loadApps(
         previous: List<LauncherActivityInfo> = emptyList(),
-    ): List<LauncherActivityInfo> {
-        val broadSnapshot = launcherApps.profiles.flatMap { profile ->
+    ): LauncherInventoryScan {
+        val activeProfiles = launcherApps.profiles.toSet()
+        val broadSnapshot = activeProfiles.flatMap { profile ->
             launcherApps.getActivityList(null, profile)
         }
         val recoveryScopes = linkedSetOf<LauncherPackageScope>()
@@ -364,7 +418,10 @@ class LauncherAppsRepository(context: Context) {
             runCatching { launcherApps.getActivityList(scope.packageName, scope.user) }
                 .getOrDefault(emptyList())
         }
-        return normalizeSnapshot(broadSnapshot + recovered)
+        return LauncherInventoryScan(
+            apps = normalizeSnapshot(broadSnapshot + recovered),
+            activeProfiles = activeProfiles,
+        )
     }
 
     @Suppress("DEPRECATION")

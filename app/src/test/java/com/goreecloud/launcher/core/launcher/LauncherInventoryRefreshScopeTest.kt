@@ -1,6 +1,8 @@
 package com.goreecloud.launcher.core.launcher
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LauncherInventoryRefreshScopeTest {
@@ -66,6 +68,67 @@ class LauncherInventoryRefreshScopeTest {
         assertEquals(1, pages.size)
         assertEquals(LauncherDrawerProfileKind.USER, pages.single().kind)
         assertEquals(listOf("Camera", "Memos"), pages.single().items)
+    }
+
+    @Test
+    fun activeProfileLossRequiresConfirmation() {
+        data class Entry(val key: String, val user: String)
+
+        val previous = listOf(
+            Entry("personal", "primary"),
+            Entry("work-mail", "work"),
+            Entry("work-files", "work"),
+        )
+        val candidate = previous.filterNot { it.key == "work-files" }
+
+        assertTrue(
+            launcherInventoryHasActiveProfileLoss(
+                previous = previous,
+                candidate = candidate,
+                activeProfiles = listOf("primary", "work"),
+                userOf = Entry::user,
+                keyOf = Entry::key,
+            ),
+        )
+    }
+
+    @Test
+    fun removedProfileDoesNotTriggerInventoryLossConfirmation() {
+        data class Entry(val key: String, val user: String)
+
+        val previous = listOf(
+            Entry("personal", "primary"),
+            Entry("work-mail", "work"),
+        )
+        val candidate = listOf(Entry("personal", "primary"))
+
+        assertFalse(
+            launcherInventoryHasActiveProfileLoss(
+                previous = previous,
+                candidate = candidate,
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+                keyOf = Entry::key,
+            ),
+        )
+    }
+
+    @Test
+    fun additionsAndStableInventoryDoNotTriggerLossConfirmation() {
+        data class Entry(val key: String, val user: String)
+
+        val previous = listOf(Entry("personal", "primary"))
+        val candidate = previous + Entry("camera", "primary")
+
+        assertFalse(
+            launcherInventoryHasActiveProfileLoss(
+                previous = previous,
+                candidate = candidate,
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+                keyOf = Entry::key,
+            ),
+        )
     }
 
     @Test
