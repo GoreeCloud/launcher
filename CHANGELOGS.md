@@ -1,5 +1,13 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — monorepo Development APK staging restored
+
+The migrated Android workflow now stages and uploads a self-verifying GoreeCloud Launcher Development APK after Launcher validation, unit tests, lint, build, and Room-schema checks pass. CI reads the generated APK back with Android build tools, verifies the Development package identity, versionName, versionCode, and signature, and records exact source/workflow identity plus SHA-256 checksums in the artifact bundle.
+
+Because the monorepo workflow run-number sequence restarted below the retired standalone Launcher workflow, migrated CI assigns Development versionCode `1,000,000 + workflow run number`. This preserves monotonic Android version ordering across the repository cutover instead of producing a numerically older package than previously distributed Development APKs.
+
+The build remains a side-by-side Development artifact with CI-debug signing. It does not establish update-in-place continuity, Release Candidate status, production signing, or Stable qualification. Retained/distributed APKs and their evidence remain subject to canonical GoreeCloud/Artifacts storage and representative-device installation checks.
+
 ## September 30, 2026 — compact app context menu and HOME resume stabilization
 
 The primary app long-press flow no longer hands off through **More options** to the large legacy placement dialog. Home, Dock, app-specific Widgets, App info, folder assignment, shortcuts, and Android's user-confirmed Uninstall handoff remain on the compact Glaze context surface. For an app opened from Home, the first quick action is now **Remove**. Persisted Home apps use the existing Room-authoritative Home-placement removal path; presentation-only Recent/Most-used suggestions instead record a bounded device-local suppression so the icon leaves Home without uninstalling the package or hiding it from Apps.
