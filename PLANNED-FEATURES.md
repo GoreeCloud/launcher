@@ -2,17 +2,17 @@
 
 ## September 30, 2026 interaction-stabilization continuation
 
-Merged PRs #103–#106 now cover the current mainline drawer/Home/profile/Search stabilization tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, bounded confirmation before publishing suspicious inventory loss from a still-active Android profile, and genuine **Movable** Universal Search backed by the existing Room 4 × 1 Search widget.
+Merged PRs #103–#107 now cover the current mainline drawer/Home/profile/Search/performance stabilization tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, bounded confirmation before publishing suspicious inventory loss from a still-active Android profile, genuine **Movable** Universal Search backed by the existing Room 4 × 1 Search widget, and removal of the redundant first-composition 180–220 ms page-entry animation.
 
-The current Development performance branch removes one known avoidable delay: a Home page surface that is being composed for the first time no longer replays the configured 180–220 ms Slide/Fade/Zoom entry animation after the Activity-level Primary↔secondary surface switch. Configured page transitions remain available for actual page-key changes within an already-composed surface. Fresh exact-head validation is required before this mitigation can be integrated.
+The current Development architecture branch separates secondary Home page content from optional persistent Dock/page-indicator chrome through a content-only rendering mode. Existing callers keep the full surface by default; the split is intentionally behavioral-neutral until a dedicated pager owns the content layer. Fresh exact-head validation is required before this foundation can be integrated.
 
-Still open after this bounded mitigation: replace or amortize the Primary↔secondary whole-subtree swap with a mature follow-finger paging model while preserving one Room workspace authority; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
+Still open after this foundation: render adjacent secondary pages through one follow-finger pager while keeping persistent chrome fixed; then reconcile the Primary↔secondary boundary without creating a second workspace authority; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `98c32e15353894fc21180f2ffca519273ecf9885` after merged PR #106. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `cf62a70982b28d2d2053ce4c1d1a9227e984b3a3` after merged PR #107. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

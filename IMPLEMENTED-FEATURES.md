@@ -1,15 +1,16 @@
 # GoreeCloud Launcher — Implemented Features
 
-## September 30, 2026 — post-consolidation stabilization and Home paging latency candidate
+## September 30, 2026 — post-consolidation stabilization and Home paging architecture continuation
 
 - Authoritative Launcher development now lives in `GoreeCloud/android-app-defaults/apps/launcher/`; the standalone Launcher repository is migration history only.
 - Merged PR #103 adds explicit App Drawer A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, responsive Home page switching, secondary-page vertical gestures, swipe-down Search fallback, and HOME-editor reset stabilization.
 - Merged PR #104 adds exact Android-profile folders for Work Apps while keeping legacy folders primary-profile-only and enforcing membership in the persistence layer.
 - Merged PR #105 confirms suspicious full-refresh inventory losses before publishing them when the Android profile is still active, reducing transient disappearing apps without delaying explicit package/profile removals.
 - Merged PR #106 adds **Movable** Universal Search beside **Swipe down**, fixed **Top**, and fixed **Bottom**. Movable Search reuses the existing 4 × 1 Room-backed Universal Search widget, supports ordinary Home widget movement and cross-page placement, keeps a fixed-bottom fallback when no 4 × 1 primary-Home area is free, and retries managed placement after primary-Home geometry changes.
-- The current Development performance branch removes the redundant 180–220 ms page-entry animation from a newly composed Home page surface. Initial Primary↔secondary composition now snaps directly to its settled state; configured Slide/Fade/Zoom remains available only for an actual page-key change inside an already-composed page surface.
+- Merged PR #107 removes the redundant 180–220 ms first-composition page-entry animation while preserving configured transitions for actual page-key changes.
+- The current Development architecture branch adds a content-only mode for secondary Home surfaces so page content can be rendered independently from persistent page indicators and Dock chrome. This is a prerequisite for follow-finger paging; the default/full-surface path remains unchanged.
 
-**Acceptance boundary:** PRs #103–#106 are merged Development evidence. The page-entry latency change still requires fresh exact-head CI before integration. It is a bounded mitigation, not a follow-finger pager: representative-device multi-page frame pacing, the larger Primary↔secondary subtree replacement, Search placement, package/profile churn, accessibility, large-text/form-factor, visual quality, and power acceptance remain open.
+**Acceptance boundary:** PRs #103–#107 are merged Development evidence. The content-layer split still requires fresh exact-head CI before integration and does not itself implement a follow-finger pager. Representative-device multi-page frame pacing, the larger Primary↔secondary subtree replacement, Search placement, package/profile churn, accessibility, large-text/form-factor, visual quality, and power acceptance remain open.
 
 ## September 30, 2026 — polished Calendar and Weather widgets
 
@@ -41,7 +42,7 @@ Paged App Drawer layouts now keep the existing restrained **6/8 dp** visual dots
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. New Launcher source work belongs only under `apps/launcher/`; legacy standalone history below is retained as dated provenance.**  
-**Current authoritative main:** `98c32e15353894fc21180f2ffca519273ecf9885` after merged PR #106. Historical baseline sections below retain their dated provenance and are superseded for current-state interpretation by the September 30 checkpoint above.  
+**Current authoritative main:** `cf62a70982b28d2d2053ce4c1d1a9227e984b3a3` after merged PR #107. Historical baseline sections below retain their dated provenance and are superseded for current-state interpretation by the September 30 checkpoint above.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation

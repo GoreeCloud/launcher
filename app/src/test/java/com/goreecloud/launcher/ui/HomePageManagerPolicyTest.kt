@@ -154,6 +154,53 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun secondaryContentOnlyModeSuppressesPersistentChrome() {
+        assertFalse(
+            secondaryHomeShouldRenderPageIndicator(
+                contentOnly = true,
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldRenderDock(
+                contentOnly = true,
+                dockAppCount = 5,
+            ),
+        )
+    }
+
+    @Test
+    fun secondaryFullSurfaceKeepsRequestedPersistentChrome() {
+        assertTrue(
+            secondaryHomeShouldRenderPageIndicator(
+                contentOnly = false,
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldRenderPageIndicator(
+                contentOnly = false,
+                requested = true,
+                pageCount = 1,
+            ),
+        )
+        assertTrue(
+            secondaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 5,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 0,
+            ),
+        )
+    }
+
+    @Test
     fun horizontalHomeSwipeMovesBetweenAdjacentPages() {
         assertEquals(
             1,

@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — separate secondary Home page content from persistent chrome
+
+Secondary Home rendering now has an explicit content-only mode that suppresses the page-local indicator and persistent Dock while also leaving bottom navigation-bar padding to the future outer chrome owner. The existing full-surface behavior remains the default, so current Launcher behavior is unchanged by this foundation.
+
+Focused policy coverage locks both modes: content-only suppresses Dock/page-indicator chrome, while the ordinary full surface retains the requested page indicator and Dock when applicable.
+
+This creates a clean rendering boundary for the next follow-finger paging tranche without adding another workspace authority, changing Room state, or modifying app/folder/widget placement behavior.
+
+**Acceptance boundary:** Development architecture candidate; fresh exact-head CI is required before integration. A real follow-finger pager and Primary↔secondary unification remain open.
+
+
 ## September 30, 2026 — remove redundant first-composition Home page animation
 
 The multi-page Home path no longer starts a fresh 180–220 ms Slide/Fade/Zoom entrance animation merely because the Activity has switched between the Primary Launcher root and a newly composed secondary Home surface. A newly composed page now starts at its settled visual state.
@@ -8,7 +19,7 @@ Configured Home transition styles are preserved for a real page-key change insid
 
 This is intentionally a bounded latency mitigation. It does not yet replace the Primary↔secondary whole-subtree swap with a follow-finger pager, and it does not establish representative-device frame-time, jank, input-latency, power, accessibility, or form-factor acceptance.
 
-**Acceptance boundary:** Development candidate; fresh exact-head CI is required before integration.
+**Acceptance boundary:** PR #107 is merged after exact-head Development validation. Representative-device follow-finger paging, frame-time/jank/input-latency/power, accessibility, and form-factor acceptance remain open.
 
 
 ## September 30, 2026 — movable Universal Search Home surface

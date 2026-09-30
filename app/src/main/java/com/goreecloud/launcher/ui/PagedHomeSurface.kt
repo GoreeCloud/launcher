@@ -98,6 +98,17 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import kotlin.math.abs
 import kotlinx.coroutines.withTimeoutOrNull
 
+internal fun secondaryHomeShouldRenderPageIndicator(
+    contentOnly: Boolean,
+    requested: Boolean,
+    pageCount: Int,
+): Boolean = !contentOnly && requested && pageCount > 1
+
+internal fun secondaryHomeShouldRenderDock(
+    contentOnly: Boolean,
+    dockAppCount: Int,
+): Boolean = !contentOnly && dockAppCount > 0
+
 internal fun homePageSwipeTargetIndex(
     currentIndex: Int,
     pageCount: Int,
@@ -1109,6 +1120,7 @@ fun ReadOnlyPagedHomeSurface(
     onSelectPage: (String) -> Unit = {},
     layoutLocked: Boolean = false,
     onGridBoundsChanged: (Rect?) -> Unit = {},
+    contentOnly: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
@@ -1269,7 +1281,7 @@ fun ReadOnlyPagedHomeSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
+                .then(if (contentOnly) Modifier else Modifier.navigationBarsPadding())
                 .padding(horizontal = GlazeMetrics.space4),
         ) {
             Spacer(Modifier.height(72.dp))
@@ -1528,7 +1540,13 @@ fun ReadOnlyPagedHomeSurface(
                     )
                 }
 
-            if (showPageIndicator && pages.size > 1) {
+            if (
+                secondaryHomeShouldRenderPageIndicator(
+                    contentOnly = contentOnly,
+                    requested = showPageIndicator,
+                    pageCount = pages.size,
+                )
+            ) {
                 HomePageDots(
                     pages = pages,
                     selectedPageId = page.pageId,
@@ -1539,7 +1557,12 @@ fun ReadOnlyPagedHomeSurface(
                 )
             }
 
-            if (dockApps.isNotEmpty()) {
+            if (
+                secondaryHomeShouldRenderDock(
+                    contentOnly = contentOnly,
+                    dockAppCount = dockApps.size,
+                )
+            ) {
                 PersistentHomeDock(
                     apps = dockApps,
                     iconScale = iconScale,
