@@ -77,6 +77,61 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun mostRecentPlacesKnownUsageFirstAndKeepsUnknownEntriesAlphabetical() {
+        val entries = listOf(
+            Entry("Camera", "app:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Maps", "app:maps"),
+            Entry("Alarm", "app:alarm"),
+        )
+        val recent = mapOf(
+            "app:maps" to 0,
+            "app:camera" to 1,
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.MOST_RECENT,
+            recentRank = { recent[it.stableKey] },
+        )
+
+        assertEquals(
+            listOf("app:maps", "app:camera", "app:alarm", "folder:banking"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
+    fun mostFrequentSortsDescendingThenUsesAlphabeticalTieBreaks() {
+        val entries = listOf(
+            Entry("Camera", "app:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Maps", "app:maps"),
+            Entry("Alarm", "app:alarm"),
+        )
+        val frequency = mapOf(
+            "app:camera" to 4L,
+            "app:maps" to 9L,
+            "app:alarm" to 4L,
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.MOST_FREQUENT,
+            frequency = { frequency[it.stableKey] },
+        )
+
+        assertEquals(
+            listOf("app:maps", "app:alarm", "app:camera", "folder:banking"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
     fun gridGeometryKeepsIconAndLabelSlotsFixedAcrossSpacingModes() {
         val grid = LauncherDrawerSpacing.entries.map { spacing ->
             LauncherDrawerGridPolicy.geometry(compact = false, spacing = spacing)

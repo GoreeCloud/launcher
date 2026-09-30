@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — App Drawer and Home interaction stabilization
+
+The App Drawer now exposes four explicit presentation sorts — **A–Z**, **Z–A**, **Most recent**, and **Most frequent** — using the existing privacy-bounded local Launcher launch history for the two usage-based orders. User/Work profile pages stay precomposed across the two-tab pager to reduce the transient blank-page behavior reported on representative hardware. The Work page heading is corrected from the redundant “Work Apps apps” wording.
+
+Drawer app tiles and list rows now retain a stationary long-press command path even while drag-to-Home/Dock is armed, so the compact app context menu and direct drag placement can coexist. Launcher Settings category rows no longer show the unwanted far-right ASCII arrow.
+
+Home paging reacts as soon as a clear horizontal gesture crosses the existing distance/direction threshold instead of deferring the page selection until finger-up. Secondary Home pages now honor the same configurable vertical Home gestures as primary Home, including the default **swipe down → Universal Search** behavior. Missing/unknown stored Universal Search Home-mode values now also fall back to **Swipe down only**, matching the actual new-install default. HOME re-entry invalidates an open Edit Home/widget-picker generation immediately before the cleanup effect runs, reducing the extra visible editor-dismiss delay.
+
+**Acceptance boundary:** Development candidate. Exact-head CI and representative-device drawer inventory stability, stationary-long-press versus drag arbitration, Home paging jank, secondary-page Search, and HOME-from-Edit-Home acceptance remain required.
+
 ## September 30, 2026 — polished Calendar and Weather widgets
 
 Launcher now includes separate 2 × 2 **Calendar** and **Weather** built-ins. Calendar uses a cleaner local date hierarchy, while Weather combines local time with the existing opt-in condition presentation. Starter Glance remains compatible and receives a richer gradient treatment.

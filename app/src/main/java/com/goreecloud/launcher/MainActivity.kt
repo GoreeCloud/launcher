@@ -69,6 +69,8 @@ import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.launcher.LauncherFolderRepository
 import com.goreecloud.launcher.core.launcher.LauncherGoogleDriveAuthorizationState
+import com.goreecloud.launcher.core.launcher.LauncherGestureAction
+import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
@@ -145,6 +147,7 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
 import com.goreecloud.launcher.ui.homePageSwipeNavigation
+import com.goreecloud.launcher.ui.homeVerticalGestureNavigation
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext
 import kotlinx.coroutines.Dispatchers
@@ -950,10 +953,57 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val executeSecondaryHomeGesture: (LauncherGestureAction) -> Unit = { action ->
+                    when (action.type) {
+                        LauncherGestureActionType.NONE -> Unit
+                        LauncherGestureActionType.APPS -> {
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.DRAWER.name
+                        }
+                        LauncherGestureActionType.UNIVERSAL_SEARCH -> {
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.SEARCH.name
+                        }
+                        LauncherGestureActionType.LAUNCHER_SETTINGS -> {
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                        }
+                        LauncherGestureActionType.HOME_EDITOR -> {
+                            pendingHomeEditorPageId = selectedHomePageId
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                            primaryHomeEditorRequestSequence += 1L
+                        }
+                        LauncherGestureActionType.WALLPAPER -> {
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                            openWallpaperPicker()
+                        }
+                        LauncherGestureActionType.THEME_MANAGER -> {
+                            selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                            primarySurfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
+                        }
+                        LauncherGestureActionType.OPEN_APP ->
+                            action.appKey?.let(appsByWorkspaceKey::get)?.let(launchApp)
+                    }
+                }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
                         .testTag("launcher-home-swipe-surface")
+                        .homeVerticalGestureNavigation(
+                            enabled = showingHome &&
+                                !onPrimaryPage &&
+                                !showHomePageManager &&
+                                activeHomeAppDrag == null,
+                            onSwipeUp = {
+                                executeSecondaryHomeGesture(experiencePreferences.swipeUpAction)
+                            },
+                            onSwipeDown = {
+                                executeSecondaryHomeGesture(experiencePreferences.swipeDownAction)
+                            },
+                        )
                         .dragAndDropTarget(
                             shouldStartDragAndDrop = { event ->
                                 event.launcherAppDragData()?.let { drag ->

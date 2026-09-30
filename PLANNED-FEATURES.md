@@ -1,8 +1,10 @@
 # GoreeCloud Launcher — Planned Features
 
-## 2026-09-28 candidate continuation
+## September 30, 2026 interaction-stabilization continuation
 
-Draft PR #248 now also carries a presentation-only app-drawer sort control for A–Z/Z–A ordering, with Unicode-stable tie-breaking and unit coverage. Drawer search result counts include matching user-profile folders as well as apps. This remains Development candidate behavior until the exact revision is accepted on authoritative main and representative-device/accessibility gates are satisfied.
+The current Development candidate expands App Drawer sorting to **A–Z**, **Z–A**, **Most recent**, and **Most frequent**, keeps User/Work profile pager content warm around the active tab, restores stationary long-press context actions alongside drawer drag sources, removes the unwanted Settings-row arrow, enables configured vertical Home gestures from secondary pages, and moves ordinary page switching to the existing gesture threshold rather than pointer release.
+
+Still open after this tranche: profile-qualified folders for Work/private-profile apps without cross-profile leakage, a genuinely movable persistent Universal Search surface beyond the existing gesture-only/top/bottom modes, representative-device verification that User/Work inventories never blank under profile/package churn, and physical-device jank/accessibility acceptance for drawer long-press/drag and multi-page Home.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/launcher`  

@@ -29,7 +29,7 @@ enum class LauncherUniversalSearchHomeMode(val storageValue: String) {
 
     companion object {
         fun fromStorage(value: String?): LauncherUniversalSearchHomeMode =
-            entries.firstOrNull { it.storageValue == value } ?: PERMANENT
+            entries.firstOrNull { it.storageValue == value } ?: SWIPE_DOWN_ONLY
     }
 }
 

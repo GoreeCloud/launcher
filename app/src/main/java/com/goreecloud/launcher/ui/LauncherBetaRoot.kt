@@ -901,6 +901,8 @@ fun LauncherBetaRoot(
             LauncherSurfaceMode.DRAWER -> AppDrawerSurface(
                 apps = apps,
                 folders = folders,
+                recentAppKeys = recentAppKeys,
+                localLaunchCounts = localLaunchCounts,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
                 experiencePreferences = experiencePreferences,
@@ -1320,8 +1322,17 @@ private fun HomeSurface(
         }
     }
 
-    LaunchedEffect(showHomeEditor) {
-        onHomeEditorVisibilityChanged(showHomeEditor)
+    // HOME re-entry invalidates any editor/picker that was opened under an older reset
+    // generation immediately, instead of waiting an extra composition for the cleanup effect.
+    val homeEditorResetGeneration = remember(showHomeEditor) { homeResetSequence }
+    val widgetPickerResetGeneration = remember(showWidgetPicker) { homeResetSequence }
+    val effectiveShowHomeEditor =
+        showHomeEditor && homeEditorResetGeneration == homeResetSequence
+    val effectiveShowWidgetPicker =
+        showWidgetPicker && widgetPickerResetGeneration == homeResetSequence
+
+    LaunchedEffect(effectiveShowHomeEditor) {
+        onHomeEditorVisibilityChanged(effectiveShowHomeEditor)
     }
 
     LaunchedEffect(homeResetSequence) {
@@ -1706,7 +1717,7 @@ private fun HomeSurface(
             Spacer(Modifier.height(2.dp))
         }
 
-        if (showHomeEditor) {
+        if (effectiveShowHomeEditor) {
             Dialog(
                 onDismissRequest = { showHomeEditor = false },
                 properties = DialogProperties(
@@ -1755,7 +1766,7 @@ private fun HomeSurface(
             }
         }
 
-        if (showWidgetPicker) {
+        if (effectiveShowWidgetPicker) {
             ModalBottomSheet(
                 onDismissRequest = { showWidgetPicker = false },
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
@@ -5009,16 +5020,33 @@ private fun orderedDrawerVisualEntries(
     apps: List<LauncherActivityInfo>,
     folders: List<LauncherFolder>,
     sortOrder: LauncherDrawerSortOrder,
-): List<LauncherDrawerVisualEntry> = buildList {
-    apps.forEach { add(LauncherDrawerVisualEntry.Application(it)) }
-    folders.forEach { add(LauncherDrawerVisualEntry.Folder(it)) }
-}.let { entries ->
-    LauncherDrawerSortingPolicy.order(
-        entries = entries,
-        label = { it.label },
-        key = { it.stableKey },
-        sortOrder = sortOrder,
-    )
+    recentAppKeys: List<String>,
+    localLaunchCounts: Map<String, Long>,
+): List<LauncherDrawerVisualEntry> {
+    val recentRanks = recentAppKeys.withIndex().associate { (index, key) -> key to index }
+    return buildList {
+        apps.forEach { add(LauncherDrawerVisualEntry.Application(it)) }
+        folders.forEach { add(LauncherDrawerVisualEntry.Folder(it)) }
+    }.let { entries ->
+        LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = sortOrder,
+            recentRank = { entry ->
+                (entry as? LauncherDrawerVisualEntry.Application)
+                    ?.app
+                    ?.workspaceKey()
+                    ?.let(recentRanks::get)
+            },
+            frequency = { entry ->
+                (entry as? LauncherDrawerVisualEntry.Application)
+                    ?.app
+                    ?.workspaceKey()
+                    ?.let(localLaunchCounts::get)
+            },
+        )
+    }
 }
 
 @Composable
@@ -5180,6 +5208,8 @@ private fun StableDrawerVerticalGrid(
 private fun AppDrawerSurface(
     apps: List<LauncherActivityInfo>,
     folders: List<LauncherFolder>,
+    recentAppKeys: List<String>,
+    localLaunchCounts: Map<String, Long>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
@@ -5198,6 +5228,7 @@ private fun AppDrawerSurface(
     val drawerSortOrder = runCatching {
         LauncherDrawerSortOrder.valueOf(drawerSortOrderName)
     }.getOrDefault(LauncherDrawerSortOrder.ALPHABETICAL)
+    var showDrawerSortMenu by remember { mutableStateOf(false) }
     val primaryUser = remember { Process.myUserHandle() }
     val profilePages = remember(apps, primaryUser) {
         launcherDrawerProfilePages(
@@ -5388,7 +5419,7 @@ private fun AppDrawerSurface(
                             if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
                                 "Apps"
                             } else {
-                                selectedPage.kind.displayName + " apps"
+                                selectedPage.kind.displayName
                             },
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.SemiBold,
@@ -5411,46 +5442,56 @@ private fun AppDrawerSurface(
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Surface(
-                            onClick = {
-                                drawerSortOrderName = when (drawerSortOrder) {
-                                    LauncherDrawerSortOrder.ALPHABETICAL ->
-                                        LauncherDrawerSortOrder.REVERSE_ALPHABETICAL.name
-                                    LauncherDrawerSortOrder.REVERSE_ALPHABETICAL ->
-                                        LauncherDrawerSortOrder.ALPHABETICAL.name
-                                }
-                            },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .testTag("launcher-drawer-sort-order")
-                                .semantics {
-                                    contentDescription = if (
-                                        drawerSortOrder == LauncherDrawerSortOrder.ALPHABETICAL
-                                    ) {
-                                        "Sort apps Z to A"
+                        Box {
+                            Surface(
+                                onClick = { showDrawerSortMenu = true },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("launcher-drawer-sort-order")
+                                    .semantics {
+                                        contentDescription =
+                                            "Sort apps. Current " + drawerSortOrder.displayName
+                                    },
+                                shape = CircleShape,
+                                color = Color.Transparent,
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    if (useDrawerHeaderIcons) {
+                                        LauncherDrawerSortIcon(
+                                            ascending =
+                                                drawerSortOrder !=
+                                                    LauncherDrawerSortOrder.REVERSE_ALPHABETICAL,
+                                            color = drawerSecondaryColor,
+                                        )
                                     } else {
-                                        "Sort apps A to Z"
+                                        Text(
+                                            drawerSortOrder.displayName,
+                                            color = drawerSecondaryColor,
+                                            style = MaterialTheme.typography.labelLarge,
+                                            maxLines = 1,
+                                        )
                                     }
-                                },
-                            shape = CircleShape,
-                            color = Color.Transparent,
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                if (useDrawerHeaderIcons) {
-                                    LauncherDrawerSortIcon(
-                                        ascending =
-                                            drawerSortOrder ==
-                                                LauncherDrawerSortOrder.ALPHABETICAL,
-                                        color = drawerSecondaryColor,
-                                    )
-                                } else {
-                                    Text(
-                                        if (
-                                            drawerSortOrder ==
-                                            LauncherDrawerSortOrder.ALPHABETICAL
-                                        ) "A–Z" else "Z–A",
-                                        color = drawerSecondaryColor,
-                                        style = MaterialTheme.typography.labelLarge,
+                                }
+                            }
+                            DropdownMenu(
+                                expanded = showDrawerSortMenu,
+                                onDismissRequest = { showDrawerSortMenu = false },
+                            ) {
+                                LauncherDrawerSortOrder.entries.forEach { order ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                if (order == drawerSortOrder) {
+                                                    "✓ " + order.displayName
+                                                } else {
+                                                    order.displayName
+                                                },
+                                            )
+                                        },
+                                        onClick = {
+                                            drawerSortOrderName = order.name
+                                            showDrawerSortMenu = false
+                                        },
                                     )
                                 }
                             }
@@ -5515,6 +5556,8 @@ private fun AppDrawerSurface(
                     modifier = Modifier.weight(1f).fillMaxWidth()
                         .testTag("launcher-drawer-profile-pager"),
                     userScrollEnabled = profilePages.size > 1,
+                    beyondViewportPageCount = if (profilePages.size > 1) 1 else 0,
+                    key = { index -> profilePages[index].kind.name },
                 ) { index ->
                     val page = profilePages[index]
                     val pageApps = remember(page.items, drawerQuery) {
@@ -5556,6 +5599,8 @@ private fun AppDrawerSurface(
                         DrawerAppsContent(
                             apps = pageApps,
                             folders = pageFolders,
+                            recentAppKeys = recentAppKeys,
+                            localLaunchCounts = localLaunchCounts,
                             query = drawerQuery,
                             preferences = preferences,
                             drawerLayoutMode = drawerLayoutMode,
@@ -5700,6 +5745,8 @@ private fun DrawerProfileTabs(
 private fun DrawerAppsContent(
     apps: List<LauncherActivityInfo>,
     folders: List<LauncherFolder>,
+    recentAppKeys: List<String>,
+    localLaunchCounts: Map<String, Long>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -5713,8 +5760,14 @@ private fun DrawerAppsContent(
     allowHorizontalPaging: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val entries = remember(apps, folders, sortOrder) {
-        orderedDrawerVisualEntries(apps, folders, sortOrder)
+    val entries = remember(apps, folders, recentAppKeys, localLaunchCounts, sortOrder) {
+        orderedDrawerVisualEntries(
+            apps = apps,
+            folders = folders,
+            sortOrder = sortOrder,
+            recentAppKeys = recentAppKeys,
+            localLaunchCounts = localLaunchCounts,
+        )
     }
     if (entries.isEmpty() && query.isNotBlank()) {
         Box(
@@ -6537,11 +6590,6 @@ private fun LauncherSettingsOverviewRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                ">",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }
@@ -8774,15 +8822,9 @@ private fun LauncherAppTile(
                 tileBounds = it.boundsInRoot()
                 onBoundsChanged?.invoke(tileBounds!!)
             }
-            .then(
-                if (dragData == null) {
-                    Modifier.combinedClickable(
-                        onClick = onClick,
-                        onLongClick = { onLongClick(tileBounds) },
-                    )
-                } else {
-                    Modifier.clickable(onClick = onClick)
-                },
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onLongClick(tileBounds) },
             )
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -8893,15 +8935,9 @@ private fun LauncherAppListRow(
             .heightIn(min = 56.dp)
             .then(dragModifier)
             .onGloballyPositioned { rowBounds = it.boundsInRoot() }
-            .then(
-                if (dragData == null) {
-                    Modifier.combinedClickable(
-                        onClick = onClick,
-                        onLongClick = { onLongClick(rowBounds) },
-                    )
-                } else {
-                    Modifier.clickable(onClick = onClick)
-                },
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onLongClick(rowBounds) },
             )
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,

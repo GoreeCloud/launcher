@@ -14,6 +14,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -139,31 +140,74 @@ internal fun Modifier.homePageSwipeNavigation(
             )
             var horizontalDistance = 0f
             var verticalDistance = 0f
+            var pageSelected = false
 
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Final)
                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
                 val delta = change.positionChange()
-
-                // Decide from the complete gesture, but do not replace the Home subtree while
-                // the pointer stream is still active. Child surfaces may consume press/long-press
-                // bookkeeping before horizontal intent is known; active drag/drop disables this
-                // modifier at the caller. Selection is applied only after pointer release.
                 horizontalDistance += delta.x
                 verticalDistance += delta.y
 
-                if (!change.pressed) {
+                if (!pageSelected) {
                     homePageSwipeTargetIndex(
                         currentIndex = currentIndex,
                         pageCount = pageCount,
                         horizontalDistancePx = horizontalDistance,
                         verticalDistancePx = verticalDistance,
                         minimumDistancePx = minimumDistancePx,
-                    )?.let(onPageSelected)
-                    break
+                    )?.let { target ->
+                        pageSelected = true
+                        onPageSelected(target)
+                    }
                 }
+                if (!change.pressed) break
             }
         }
+    }
+}
+
+internal fun Modifier.homeVerticalGestureNavigation(
+    enabled: Boolean,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
+): Modifier {
+    if (!enabled) return this
+    return pointerInput(enabled, onSwipeUp, onSwipeDown) {
+        val threshold = 42.dp.toPx()
+        var distance = 0f
+        var triggered = false
+        detectVerticalDragGestures(
+            onDragStart = {
+                distance = 0f
+                triggered = false
+            },
+            onDragCancel = {
+                distance = 0f
+                triggered = false
+            },
+            onDragEnd = {
+                distance = 0f
+                triggered = false
+            },
+            onVerticalDrag = { change, amount ->
+                if (!triggered) {
+                    distance += amount
+                    when {
+                        distance <= -threshold -> {
+                            triggered = true
+                            change.consume()
+                            onSwipeUp()
+                        }
+                        distance >= threshold -> {
+                            triggered = true
+                            change.consume()
+                            onSwipeDown()
+                        }
+                    }
+                }
+            },
+        )
     }
 }
 

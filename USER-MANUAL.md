@@ -59,7 +59,7 @@ You can disable hints during startup, dismiss the Home hint with **Got it**, and
 
 ## Launcher Universal Search from Home
 
-**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed Home gesture zone opens the Launcher-owned search surface by default; the assignment can be changed under **Launcher settings → Gestures**. When the Home search bar is enabled, tapping **Search GoreeCloud** always opens Launcher Universal Search.
+**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed gesture zone of any Home page opens the Launcher-owned search surface by default; the assignment can be changed under **Launcher settings → Gestures**. When the Home search bar is enabled, tapping **Search GoreeCloud** always opens Launcher Universal Search.
 
 Launcher Settings provides two Home-entry modes:
 
@@ -120,7 +120,9 @@ Open **Apps** from Home to browse the launchable application inventory exposed t
 
 Use the **Search apps** field to search the installed-application inventory locally. This Apps view is a specialized Launcher-owned view backed by the same installed-app provider foundation used for Universal Search. It does not require Internet access.
 
-Long-press an app to open the compact Glaze context menu. The same surface provides Home/Remove, Dock/Undock, app-specific Widgets when available, App info, folder assignment, supported app shortcuts, and **Uninstall**. There is no second **More options** placement dialog. **Remove** only removes or suppresses the Home icon; it does not uninstall the application. **Uninstall** delegates to Android's system confirmation, and Launcher never silently removes packages. Placement-changing actions are disabled while the Home layout is locked.
+Long-press an app to open the compact Glaze context menu. A stationary hold opens that menu; keep holding and move to drag the app directly toward Home or the Dock when the layout is unlocked. The same context surface provides Home/Remove, Dock/Undock, app-specific Widgets when available, App info, folder assignment, supported app shortcuts, and **Uninstall**. There is no second **More options** placement dialog. **Remove** only removes or suppresses the Home icon; it does not uninstall the application. **Uninstall** delegates to Android's system confirmation, and Launcher never silently removes packages. Placement-changing actions are disabled while the Home layout is locked.
+
+The App Drawer sort control provides **A–Z**, **Z–A**, **Most recent**, and **Most frequent**. The two usage-based sorts use only the Launcher's local privacy-bounded launch history described above; they do not request Android Usage Access. User Apps and Work Apps remain separate profile views.
 
 ## Launcher settings
 
@@ -158,7 +160,7 @@ The launcher supports persisted **System**, **Light**, and **Dark** appearance s
 
 ## Multi-page Home navigation
 
-When the guarded workspace has reached terminal Room authority, ordinary Home pages can be swiped horizontally. Page dots communicate position without permanently overlaying page-management controls on the wallpaper.
+When the guarded workspace has reached terminal Room authority, ordinary Home pages can be swiped horizontally. A clear horizontal gesture switches pages as soon as it crosses the Launcher's distance/direction threshold rather than waiting for finger-up. Page dots communicate position without permanently overlaying page-management controls on the wallpaper.
 
 Long-press empty Home space to open **Edit Home**. On phone layouts, its header, adaptive **Home pages** carousel, and five primary actions are composed into one viewport without requiring ordinary vertical scrolling; the action rail contains Wallpaper, Widgets, Apps, Folders, and Settings. The selected page remains prominent while neighboring page edges stay visible for horizontal navigation. Swipe the preview carousel or tap a page preview to select it. Page creation/deletion and the available page-management controls stay within the Edit Home/page-management experience rather than relying on the removed redundant **Manage** button.
 

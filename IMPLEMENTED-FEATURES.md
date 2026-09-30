@@ -1,6 +1,6 @@
 # GoreeCloud Launcher — Implemented Features
 
-## September 30, 2026 — polished Calendar and Weather widgets
+true## September 30, 2026 — polished Calendar and Weather widgets
 
 - Added first-party 2 × 2 **Calendar** and **Weather** widget entries and gallery previews.
 - Calendar stays local-only; Weather combines local time with the existing foreground-location condition surface.

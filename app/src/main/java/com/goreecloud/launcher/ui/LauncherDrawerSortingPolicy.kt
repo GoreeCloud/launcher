@@ -10,9 +10,11 @@ import java.util.Locale
  * Canonically equivalent Unicode labels must sort together, like the installed-app inventory.
  * Only presentation order changes: folder membership and persisted Home positions are untouched.
  */
-internal enum class LauncherDrawerSortOrder {
-    ALPHABETICAL,
-    REVERSE_ALPHABETICAL,
+internal enum class LauncherDrawerSortOrder(val displayName: String) {
+    ALPHABETICAL("A–Z"),
+    REVERSE_ALPHABETICAL("Z–A"),
+    MOST_RECENT("Most recent"),
+    MOST_FREQUENT("Most frequent"),
 }
 
 internal object LauncherDrawerSortingPolicy {
@@ -21,16 +23,46 @@ internal object LauncherDrawerSortingPolicy {
         label: (T) -> String,
         key: (T) -> String,
         sortOrder: LauncherDrawerSortOrder = LauncherDrawerSortOrder.ALPHABETICAL,
+        recentRank: (T) -> Int? = { null },
+        frequency: (T) -> Long? = { null },
     ): List<T> = entries.sortedWith { left, right ->
-        val leftLabel = Normalizer.normalize(label(left), Normalizer.Form.NFC).lowercase(Locale.ROOT)
-        val rightLabel = Normalizer.normalize(label(right), Normalizer.Form.NFC).lowercase(Locale.ROOT)
+        val leftLabel = normalizedLabel(label(left))
+        val rightLabel = normalizedLabel(label(right))
         val labelOrder = leftLabel.compareTo(rightLabel)
-        val directedLabelOrder = when (sortOrder) {
-            LauncherDrawerSortOrder.ALPHABETICAL -> labelOrder
-            LauncherDrawerSortOrder.REVERSE_ALPHABETICAL -> -labelOrder
+        val keyOrder = key(left).compareTo(key(right))
+
+        when (sortOrder) {
+            LauncherDrawerSortOrder.ALPHABETICAL ->
+                labelOrder.takeIf { it != 0 } ?: keyOrder
+            LauncherDrawerSortOrder.REVERSE_ALPHABETICAL ->
+                (-labelOrder).takeIf { it != 0 } ?: keyOrder
+            LauncherDrawerSortOrder.MOST_RECENT -> {
+                val leftRank = recentRank(left)
+                val rightRank = recentRank(right)
+                when {
+                    leftRank != null && rightRank != null && leftRank != rightRank ->
+                        leftRank.compareTo(rightRank)
+                    leftRank != null && rightRank == null -> -1
+                    leftRank == null && rightRank != null -> 1
+                    labelOrder != 0 -> labelOrder
+                    else -> keyOrder
+                }
+            }
+            LauncherDrawerSortOrder.MOST_FREQUENT -> {
+                val leftFrequency = frequency(left) ?: 0L
+                val rightFrequency = frequency(right) ?: 0L
+                when {
+                    leftFrequency != rightFrequency ->
+                        rightFrequency.compareTo(leftFrequency)
+                    labelOrder != 0 -> labelOrder
+                    else -> keyOrder
+                }
+            }
         }
-        if (directedLabelOrder != 0) directedLabelOrder else key(left).compareTo(key(right))
     }
+
+    private fun normalizedLabel(value: String): String =
+        Normalizer.normalize(value, Normalizer.Form.NFC).lowercase(Locale.ROOT)
 }
 
 
