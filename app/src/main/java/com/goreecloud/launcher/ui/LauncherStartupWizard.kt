@@ -277,8 +277,8 @@ fun LauncherStartupWizard(
                                 summary = "Long-press a Home widget and drag it to a free cell, or release it at a valid page edge to move it to the adjacent Home page. A stationary hold opens widget options, including Move to another Home page. Fresh starter layouts use movable Glance.",
                             )
                             WizardInfoCard(
-                                title = "Weather in Glance",
-                                summary = "Glance can show current temperature and condition artwork. Weather stays optional: tap Weather on Home and follow Android's permission prompt when you want local conditions.",
+                                title = "Weather and Calendar cards",
+                                summary = "Glance keeps time and opt-in local weather together, and the widget gallery also includes separate polished Weather and Calendar cards. Recent successful weather stays briefly cached so normal Home returns do not visibly reload it.",
                             )
                             WizardInfoCard(
                                 title = "Manage folders in place",

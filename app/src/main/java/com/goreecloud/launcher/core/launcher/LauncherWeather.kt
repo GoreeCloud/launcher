@@ -42,6 +42,22 @@ data class LauncherWeatherSnapshot(
     val windUnit: String,
 )
 
+internal const val LAUNCHER_WEATHER_CACHE_TTL_MILLIS: Long = 15 * 60 * 1000L
+
+internal fun launcherWeatherCacheIsFresh(
+    cachedAtMillis: Long,
+    nowMillis: Long,
+    ttlMillis: Long = LAUNCHER_WEATHER_CACHE_TTL_MILLIS,
+): Boolean =
+    cachedAtMillis > 0L &&
+        nowMillis >= cachedAtMillis &&
+        nowMillis - cachedAtMillis <= ttlMillis
+
+private data class LauncherWeatherCacheEntry(
+    val snapshot: LauncherWeatherSnapshot,
+    val cachedAtMillis: Long,
+)
+
 internal fun launcherWeatherCondition(code: Int): String = when (code) {
     0 -> "Clear"
     1 -> "Mostly clear"
@@ -120,6 +136,14 @@ internal fun launcherWeatherIsHighWind(
  * local weather while avoiding unnecessary coordinate precision.
  */
 object LauncherWeather {
+    @Volatile
+    private var cacheEntry: LauncherWeatherCacheEntry? = null
+
+    fun cachedSnapshot(nowMillis: Long = System.currentTimeMillis()): LauncherWeatherSnapshot? =
+        cacheEntry
+            ?.takeIf { launcherWeatherCacheIsFresh(it.cachedAtMillis, nowMillis) }
+            ?.snapshot
+
     fun hasLocationPermission(context: Context): Boolean =
         ContextCompat.checkSelfPermission(
             context,
@@ -130,8 +154,14 @@ object LauncherWeather {
                 Manifest.permission.ACCESS_COARSE_LOCATION,
             ) == PackageManager.PERMISSION_GRANTED
 
-    suspend fun load(context: Context): LauncherWeatherSnapshot? = withContext(Dispatchers.IO) {
+    suspend fun load(
+        context: Context,
+        forceRefresh: Boolean = false,
+    ): LauncherWeatherSnapshot? = withContext(Dispatchers.IO) {
         if (!hasLocationPermission(context)) return@withContext null
+        if (!forceRefresh) {
+            cachedSnapshot()?.let { return@withContext it }
+        }
         val location = withTimeoutOrNull(6_000) { currentLocation(context) }
             ?: lastKnownLocation(context)
             ?: return@withContext null
@@ -185,7 +215,12 @@ object LauncherWeather {
                 windSpeed = windSpeed,
                 windGust = windGust,
                 windUnit = displayWindUnit,
-            )
+            ).also { snapshot ->
+                cacheEntry = LauncherWeatherCacheEntry(
+                    snapshot = snapshot,
+                    cachedAtMillis = System.currentTimeMillis(),
+                )
+            }
         } finally {
             connection.disconnect()
         }

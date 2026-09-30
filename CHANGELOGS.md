@@ -1,5 +1,13 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — polished Calendar and Weather widgets
+
+Launcher now includes separate 2 × 2 **Calendar** and **Weather** built-ins. Calendar uses a cleaner local date hierarchy, while Weather combines local time with the existing opt-in condition presentation. Starter Glance remains compatible and receives a richer gradient treatment.
+
+Recent successful weather is kept in memory for up to 15 minutes, so ordinary app/settings → Home navigation can reuse current conditions instead of visibly reloading them every time. Explicit Weather taps still refresh.
+
+The supplied launcher screenshot was used as visual inspiration only; no external image or copied asset is bundled. This remains a Development candidate pending exact-head CI and representative-device visual/performance acceptance.
+
 ## September 30, 2026 — monorepo Development APK staging restored
 
 The migrated Android workflow now stages and uploads a self-verifying GoreeCloud Launcher Development APK after Launcher validation, unit tests, lint, build, and Room-schema checks pass. CI reads the generated APK back with Android build tools, verifies the Development package identity, versionName, versionCode, and signature, and records exact source/workflow identity plus SHA-256 checksums in the artifact bundle.

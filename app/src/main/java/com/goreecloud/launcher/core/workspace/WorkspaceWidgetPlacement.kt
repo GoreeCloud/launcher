@@ -47,6 +47,8 @@ object WorkspaceWidgetKeyCodec {
 
 object WorkspaceWidgetCatalog {
     const val GLANCE = "goreecloud.glance"
+    const val CALENDAR = "goreecloud.calendar"
+    const val WEATHER = "goreecloud.weather"
     const val CLOCK = "goreecloud.clock"
     const val COMPACT_CLOCK = "goreecloud.clock-compact"
     const val ANALOG_CLOCK = "goreecloud.clock-analog"
@@ -58,6 +60,8 @@ object WorkspaceWidgetCatalog {
     const val LAUNCHER_STATUS = "goreecloud.launcher-status"
 
     val builtInTypeIds: Set<String> = linkedSetOf(
+        CALENDAR,
+        WEATHER,
         GLANCE,
         SEARCH,
         QUICK_ACTIONS,
@@ -72,6 +76,8 @@ object WorkspaceWidgetCatalog {
 
     fun defaultSpan(typeId: String): Pair<Int, Int>? = when (typeId) {
         GLANCE -> 4 to 2
+        CALENDAR -> 2 to 2
+        WEATHER -> 2 to 2
         CLOCK -> 2 to 2
         COMPACT_CLOCK -> 2 to 1
         ANALOG_CLOCK -> 2 to 2
@@ -86,6 +92,8 @@ object WorkspaceWidgetCatalog {
 
     fun displayName(typeId: String): String = when (typeId) {
         GLANCE -> "Glance"
+        CALENDAR -> "Calendar"
+        WEATHER -> "Weather"
         CLOCK -> "Digital clock"
         COMPACT_CLOCK -> "Compact clock"
         ANALOG_CLOCK -> "Analog clock"
@@ -100,6 +108,8 @@ object WorkspaceWidgetCatalog {
 
     fun description(typeId: String): String = when (typeId) {
         GLANCE -> "Time, date, and weather-provider status in one movable Home card."
+        CALENDAR -> "A polished local date card with no Calendar permission required."
+        WEATHER -> "Current local weather with time; foreground location only after you allow it."
         CLOCK -> "Time and date with a roomy glance layout."
         COMPACT_CLOCK -> "A compact time-first widget for tighter Home layouts."
         ANALOG_CLOCK -> "A quiet analog clock with Glaze styling."

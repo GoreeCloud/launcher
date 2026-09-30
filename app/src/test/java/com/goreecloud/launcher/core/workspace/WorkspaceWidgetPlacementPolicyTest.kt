@@ -67,6 +67,8 @@ class WorkspaceWidgetPlacementPolicyTest {
     @Test
     fun builtInCatalogExposesNamedPlaceableWidgets() {
         val expected = setOf(
+            WorkspaceWidgetCatalog.CALENDAR,
+            WorkspaceWidgetCatalog.WEATHER,
             WorkspaceWidgetCatalog.GLANCE,
             WorkspaceWidgetCatalog.SEARCH,
             WorkspaceWidgetCatalog.QUICK_ACTIONS,
@@ -108,6 +110,9 @@ class WorkspaceWidgetPlacementPolicyTest {
     @Test
     fun builtInCatalogSearchMatchesNamesDescriptionsAndIds() {
         assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.BATTERY, "battery"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.CALENDAR, "calendar"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.WEATHER, "weather"))
+        assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.WEATHER, "time"))
         assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.MONTH, "calendar"))
         assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.MONTH, "event"))
         assertTrue(WorkspaceWidgetCatalog.matchesQuery(WorkspaceWidgetCatalog.GLANCE, "weather"))
@@ -162,6 +167,8 @@ class WorkspaceWidgetPlacementPolicyTest {
         )
         assertNull(collision)
         assertTrue(WorkspaceWidgetCatalog.defaultSpan(WorkspaceWidgetCatalog.CLOCK) != null)
+        assertEquals(2 to 2, WorkspaceWidgetCatalog.defaultSpan(WorkspaceWidgetCatalog.CALENDAR))
+        assertEquals(2 to 2, WorkspaceWidgetCatalog.defaultSpan(WorkspaceWidgetCatalog.WEATHER))
         assertEquals(4 to 2, WorkspaceWidgetCatalog.defaultSpan(WorkspaceWidgetCatalog.GLANCE))
     }
 }

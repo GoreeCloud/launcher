@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Implemented Features
 
+## September 30, 2026 — polished Calendar and Weather widgets
+
+- Added first-party 2 × 2 **Calendar** and **Weather** widget entries and gallery previews.
+- Calendar stays local-only; Weather combines local time with the existing foreground-location condition surface.
+- Starter Glance keeps compatibility while using a richer gradient weather presentation.
+- Successful weather snapshots are reused for up to 15 minutes in memory, preventing routine Home re-entry from visibly restarting weather loading.
+- JVM coverage now includes the new catalog entries/default spans/search terms and cache-expiration policy.
+
+**Acceptance boundary:** Development source; representative-device visual, accessibility, form-factor, and sustained performance acceptance remain open.
+
 ## September 30, 2026 — compact app context menu and HOME resume stabilization
 
 - The primary app long-press experience now stays on one compact Glaze context menu; the redundant **More options** handoff and legacy `AppPlacementDialog` are removed.

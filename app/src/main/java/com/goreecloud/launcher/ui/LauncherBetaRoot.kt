@@ -1935,6 +1935,9 @@ private fun WidgetPickerBuiltInCard(
 ) {
     val span = WorkspaceWidgetCatalog.defaultSpan(typeId) ?: (1 to 1)
     val glyph = when (typeId) {
+        WorkspaceWidgetCatalog.CALENDAR -> "15"
+        WorkspaceWidgetCatalog.WEATHER -> "72°"
+        WorkspaceWidgetCatalog.GLANCE -> "15 · 72°"
         WorkspaceWidgetCatalog.CLOCK -> "12:34"
         WorkspaceWidgetCatalog.COMPACT_CLOCK -> "12:34"
         WorkspaceWidgetCatalog.ANALOG_CLOCK -> "◷"
@@ -2631,7 +2634,7 @@ private fun LauncherWeatherStatusChip(
 ) {
     val context = LocalContext.current
     var permissionRevision by remember { mutableIntStateOf(0) }
-    var weather by remember { mutableStateOf<LauncherWeatherSnapshot?>(null) }
+    var weather by remember { mutableStateOf(LauncherWeather.cachedSnapshot()) }
     var loading by remember { mutableStateOf(false) }
     var failed by remember { mutableStateOf(false) }
     val hasLocationPermission = remember(permissionRevision, context) {
@@ -2650,15 +2653,20 @@ private fun LauncherWeatherStatusChip(
             loading = false
             failed = false
         } else {
-            loading = true
+            val hadCachedWeather = weather != null
+            loading = !hadCachedWeather
             failed = false
-            weather = LauncherWeather.load(context.applicationContext)
+            val refreshed = LauncherWeather.load(
+                context = context.applicationContext,
+                forceRefresh = permissionRevision > 0,
+            )
+            if (refreshed != null) weather = refreshed
             failed = weather == null
             loading = false
         }
     }
 
-    val snapshot = weather
+    val snapshot = weather.takeIf { hasLocationPermission }
     val primaryLabel = when {
         !hasLocationPermission -> "Weather"
         loading -> "Weather"
@@ -2689,7 +2697,7 @@ private fun LauncherWeatherStatusChip(
 
     Surface(
         modifier = Modifier
-            .widthIn(min = if (compact) 154.dp else 188.dp)
+            .widthIn(min = if (compact) 104.dp else 188.dp)
             .heightIn(min = if (compact) 64.dp else 76.dp)
             .semantics {
                 contentDescription = when {
@@ -3933,6 +3941,15 @@ private fun LauncherBuiltInWidget(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.86f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.80f),
+                                ),
+                            ),
+                            RoundedCornerShape(28.dp),
+                        )
                         .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
                     verticalArrangement = Arrangement.SpaceBetween,
                 ) {
@@ -3941,31 +3958,114 @@ private fun LauncherBuiltInWidget(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            now.format(DateTimeFormatter.ofPattern("EEEE, MMM d", Locale.getDefault())),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = foreground.copy(alpha = 0.82f),
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                        )
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color.White.copy(alpha = 0.94f),
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    now.dayOfMonth.toString(),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Color(0xFF17191D),
+                                    fontWeight = FontWeight.Light,
+                                )
+                                Column {
+                                    Text(
+                                        now.format(DateTimeFormatter.ofPattern("MMM", Locale.getDefault())).uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF17191D).copy(alpha = 0.64f),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        now.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = Color(0xFF17191D),
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                            }
+                        }
                         LauncherWeatherStatusChip(
-                            foreground = foreground,
+                            foreground = Color.White,
                             compact = true,
                         )
                     }
                     Text(
                         now.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())),
                         style = MaterialTheme.typography.displayLarge,
-                        color = foreground,
+                        color = Color.White,
                         fontWeight = FontWeight.Light,
                         maxLines = 1,
                     )
                     Text(
                         "Time and date stay local. Weather uses foreground location only after you allow it.",
                         style = MaterialTheme.typography.labelSmall,
-                        color = foreground.copy(alpha = 0.66f),
+                        color = Color.White.copy(alpha = 0.72f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            WorkspaceWidgetCatalog.CALENDAR -> {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = RoundedCornerShape(28.dp),
+                    color = Color.White.copy(alpha = 0.94f),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(15.dp),
+                        verticalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Text(
+                            now.format(DateTimeFormatter.ofPattern("MMM yyyy", Locale.getDefault())).uppercase(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF17191D).copy(alpha = 0.62f),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            now.dayOfMonth.toString(),
+                            style = MaterialTheme.typography.displayMedium,
+                            color = Color(0xFF17191D),
+                            fontWeight = FontWeight.Light,
+                        )
+                        Text(
+                            now.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault())),
+                            style = MaterialTheme.typography.titleSmall,
+                            color = Color(0xFF17191D),
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
+                }
+            }
+            WorkspaceWidgetCatalog.WEATHER -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.88f),
+                                    MaterialTheme.colorScheme.tertiary.copy(alpha = 0.82f),
+                                ),
+                            ),
+                            RoundedCornerShape(28.dp),
+                        )
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        now.format(DateTimeFormatter.ofPattern("h:mm", Locale.getDefault())),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    LauncherWeatherStatusChip(
+                        foreground = Color.White,
+                        compact = true,
                     )
                 }
             }

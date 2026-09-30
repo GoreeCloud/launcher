@@ -15,6 +15,27 @@ class LauncherWeatherTest {
     }
 
     @Test
+    fun weatherCacheFreshnessUsesBoundedWindow() {
+        val cachedAt = 1_000_000L
+        assertEquals(true, launcherWeatherCacheIsFresh(cachedAt, cachedAt))
+        assertEquals(
+            true,
+            launcherWeatherCacheIsFresh(
+                cachedAt,
+                cachedAt + LAUNCHER_WEATHER_CACHE_TTL_MILLIS,
+            ),
+        )
+        assertEquals(
+            false,
+            launcherWeatherCacheIsFresh(
+                cachedAt,
+                cachedAt + LAUNCHER_WEATHER_CACHE_TTL_MILLIS + 1L,
+            ),
+        )
+        assertEquals(false, launcherWeatherCacheIsFresh(cachedAt, cachedAt - 1L))
+    }
+
+    @Test
     fun weatherVisualsCoverRainFogLightningSnowAndHighWind() {
         assertEquals(
             LauncherWeatherVisualKind.RAIN,
