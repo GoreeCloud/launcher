@@ -67,6 +67,7 @@ import com.goreecloud.launcher.core.launcher.LauncherExperiencePreferences
 import com.goreecloud.launcher.core.launcher.LauncherFileSearchPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherFolder
+import com.goreecloud.launcher.core.launcher.LauncherFolderProfilePolicy
 import com.goreecloud.launcher.core.launcher.LauncherFolderRepository
 import com.goreecloud.launcher.core.launcher.LauncherGoogleDriveAuthorizationState
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
@@ -1923,9 +1924,14 @@ class MainActivity : ComponentActivity() {
         name: String,
         addToHome: Boolean,
         initialApp: LauncherActivityInfo?,
+        profileId: Int,
     ) {
         lifecycleScope.launch {
-            val folder = folderRepository.create(name)
+            val primaryProfileId = Process.myUserHandle().hashCode()
+            val folder = folderRepository.create(
+                rawName = name,
+                profileId = profileId,
+            )
             if (folder == null) {
                 Toast.makeText(
                     this@MainActivity,
@@ -1934,8 +1940,14 @@ class MainActivity : ComponentActivity() {
                 ).show()
                 return@launch
             }
-            if (initialApp != null && initialApp.user == Process.myUserHandle()) {
-                if (!folderRepository.addApp(folder.id, initialApp.workspaceKey())) {
+            if (initialApp != null && initialApp.user.hashCode() == profileId) {
+                if (
+                    !folderRepository.addApp(
+                        folderId = folder.id,
+                        appKey = initialApp.workspaceKey(),
+                        primaryProfileId = primaryProfileId,
+                    )
+                ) {
                     Toast.makeText(
                         this@MainActivity,
                         "Folder created, but the app could not be added.",
@@ -1943,7 +1955,9 @@ class MainActivity : ComponentActivity() {
                     ).show()
                 }
             }
-            if (addToHome) addFolderToHomeInternal(folder)
+            if (addToHome && profileId == primaryProfileId) {
+                addFolderToHomeInternal(folder)
+            }
         }
     }
 
@@ -1960,16 +1974,32 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun addAppToFolder(folderId: String, app: LauncherActivityInfo) {
-        if (app.user != Process.myUserHandle()) {
-            Toast.makeText(
-                this@MainActivity,
-                "Personal folders cannot contain apps from another profile.",
-                Toast.LENGTH_SHORT,
-            ).show()
-            return
-        }
         lifecycleScope.launch {
-            if (!folderRepository.addApp(folderId, app.workspaceKey())) {
+            val folder = folderRepository.folders.first()
+                .firstOrNull { it.id == folderId }
+            val primaryProfileId = Process.myUserHandle().hashCode()
+            if (
+                folder == null ||
+                !LauncherFolderProfilePolicy.belongsToProfile(
+                    folder = folder,
+                    profileId = app.user.hashCode(),
+                    primaryProfileId = primaryProfileId,
+                )
+            ) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "That folder belongs to a different Android profile.",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                return@launch
+            }
+            if (
+                !folderRepository.addApp(
+                    folderId = folderId,
+                    appKey = app.workspaceKey(),
+                    primaryProfileId = primaryProfileId,
+                )
+            ) {
                 Toast.makeText(
                     this@MainActivity,
                     "App could not be added to that folder.",
@@ -1992,6 +2022,21 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun addFolderToHome(folder: LauncherFolder) {
+        val primaryProfileId = Process.myUserHandle().hashCode()
+        if (
+            !LauncherFolderProfilePolicy.belongsToProfile(
+                folder = folder,
+                profileId = primaryProfileId,
+                primaryProfileId = primaryProfileId,
+            )
+        ) {
+            Toast.makeText(
+                this,
+                "Work-profile folders stay in Work Apps.",
+                Toast.LENGTH_SHORT,
+            ).show()
+            return
+        }
         lifecycleScope.launch {
             addFolderToHomeInternal(folder)
         }

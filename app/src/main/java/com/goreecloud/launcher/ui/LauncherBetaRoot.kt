@@ -134,6 +134,7 @@ import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherFolder
+import com.goreecloud.launcher.core.launcher.LauncherFolderProfilePolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconShape
@@ -378,7 +379,7 @@ fun LauncherBetaRoot(
     homePages: List<WorkspaceRenderedHomePage>,
     onMoveFolderToPage: (LauncherFolder, String) -> Unit,
     onMoveFolderToPageCell: (LauncherFolder, String, Int, Int) -> Unit,
-    onCreateFolder: (String, Boolean, LauncherActivityInfo?) -> Unit,
+    onCreateFolder: (String, Boolean, LauncherActivityInfo?, Int) -> Unit,
     onRenameFolder: (String, String) -> Unit,
     onDeleteFolder: (LauncherFolder) -> Unit,
     onAddAppToFolder: (String, LauncherActivityInfo) -> Unit,
@@ -490,12 +491,13 @@ fun LauncherBetaRoot(
     var folderAppPickerId by rememberSaveable { mutableStateOf<String?>(null) }
     var showFolderManager by rememberSaveable { mutableStateOf(false) }
     var folderManagerAddToHome by rememberSaveable { mutableStateOf(false) }
+    val primaryFolderProfileId = remember { Process.myUserHandle().hashCode() }
+    var folderManagerProfileId by rememberSaveable {
+        mutableStateOf(primaryFolderProfileId)
+    }
     var folderAssignmentAppKey by rememberSaveable { mutableStateOf<String?>(null) }
     val rootAppsByKey = remember(apps) {
-        val personalUser = Process.myUserHandle()
-        apps.asSequence()
-            .filter { it.user == personalUser }
-            .associateBy { it.workspaceKey() }
+        apps.associateBy { it.workspaceKey() }
     }
     val homeFolderIds = remember(homePages) {
         homePages.flatMap { page -> page.folderPlacements.map { it.folderId } }.toSet()
@@ -805,6 +807,7 @@ fun LauncherBetaRoot(
                 onSwipeHomePageLeft = onSwipeHomePageLeft,
                 onSwipeHomePageRight = onSwipeHomePageRight,
                 onManageFolders = {
+                    folderManagerProfileId = primaryFolderProfileId
                     folderManagerAddToHome = true
                     showFolderManager = true
                 },
@@ -914,8 +917,9 @@ fun LauncherBetaRoot(
                     selectedAppContextOrigin = LauncherAppContextOrigin.DRAWER
                 },
                 onOpenFolder = { folder -> selectedFolderId = folder.id },
-                onManageFolders = {
-                    folderManagerAddToHome = false
+                onManageFolders = { profileId ->
+                    folderManagerProfileId = profileId
+                    folderManagerAddToHome = profileId == primaryFolderProfileId
                     showFolderManager = true
                 },
                 onOpenSettings = {
@@ -941,6 +945,7 @@ fun LauncherBetaRoot(
                         isDefaultHome = isDefaultHome,
                         onRequestHomeRole = onRequestHomeRole,
                         onManageFolders = {
+                            folderManagerProfileId = primaryFolderProfileId
                             folderManagerAddToHome = false
                             showFolderManager = true
                         },
@@ -1033,9 +1038,18 @@ fun LauncherBetaRoot(
                 onAddToFolder = {
                     selectedApp = null
                     selectedAppAnchor = null
+                    val appProfileId = app.user.hashCode()
+                    val compatibleFolders = folders.filter { folder ->
+                        LauncherFolderProfilePolicy.belongsToProfile(
+                            folder = folder,
+                            profileId = appProfileId,
+                            primaryProfileId = primaryFolderProfileId,
+                        )
+                    }
                     folderAssignmentAppKey = appKey
-                    if (folders.isEmpty()) {
-                        folderManagerAddToHome = false
+                    if (compatibleFolders.isEmpty()) {
+                        folderManagerProfileId = appProfileId
+                        folderManagerAddToHome = appProfileId == primaryFolderProfileId
                         showFolderManager = true
                     }
                 },
@@ -1108,10 +1122,13 @@ fun LauncherBetaRoot(
     selectedFolderId
         ?.let { id -> folders.firstOrNull { it.id == id } }
         ?.let { folder ->
+            val folderProfileId = folder.profileId ?: primaryFolderProfileId
+            val allowHomePlacement = folderProfileId == primaryFolderProfileId
             LauncherFolderContentsSheet(
                 folder = folder,
                 appsByKey = rootAppsByKey,
-                isOnHome = folder.id in homeFolderIds,
+                isOnHome = allowHomePlacement && folder.id in homeFolderIds,
+                allowHomePlacement = allowHomePlacement,
                 onLaunchApp = onLaunchApp,
                 onRemoveApp = { app -> onRemoveAppFromFolder(folder.id, app) },
                 onAddApps = {
@@ -1121,8 +1138,12 @@ fun LauncherBetaRoot(
                 onRename = { name -> onRenameFolder(folder.id, name) },
                 onAddToHome = { onAddFolderToHome(folder) },
                 onRemoveFromHome = { onRemoveFolderFromHome(folder) },
-                moveTargets = homePages.filter { page ->
-                    page.folderPlacements.none { placement -> placement.folderId == folder.id }
+                moveTargets = if (allowHomePlacement) {
+                    homePages.filter { page ->
+                        page.folderPlacements.none { placement -> placement.folderId == folder.id }
+                    }
+                } else {
+                    emptyList()
                 },
                 onMoveToPage = { target ->
                     onMoveFolderToPage(folder, target)
@@ -1139,9 +1160,12 @@ fun LauncherBetaRoot(
     folderAppPickerId
         ?.let { id -> folders.firstOrNull { it.id == id } }
         ?.let { folder ->
+            val folderProfileId = folder.profileId ?: primaryFolderProfileId
             LauncherFolderAppPickerSheet(
                 folder = folder,
-                availableApps = rootAppsByKey.values.toList(),
+                availableApps = rootAppsByKey.values.filter { app ->
+                    app.user.hashCode() == folderProfileId
+                },
                 onAddApp = { app -> onAddAppToFolder(folder.id, app) },
                 onDismiss = {
                     folderAppPickerId = null
@@ -1151,14 +1175,27 @@ fun LauncherBetaRoot(
         }
 
     if (showFolderManager) {
+        val managedFolders = folders.filter { folder ->
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = folder,
+                profileId = folderManagerProfileId,
+                primaryProfileId = primaryFolderProfileId,
+            )
+        }
         LauncherFolderManagerSheet(
-            folders = folders,
+            folders = managedFolders,
             appsByKey = rootAppsByKey,
             homeFolderIds = homeFolderIds,
             defaultAddToHome = folderManagerAddToHome,
+            allowHomePlacement = folderManagerProfileId == primaryFolderProfileId,
             onCreate = { name, addToHome ->
                 val initialApp = folderAssignmentAppKey?.let(rootAppsByKey::get)
-                onCreateFolder(name, addToHome, initialApp)
+                onCreateFolder(
+                    name,
+                    addToHome && folderManagerProfileId == primaryFolderProfileId,
+                    initialApp,
+                    folderManagerProfileId,
+                )
                 folderAssignmentAppKey = null
             },
             onOpen = { folder ->
@@ -1177,15 +1214,24 @@ fun LauncherBetaRoot(
     if (!showFolderManager) folderAssignmentAppKey
         ?.let(rootAppsByKey::get)
         ?.let { app ->
+            val appProfileId = app.user.hashCode()
+            val compatibleFolders = folders.filter { folder ->
+                LauncherFolderProfilePolicy.belongsToProfile(
+                    folder = folder,
+                    profileId = appProfileId,
+                    primaryProfileId = primaryFolderProfileId,
+                )
+            }
             LauncherFolderAssignmentSheet(
                 app = app,
-                folders = folders,
+                folders = compatibleFolders,
                 onAssign = { folder ->
                     onAddAppToFolder(folder.id, app)
                     folderAssignmentAppKey = null
                 },
                 onCreateFolder = {
-                    folderManagerAddToHome = false
+                    folderManagerProfileId = appProfileId
+                    folderManagerAddToHome = appProfileId == primaryFolderProfileId
                     showFolderManager = true
                 },
                 onDismiss = { folderAssignmentAppKey = null },
@@ -5217,7 +5263,7 @@ private fun AppDrawerSurface(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
-    onManageFolders: () -> Unit,
+    onManageFolders: (Int) -> Unit,
     onOpenSettings: () -> Unit,
     onHome: () -> Unit,
 ) {
@@ -5230,6 +5276,7 @@ private fun AppDrawerSurface(
     }.getOrDefault(LauncherDrawerSortOrder.ALPHABETICAL)
     var showDrawerSortMenu by remember { mutableStateOf(false) }
     val primaryUser = remember { Process.myUserHandle() }
+    val primaryProfileId = remember(primaryUser) { primaryUser.hashCode() }
     val profilePages = remember(apps, primaryUser) {
         launcherDrawerProfilePages(
             items = apps,
@@ -5247,6 +5294,24 @@ private fun AppDrawerSurface(
     )
     val profilePagerScope = rememberCoroutineScope()
     val selectedPage = profilePages[profilePager.currentPage.coerceIn(profilePages.indices)]
+    val selectedPageProfileIds = remember(
+        selectedPage.kind,
+        selectedPage.items,
+        primaryProfileId,
+    ) {
+        if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
+            listOf(primaryProfileId)
+        } else {
+            selectedPage.items.map { it.user.hashCode() }.distinct()
+        }
+    }
+    val folderCreationProfileId = if (
+        selectedPage.kind == LauncherDrawerProfileKind.USER
+    ) {
+        primaryProfileId
+    } else {
+        selectedPageProfileIds.singleOrNull()
+    }
     LaunchedEffect(profilePager.currentPage, profilePages.map { it.kind }) {
         selectedProfileName = selectedPage.kind.name
     }
@@ -5303,10 +5368,11 @@ private fun AppDrawerSurface(
         }
     }
     val selectedFilteredCount = remember(
-        selectedPage.kind,
         selectedPage.items,
+        selectedPageProfileIds,
         folders,
         drawerQuery,
+        primaryProfileId,
     ) {
         val matchingApps = selectedPage.items.count { app ->
             LauncherLocalAppSearch.matches(
@@ -5315,17 +5381,24 @@ private fun AppDrawerSurface(
                 rawQuery = drawerQuery,
             )
         }
-        if (drawerQuery.isBlank() || selectedPage.kind != LauncherDrawerProfileKind.USER) {
-            matchingApps
-        } else {
-            matchingApps + folders.count { folder ->
-                LauncherLocalAppSearch.matches(
-                    label = folder.name,
-                    packageName = "",
-                    rawQuery = drawerQuery,
+        val matchingFolders = folders.count { folder ->
+            selectedPageProfileIds.any { profileId ->
+                LauncherFolderProfilePolicy.belongsToProfile(
+                    folder = folder,
+                    profileId = profileId,
+                    primaryProfileId = primaryProfileId,
                 )
-            }
+            } &&
+                (
+                    drawerQuery.isBlank() ||
+                        LauncherLocalAppSearch.matches(
+                            label = folder.name,
+                            packageName = "",
+                            rawQuery = drawerQuery,
+                        )
+                )
         }
+        matchingApps + matchingFolders
     }
 
     Box(
@@ -5497,11 +5570,11 @@ private fun AppDrawerSurface(
                             }
                         }
                         if (
-                            selectedPage.kind == LauncherDrawerProfileKind.USER &&
-                            drawerQuery.isBlank()
+                            drawerQuery.isBlank() &&
+                            folderCreationProfileId != null
                         ) {
                             Surface(
-                                onClick = onManageFolders,
+                                onClick = { onManageFolders(folderCreationProfileId) },
                                 modifier = Modifier
                                     .size(if (useDrawerHeaderIcons) 48.dp else 92.dp)
                                     .semantics { contentDescription = "New folder" },
@@ -5573,19 +5646,35 @@ private fun AppDrawerSurface(
                             }
                         }
                     }
-                    val pageFolders = remember(page.kind, folders, drawerQuery) {
-                        if (page.kind != LauncherDrawerProfileKind.USER) {
-                            emptyList()
-                        } else if (drawerQuery.isBlank()) {
-                            folders
+                    val pageProfileIds = remember(page.kind, page.items, primaryProfileId) {
+                        if (page.kind == LauncherDrawerProfileKind.USER) {
+                            listOf(primaryProfileId)
                         } else {
-                            folders.filter { folder ->
-                                LauncherLocalAppSearch.matches(
-                                    label = folder.name,
-                                    packageName = "",
-                                    rawQuery = drawerQuery,
+                            page.items.map { it.user.hashCode() }.distinct()
+                        }
+                    }
+                    val pageFolders = remember(
+                        pageProfileIds,
+                        folders,
+                        drawerQuery,
+                        primaryProfileId,
+                    ) {
+                        folders.filter { folder ->
+                            pageProfileIds.any { profileId ->
+                                LauncherFolderProfilePolicy.belongsToProfile(
+                                    folder = folder,
+                                    profileId = profileId,
+                                    primaryProfileId = primaryProfileId,
                                 )
-                            }
+                            } &&
+                                (
+                                    drawerQuery.isBlank() ||
+                                        LauncherLocalAppSearch.matches(
+                                            label = folder.name,
+                                            packageName = "",
+                                            rawQuery = drawerQuery,
+                                        )
+                                )
                         }
                     }
                     if (pageApps.isEmpty() && pageFolders.isEmpty() && drawerQuery.isBlank()) {
@@ -8986,6 +9075,7 @@ private fun LauncherFolderManagerSheet(
     appsByKey: Map<String, LauncherActivityInfo>,
     homeFolderIds: Set<String>,
     defaultAddToHome: Boolean,
+    allowHomePlacement: Boolean,
     onCreate: (String, Boolean) -> Unit,
     onOpen: (LauncherFolder) -> Unit,
     onAddToHome: (LauncherFolder) -> Unit,
@@ -8993,7 +9083,9 @@ private fun LauncherFolderManagerSheet(
     onDismiss: () -> Unit,
 ) {
     var nameDraft by rememberSaveable { mutableStateOf("") }
-    var addToHome by rememberSaveable(defaultAddToHome) { mutableStateOf(defaultAddToHome) }
+    var addToHome by rememberSaveable(defaultAddToHome, allowHomePlacement) {
+        mutableStateOf(defaultAddToHome && allowHomePlacement)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -9062,24 +9154,32 @@ private fun LauncherFolderManagerSheet(
                         placeholder = { Text("e.g. Banking, Work or Media") },
                         leadingIcon = { Text("▦") },
                     )
-                    Row(
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "Place on Home",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Text(
-                                "You can drag it later; it always remains in the app drawer.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                    if (allowHomePlacement) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    "Place on Home",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    "You can drag it later; it always remains in the app drawer.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(checked = addToHome, onCheckedChange = { addToHome = it })
                         }
-                        Switch(checked = addToHome, onCheckedChange = { addToHome = it })
+                    } else {
+                        Text(
+                            "This folder stays in its Android profile's App Drawer.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     Button(
                         onClick = {
@@ -9156,16 +9256,24 @@ private fun LauncherFolderManagerSheet(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                TextButton(
-                                    onClick = {
-                                        if (folder.id in homeFolderIds) {
-                                            onRemoveFromHome(folder)
-                                        } else {
-                                            onAddToHome(folder)
-                                        }
-                                    },
-                                ) {
-                                    Text(if (folder.id in homeFolderIds) "Remove Home" else "Add Home")
+                                if (allowHomePlacement) {
+                                    TextButton(
+                                        onClick = {
+                                            if (folder.id in homeFolderIds) {
+                                                onRemoveFromHome(folder)
+                                            } else {
+                                                onAddToHome(folder)
+                                            }
+                                        },
+                                    ) {
+                                        Text(
+                                            if (folder.id in homeFolderIds) {
+                                                "Remove Home"
+                                            } else {
+                                                "Add Home"
+                                            },
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -9183,6 +9291,7 @@ internal fun LauncherFolderContentsSheet(
     folder: LauncherFolder,
     appsByKey: Map<String, LauncherActivityInfo>,
     isOnHome: Boolean,
+    allowHomePlacement: Boolean = true,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onRemoveApp: (LauncherActivityInfo) -> Unit,
     onAddApps: () -> Unit,
@@ -9395,16 +9504,24 @@ internal fun LauncherFolderContentsSheet(
                                         dismissThen(onAddApps)
                                     },
                                 )
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(if (isOnHome) "Remove from Home" else "Add to Home")
-                                    },
-                                    onClick = {
-                                        showActions = false
-                                        if (isOnHome) onRemoveFromHome() else onAddToHome()
-                                    },
-                                )
-                                if (isOnHome && moveTargets.isNotEmpty()) {
+                                if (allowHomePlacement) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                if (isOnHome) {
+                                                    "Remove from Home"
+                                                } else {
+                                                    "Add to Home"
+                                                },
+                                            )
+                                        },
+                                        onClick = {
+                                            showActions = false
+                                            if (isOnHome) onRemoveFromHome() else onAddToHome()
+                                        },
+                                    )
+                                }
+                                if (allowHomePlacement && isOnHome && moveTargets.isNotEmpty()) {
                                     DropdownMenuItem(
                                         text = { Text("Move to another Home page") },
                                         onClick = {
@@ -10080,7 +10197,7 @@ internal fun LauncherFolderAppPickerSheet(
             }
             if (visibleApps.isEmpty()) {
                 Text(
-                    "No matching personal apps.",
+                    "No matching apps in this profile.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -10269,7 +10386,7 @@ private fun AppContextPopup(
     val isFavorite = key in workspace.favoriteKeys
     val isDocked = key in workspace.dockKeys
     val dockFull = !isDocked && workspace.dockKeys.size >= MAX_DOCK_ITEMS
-    val canAddToFolder = app.user == Process.myUserHandle()
+    val canAddToFolder = true
     val icon = rememberLauncherAppIcon(app)
     val shortcuts = rememberLauncherContextShortcuts(app)
     val appWidgets = remember(

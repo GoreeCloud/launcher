@@ -17,7 +17,36 @@ data class LauncherFolder(
     val id: String,
     val name: String,
     val appKeys: List<String>,
+    /**
+     * Exact Android UserHandle identity used by this folder.
+     *
+     * Legacy v1 records do not contain this field and decode as null. The UI treats those legacy
+     * records as primary-user folders only. New profile-aware folders always persist a concrete
+     * profile identifier so work/private-profile membership never crosses profile boundaries.
+     */
+    val profileId: Int? = null,
 )
+
+internal fun launcherProfileIdFromWorkspaceKey(appKey: String): Int? =
+    appKey.substringBefore(':', missingDelimiterValue = "").toIntOrNull()
+
+object LauncherFolderProfilePolicy {
+    fun belongsToProfile(
+        folder: LauncherFolder,
+        profileId: Int,
+        primaryProfileId: Int,
+    ): Boolean =
+        folder.profileId?.let { it == profileId } ?: (profileId == primaryProfileId)
+
+    fun canContainWorkspaceKey(
+        folder: LauncherFolder,
+        appKey: String,
+        primaryProfileId: Int,
+    ): Boolean {
+        val appProfileId = launcherProfileIdFromWorkspaceKey(appKey) ?: return false
+        return belongsToProfile(folder, appProfileId, primaryProfileId)
+    }
+}
 
 object LauncherFolderPolicy {
     const val MAX_NAME_LENGTH = 40
@@ -38,6 +67,7 @@ object LauncherFolderCodec {
             listOf(
                 encodePart(folder.id),
                 encodePart(folder.name),
+                encodePart(folder.profileId?.toString().orEmpty()),
                 folder.appKeys
                     .distinct()
                     .take(LauncherFolderPolicy.MAX_APPS_PER_FOLDER)
@@ -51,22 +81,43 @@ object LauncherFolderCodec {
         return raw.lineSequence()
             .mapNotNull { line ->
                 val parts = line.split('\t')
-                if (parts.size != 3) return@mapNotNull null
+                if (parts.size !in 3..4) return@mapNotNull null
                 val id = decodePart(parts[0])?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
                 if (!seenIds.add(id)) return@mapNotNull null
                 val name = LauncherFolderPolicy.normalizeName(decodePart(parts[1]))
                     ?: return@mapNotNull null
-                val appKeys = if (parts[2].isBlank()) {
+
+                val profileId: Int?
+                val appsField: String
+                if (parts.size == 3) {
+                    profileId = null
+                    appsField = parts[2]
+                } else {
+                    val rawProfile = decodePart(parts[2]) ?: return@mapNotNull null
+                    profileId = if (rawProfile.isBlank()) {
+                        null
+                    } else {
+                        rawProfile.toIntOrNull() ?: return@mapNotNull null
+                    }
+                    appsField = parts[3]
+                }
+
+                val appKeys = if (appsField.isBlank()) {
                     emptyList()
                 } else {
-                    parts[2]
+                    appsField
                         .split(',')
                         .mapNotNull(::decodePart)
                         .filter { it.isNotBlank() }
                         .distinct()
                         .take(LauncherFolderPolicy.MAX_APPS_PER_FOLDER)
                 }
-                LauncherFolder(id = id, name = name, appKeys = appKeys)
+                LauncherFolder(
+                    id = id,
+                    name = name,
+                    appKeys = appKeys,
+                    profileId = profileId,
+                )
             }
             .take(LauncherFolderPolicy.MAX_FOLDER_COUNT)
             .toList()
@@ -94,7 +145,10 @@ class LauncherFolderRepository(context: Context) {
         .map { values -> LauncherFolderCodec.decode(values[foldersKey]) }
         .distinctUntilChanged()
 
-    suspend fun create(rawName: String): LauncherFolder? {
+    suspend fun create(
+        rawName: String,
+        profileId: Int? = null,
+    ): LauncherFolder? {
         val name = LauncherFolderPolicy.normalizeName(rawName) ?: return null
         var created: LauncherFolder? = null
         dataStore.edit { values ->
@@ -104,6 +158,7 @@ class LauncherFolderRepository(context: Context) {
                 id = UUID.randomUUID().toString(),
                 name = name,
                 appKeys = emptyList(),
+                profileId = profileId,
             )
             values[foldersKey] = LauncherFolderCodec.encode(current + folder)
             created = folder
@@ -141,13 +196,26 @@ class LauncherFolderRepository(context: Context) {
         return changed
     }
 
-    suspend fun addApp(folderId: String, appKey: String): Boolean {
+    suspend fun addApp(
+        folderId: String,
+        appKey: String,
+        primaryProfileId: Int,
+    ): Boolean {
         if (appKey.isBlank()) return false
         var changed = false
         dataStore.edit { values ->
             val current = LauncherFolderCodec.decode(values[foldersKey])
             val updated = current.map { folder ->
                 if (folder.id != folderId) return@map folder
+                if (
+                    !LauncherFolderProfilePolicy.canContainWorkspaceKey(
+                        folder = folder,
+                        appKey = appKey,
+                        primaryProfileId = primaryProfileId,
+                    )
+                ) {
+                    return@map folder
+                }
                 if (appKey in folder.appKeys) {
                     changed = true
                     return@map folder

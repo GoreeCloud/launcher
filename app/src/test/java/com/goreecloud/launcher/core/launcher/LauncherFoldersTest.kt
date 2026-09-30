@@ -17,6 +17,7 @@ class LauncherFoldersTest {
                     "0:com.example.mail/.MainActivity",
                     "0:com.example.camera/.CameraActivity",
                 ),
+                profileId = 0,
             ),
             LauncherFolder(id = "folder-2", name = "中文工具", appKeys = emptyList()),
         )
@@ -61,6 +62,76 @@ class LauncherFoldersTest {
         val restored = LauncherFolderCodec.decode(LauncherFolderCodec.encode(listOf(folder)))
         assertEquals(listOf("app-a", "app-b"), restored.single().appKeys)
         assertFalse(restored.single().appKeys.isEmpty())
+    }
+
+    @Test
+    fun profilePolicyKeepsWorkFoldersOutOfPersonalAndOtherWorkProfiles() {
+        val workFolder = LauncherFolder(
+            id = "work",
+            name = "Work",
+            appKeys = listOf("10:com.example/.Main"),
+            profileId = 10,
+        )
+
+        assertTrue(
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = workFolder,
+                profileId = 10,
+                primaryProfileId = 0,
+            ),
+        )
+        assertFalse(
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = workFolder,
+                profileId = 0,
+                primaryProfileId = 0,
+            ),
+        )
+        assertFalse(
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = workFolder,
+                profileId = 11,
+                primaryProfileId = 0,
+            ),
+        )
+        assertTrue(
+            LauncherFolderProfilePolicy.canContainWorkspaceKey(
+                folder = workFolder,
+                appKey = "10:com.example/.Main",
+                primaryProfileId = 0,
+            ),
+        )
+        assertFalse(
+            LauncherFolderProfilePolicy.canContainWorkspaceKey(
+                folder = workFolder,
+                appKey = "11:com.example/.Main",
+                primaryProfileId = 0,
+            ),
+        )
+    }
+
+    @Test
+    fun legacyFoldersRemainPrimaryProfileOnly() {
+        val legacy = LauncherFolder(
+            id = "legacy",
+            name = "Personal",
+            appKeys = emptyList(),
+            profileId = null,
+        )
+        assertTrue(
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = legacy,
+                profileId = 0,
+                primaryProfileId = 0,
+            ),
+        )
+        assertFalse(
+            LauncherFolderProfilePolicy.belongsToProfile(
+                folder = legacy,
+                profileId = 10,
+                primaryProfileId = 0,
+            ),
+        )
     }
 
     @Test
