@@ -1023,6 +1023,9 @@ class MainActivity : ComponentActivity() {
                                 activeHomeAppDrag == null,
                             currentIndex = selectedHomePageIndex,
                             pageCount = renderedPages.size,
+                            canSelectTarget = { targetIndex ->
+                                onPrimaryPage || targetIndex == 0
+                            },
                             onPageSelected = { pageIndex ->
                                 renderedPages.getOrNull(pageIndex)?.let { page ->
                                     selectedHomePageId = page.pageId

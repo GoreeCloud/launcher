@@ -115,6 +115,7 @@ internal fun homePageSwipeTargetIndex(
     horizontalDistancePx: Float,
     verticalDistancePx: Float,
     minimumDistancePx: Float,
+    canSelectTarget: (Int) -> Boolean = { true },
 ): Int? {
     if (
         pageCount <= 1 ||
@@ -130,13 +131,14 @@ internal fun homePageSwipeTargetIndex(
     } else {
         currentIndex - 1
     }
-    return target.takeIf { it in 0 until pageCount }
+    return target.takeIf { it in 0 until pageCount && canSelectTarget(it) }
 }
 
 internal fun Modifier.homePageSwipeNavigation(
     enabled: Boolean,
     currentIndex: Int,
     pageCount: Int,
+    canSelectTarget: (Int) -> Boolean = { true },
     onPageSelected: (Int) -> Unit,
 ): Modifier {
     if (!enabled || pageCount <= 1) return this
@@ -167,6 +169,7 @@ internal fun Modifier.homePageSwipeNavigation(
                         horizontalDistancePx = horizontalDistance,
                         verticalDistancePx = verticalDistance,
                         minimumDistancePx = minimumDistancePx,
+                        canSelectTarget = canSelectTarget,
                     )?.let { target ->
                         pageSelected = true
                         onPageSelected(target)
@@ -1122,6 +1125,132 @@ fun ReadOnlyPagedHomeSurface(
     onGridBoundsChanged: (Rect?) -> Unit = {},
     contentOnly: Boolean = false,
 ) {
+    if (!contentOnly) {
+        val secondaryPages = remember(pages) {
+            pages.filterNot { it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID }
+        }
+        val selectedSecondaryIndex = secondaryPages.indexOfFirst { it.pageId == page.pageId }
+        if (secondaryPages.size > 1 && selectedSecondaryIndex >= 0) {
+            val pagerState = rememberPagerState(
+                initialPage = selectedSecondaryIndex,
+                pageCount = { secondaryPages.size },
+            )
+
+            LaunchedEffect(page.pageId, secondaryPages.map { it.pageId }) {
+                val target = secondaryPages.indexOfFirst { it.pageId == page.pageId }
+                if (target >= 0 && target != pagerState.currentPage) {
+                    pagerState.scrollToPage(target)
+                }
+            }
+            LaunchedEffect(pagerState.currentPage, secondaryPages, page.pageId) {
+                val targetPageId = secondaryPages.getOrNull(pagerState.currentPage)?.pageId
+                if (targetPageId != null && targetPageId != page.pageId) {
+                    onSelectPage(targetPageId)
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding(),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .testTag("launcher-secondary-home-pager"),
+                    userScrollEnabled = true,
+                ) { index ->
+                    val candidate = secondaryPages[index]
+                    ReadOnlyPagedHomeSurface(
+                        apps = apps,
+                        folders = folders,
+                        page = candidate,
+                        pages = pages,
+                        homeColumns = homeColumns,
+                        homeRows = homeRows,
+                        showLabels = showLabels,
+                        iconScale = iconScale,
+                        homeLabelOverrides = homeLabelOverrides,
+                        onLaunchApp = onLaunchApp,
+                        onSetHomeLabelOverride = onSetHomeLabelOverride,
+                        onRequestUninstall = onRequestUninstall,
+                        onMoveAppToPage = onMoveAppToPage,
+                        onMoveAppToPageCell = onMoveAppToPageCell,
+                        onMoveAppToCell = onMoveAppToCell,
+                        onMoveAppWithinPage = onMoveAppWithinPage,
+                        onMoveAppOneCell = onMoveAppOneCell,
+                        onRenameFolder = onRenameFolder,
+                        onDeleteFolder = onDeleteFolder,
+                        onAddAppToFolder = onAddAppToFolder,
+                        onRemoveAppFromFolder = onRemoveAppFromFolder,
+                        onRemoveFolderFromHome = onRemoveFolderFromHome,
+                        onMoveFolderToPage = onMoveFolderToPage,
+                        onMoveFolderToPageCell = onMoveFolderToPageCell,
+                        onMoveFolderToCell = onMoveFolderToCell,
+                        onCreateAndroidWidgetView = onCreateAndroidWidgetView,
+                        onRemoveWidget = onRemoveWidget,
+                        onResizeWidget = onResizeWidget,
+                        onMoveWidgetToCell = onMoveWidgetToCell,
+                        onMoveWidgetToPage = onMoveWidgetToPage,
+                        onMoveWidgetToPageCell = onMoveWidgetToPageCell,
+                        onOpenWidgetSearch = onOpenWidgetSearch,
+                        onOpenWidgetApps = onOpenWidgetApps,
+                        onOpenWidgetEditor = onOpenWidgetEditor,
+                        onOpenHomeEditor = onOpenHomeEditor,
+                        onOpenWidgetSettings = onOpenWidgetSettings,
+                        dockApps = emptyList(),
+                        dockStyle = dockStyle,
+                        pageTransition = pageTransition,
+                        showPageIndicator = false,
+                        onSelectPage = onSelectPage,
+                        layoutLocked = layoutLocked,
+                        onGridBoundsChanged = if (candidate.pageId == page.pageId) {
+                            onGridBoundsChanged
+                        } else {
+                            { _ -> }
+                        },
+                        contentOnly = true,
+                    )
+                }
+
+                if (
+                    secondaryHomeShouldRenderPageIndicator(
+                        contentOnly = false,
+                        requested = showPageIndicator,
+                        pageCount = pages.size,
+                    )
+                ) {
+                    HomePageDots(
+                        pages = pages,
+                        selectedPageId = page.pageId,
+                        onSelectPage = onSelectPage,
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .testTag("launcher-secondary-home-page-indicator"),
+                    )
+                }
+
+                if (
+                    secondaryHomeShouldRenderDock(
+                        contentOnly = false,
+                        dockAppCount = dockApps.size,
+                    )
+                ) {
+                    PersistentHomeDock(
+                        apps = dockApps,
+                        iconScale = iconScale,
+                        style = dockStyle,
+                        onLaunchApp = onLaunchApp,
+                    )
+                    Spacer(Modifier.height(2.dp))
+                }
+            }
+            return
+        }
+    }
+
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val pageApps = remember(appsByKey, page.appKeys) {
         page.appKeys.mapNotNull(appsByKey::get)

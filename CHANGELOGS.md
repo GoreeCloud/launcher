@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — follow-finger paging between secondary Home pages
+
+Secondary Home pages now use a single Compose `HorizontalPager` when two or more secondary pages exist. The moving layer contains page content only; the persistent Dock is rendered once outside the pager so it does not slide away with page content.
+
+The selected secondary page identity is synchronized from the pager's current page, keeping the existing Room-backed page model authoritative. The outer Home swipe recognizer is restricted to targets at the Primary boundary, preventing it from racing the new secondary↔secondary pager while preserving the existing bounded Primary↔secondary handoff.
+
+The single-secondary-page path remains unchanged, and app/folder/widget placement, cross-page move authority, Search behavior, permissions, networking, and telemetry are unchanged.
+
+**Acceptance boundary:** Development candidate reconciled onto merged PR #108 / current main `26d26ad03ea6d444d509ec705d9ce834db1b98ba`; fresh exact-head validation is required before integration. Primary↔secondary follow-finger paging and representative-device frame pacing remain open.
+
+
 ## September 30, 2026 — separate secondary Home page content from persistent chrome
 
 Secondary Home rendering now has an explicit content-only mode that suppresses the page-local indicator and persistent Dock while also leaving bottom navigation-bar padding to the future outer chrome owner. The existing full-surface behavior remains the default, so current Launcher behavior is unchanged by this foundation.

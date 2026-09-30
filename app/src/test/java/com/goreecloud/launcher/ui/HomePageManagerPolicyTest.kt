@@ -256,6 +256,41 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun outerSwipeRecognizerCanBeLimitedToPrimaryBoundary() {
+        assertEquals(
+            0,
+            homePageSwipeTargetIndex(
+                currentIndex = 1,
+                pageCount = 4,
+                horizontalDistancePx = 160f,
+                verticalDistancePx = 8f,
+                minimumDistancePx = 56f,
+                canSelectTarget = { target -> target == 0 },
+            ),
+        )
+        assertNull(
+            homePageSwipeTargetIndex(
+                currentIndex = 1,
+                pageCount = 4,
+                horizontalDistancePx = -160f,
+                verticalDistancePx = 8f,
+                minimumDistancePx = 56f,
+                canSelectTarget = { target -> target == 0 },
+            ),
+        )
+        assertNull(
+            homePageSwipeTargetIndex(
+                currentIndex = 2,
+                pageCount = 4,
+                horizontalDistancePx = 160f,
+                verticalDistancePx = 8f,
+                minimumDistancePx = 56f,
+                canSelectTarget = { target -> target == 0 },
+            ),
+        )
+    }
+
+    @Test
     fun secondaryHomeMoveTargetsIncludePrimaryAndExcludeCurrentPage() {
         val secondary = WorkspaceRenderedHomePage(
             pageId = "home:user:secondary",
