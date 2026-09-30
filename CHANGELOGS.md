@@ -1,5 +1,18 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — movable Universal Search Home surface
+
+Launcher Settings now exposes four explicit Home Search presentations: **Swipe down**, **Movable**, fixed **Top**, and fixed **Bottom**. Swipe down remains the default and fail-safe behavior.
+
+Movable Search reuses the existing first-party `goreecloud.search` 4 × 1 Room-backed widget instead of introducing a second Search or drag authority. The managed Search widget participates in ordinary Home widget placement, long-press drag, cross-page movement, and widget management. If no 4 × 1 primary-Home area is currently free, Launcher keeps the bottom Search bar available and retries managed placement after primary-Home geometry changes. Switching to a fixed or gesture-only mode removes only the Launcher-managed Search instance; manually added Search widgets remain user-managed.
+
+Fixed Top/Bottom Search continues to use the existing Glass/Clear/Solid bar presentation. The settings surface no longer presents those fixed-bar style controls as if they changed the movable widget.
+
+This tranche builds on merged post-consolidation stabilization: PR #103 drawer/Home interactions, PR #104 exact-profile Work folders, and PR #105 bounded confirmation of transient active-profile inventory losses.
+
+**Acceptance boundary:** Development candidate. Fresh exact-head CI is required before integration. Representative-device movable/fixed Search placement, Home-space fallback/retry, accessibility, large text, form factors, gesture coexistence, jank, and power acceptance remain open.
+
+
 ## September 30, 2026 — App Drawer and Home interaction stabilization
 
 The App Drawer now exposes four explicit presentation sorts — **A–Z**, **Z–A**, **Most recent**, and **Most frequent** — using the existing privacy-bounded local Launcher launch history for the two usage-based orders. User/Work profile pages stay precomposed across the two-tab pager to reduce the transient blank-page behavior reported on representative hardware. The Work page heading is corrected from the redundant “Work Apps apps” wording.

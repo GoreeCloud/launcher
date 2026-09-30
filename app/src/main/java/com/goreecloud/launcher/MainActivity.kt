@@ -75,7 +75,9 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
+import com.goreecloud.launcher.core.launcher.LauncherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
+import com.goreecloud.launcher.core.launcher.launcherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
@@ -1304,6 +1306,7 @@ class MainActivity : ComponentActivity() {
                             onLaunchApp = launchApp,
                             onOpenAppInfo = appsRepository::openDetails,
                             onAddBuiltInWidget = ::addBuiltInWidget,
+                            onSetManagedHomeSearchEnabled = ::setManagedHomeSearchEnabled,
                             availableAndroidWidgets = availableAndroidWidgets,
                             availableIconPacks = availableIconPacks,
                             onPickInstalledAndroidWidget = { descriptor: LauncherWidgetProviderDescriptor ->
@@ -1658,12 +1661,28 @@ class MainActivity : ComponentActivity() {
                         renderedPages.size > 1 &&
                         showingHome
                     ) {
+                        val homeSearchSurface = launcherHomeSearchSurface(
+                            mode = launcherPreferences.universalSearchHomeMode,
+                            placement = experiencePreferences.homeSearchPlacement,
+                        )
+                        val hasMovableSearch = renderedPages.any { page ->
+                            page.widgetPlacements.any { placement ->
+                                val descriptor =
+                                    placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn
+                                descriptor?.typeId == WorkspaceWidgetCatalog.SEARCH
+                            }
+                        }
                         val indicatorBottomPadding = when {
                             onPrimaryPage &&
-                                launcherPreferences.universalSearchHomeMode ==
-                                    LauncherUniversalSearchHomeMode.PERMANENT &&
-                                experiencePreferences.homeSearchPlacement ==
-                                    LauncherHomeSearchPlacement.BOTTOM ->
+                                (
+                                    homeSearchSurface ==
+                                        LauncherHomeSearchSurface.FIXED_BOTTOM ||
+                                        (
+                                            homeSearchSurface ==
+                                                LauncherHomeSearchSurface.MOVABLE &&
+                                                !hasMovableSearch
+                                            )
+                                    ) ->
                                 176.dp
                             else -> 112.dp
                         }
@@ -2193,6 +2212,44 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun setManagedHomeSearchEnabled(enabled: Boolean) {
+        lifecycleScope.launch {
+            if (enabled) {
+                val preferences = launcherPreferencesRepository.preferences.first()
+                val result = workspaceRuntimeCoordinator.addBuiltInWidget(
+                    itemId = MANAGED_HOME_SEARCH_WIDGET_ID,
+                    typeId = WorkspaceWidgetCatalog.SEARCH,
+                    columns = preferences.homeColumns,
+                    rows = preferences.homeRows,
+                )
+                if (result !is WorkspaceWidgetMutationResult.Added) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        if (result == WorkspaceWidgetMutationResult.NoSpace) {
+                            "No free Home space for movable Search yet. The bottom Search bar stays available."
+                        } else {
+                            "Movable Search could not be placed on Home."
+                        },
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            } else {
+                val result =
+                    workspaceRuntimeCoordinator.removeWidget(MANAGED_HOME_SEARCH_WIDGET_ID)
+                if (
+                    result !is WorkspaceWidgetMutationResult.Removed &&
+                    result != WorkspaceWidgetMutationResult.NotFound
+                ) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "The managed movable Search widget could not be removed.",
+                        Toast.LENGTH_SHORT,
+                    ).show()
+                }
+            }
+        }
+    }
+
     private fun removeWidget(widget: WorkspaceRenderedHomeWidget) {
         lifecycleScope.launch {
             val result = workspaceRuntimeCoordinator.removeWidget(widget.itemId)
@@ -2633,6 +2690,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val STARTER_GLANCE_WIDGET_ID = "widget:builtin:starter-glance-v1"
+        const val MANAGED_HOME_SEARCH_WIDGET_ID = "widget:builtin:managed-home-search-v1"
         const val GOOGLE_DRIVE_METADATA_READONLY_SCOPE =
             "https://www.googleapis.com/auth/drive.metadata.readonly"
     }

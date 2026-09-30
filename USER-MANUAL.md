@@ -59,17 +59,29 @@ You can disable hints during startup, dismiss the Home hint with **Got it**, and
 
 ## Launcher Universal Search from Home
 
-**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed gesture zone of any Home page opens the Launcher-owned search surface by default; the assignment can be changed under **Launcher settings → Gestures**. When the Home search bar is enabled, tapping **Search GoreeCloud** always opens Launcher Universal Search.
+**GoreeCloud Launcher owns Universal Search.** Swipe down on the unobstructed gesture zone of any Home page opens Launcher Universal Search by default; the gesture assignment can be changed under **Launcher Settings → Gestures & inputs**.
 
-Launcher Settings provides two Home-entry modes:
+Under **Launcher Settings → Search**, Home Search now has four Development presentation choices:
 
-### Permanent on Home
+### Swipe down
 
-Home keeps the **Search GoreeCloud** affordance visible. Swipe down opens Launcher Universal Search by default, but the gesture can be reassigned in **Launcher settings → Gestures**.
+This is the default and fail-safe mode. No persistent Search object is required on Home. Swipe down opens Universal Search unless you reassign that gesture.
 
-### Gesture only
+### Movable
 
-The persistent Search GoreeCloud affordance is hidden. Swipe down still opens Launcher Universal Search by default, but any supported Home gesture can be assigned to search under **Launcher settings → Gestures**.
+Launcher uses the existing first-party **Universal Search** 4 × 1 Home widget as the persistent Search surface. It participates in the Room-authoritative Home grid, so you can long-press and drag it like other Home widgets, move it between Home pages, and use normal widget management. Selecting Movable does not create a second Search implementation.
+
+Launcher manages one dedicated movable Search widget for this setting. If an existing Universal Search widget is already present on Home, Launcher reuses the visible Search-widget path rather than adding another one. If the primary Home has no free 4 × 1 area yet, Launcher keeps a fixed bottom Search bar visible and retries managed placement after primary-Home geometry changes. Manually added Search widgets remain ordinary user-managed widgets.
+
+### Top
+
+A persistent **Search GoreeCloud** bar is pinned above the Home grid. It does not consume Home-grid cells. Fixed-bar presentation can use the available Glass, Clear, or Solid styles.
+
+### Bottom
+
+A persistent **Search GoreeCloud** bar is pinned below the Home grid. It does not consume Home-grid cells. Fixed-bar presentation can use the available Glass, Clear, or Solid styles.
+
+Tapping either a fixed Search bar or a movable Universal Search widget opens the same Launcher-owned Universal Search surface.
 
 The current Development search foundation provides installed applications, Android application shortcuts, and user-enabled local Contacts, Call history, Messages, and file-name results. Local file Search is limited to Android Storage Access Framework folders that you explicitly choose; Launcher indexes bounded file-name and MIME metadata only and does not read file contents or request broad storage access.
 
@@ -77,13 +89,13 @@ When Universal Search opens, the idle view is intentionally minimal: one search 
 
 Tap the **settings icon** in the Universal Search field to review enabled sources and their privacy behavior. For **Files**, choose one or more folders to make them searchable. Selected folders are shown in the Sources view. Removing a folder requires confirmation, removes it from Launcher Search, and releases the saved Android read grant when possible. You can choose the folder again later. If one selected document-provider root becomes revoked, malformed, or unavailable, Launcher fails that root softly so other selected roots can continue contributing results.
 
-Enabled connected sources share the same Universal Search result panel. **Google Drive** can now participate inline after authorization; providers that remain handoff-only, including Brave Search and Dropbox in the current candidate, appear under **Search online** as full result rows rather than behind a separate **No local matches** provider strip.
+Enabled connected sources share the same Universal Search result panel. **Google Drive** can participate inline after authorization; providers that remain handoff-only, including Brave Search and Dropbox in the current Development source, appear under **Search online** as full result rows instead of behind a separate provider strip.
 
 **Files** and **Google Drive** are intentionally different sources. **Files** searches folders you explicitly choose through Android's folder picker, including document-provider folders. Enabling **Google Drive** instead starts Google account authorization for the metadata-only `drive.metadata.readonly` scope. After authorization, Launcher sends the typed query to the Google Drive API over HTTPS only while Drive is enabled, returns a bounded set of matching Drive files/folders inline, and opens the selected Drive item through its Google-provided web link. The short-lived access token is kept in process memory only. If authorization is unavailable, expires, or is rejected, Drive stops receiving queries and its source control becomes reconnectable.
 
-The Development source also attempts to reacquire a previously granted Drive access token silently after process restart when the persisted Drive source is enabled. A user-facing account prompt is not opened automatically at startup. Ordinary CI APKs are signed with Android debug identity and now fail closed in the Sources UI instead of opening an account flow that cannot be recognized as the registered Android OAuth client. In those CI builds, use **Files → Choose folder** for permission-scoped Drive folders. Full inline Google Drive remains gated on a protected signed Development build whose Android package/signing fingerprint is registered with Google, followed by representative-device consent, restart, expiry, shared-drive, and result-opening acceptance.
+The Development source also attempts to reacquire a previously granted Drive access token silently after process restart when the persisted Drive source is enabled. A user-facing account prompt is not opened automatically at startup. Ordinary CI APKs use Android debug identity and fail closed for the account flow when that identity is not registered as the authorized Android OAuth client. In those builds, use **Files → Choose folder** for permission-scoped Drive folders. Full inline Google Drive remains gated on a protected signed Development build whose Android package/signing fingerprint is registered with Google, followed by representative-device consent, restart, expiry, shared-drive, and result-opening acceptance.
 
-Brave live suggestions are not yet active. The official Brave Autosuggest API requires a confidential subscription token, so Launcher will not embed that key in the APK or scrape Brave pages. The intended inline mode remains: several official Brave-generated completions appear alongside local results after explicit opt-in, and selecting one opens that Brave query in the configured browser. Until a governed server-side credential path exists, Brave remains a truthful explicit online handoff and Launcher does not fabricate suggestions.
+Brave live suggestions are not yet active. The official Brave Autosuggest API requires a confidential subscription token, so Launcher will not embed that key in the APK or scrape Brave pages. Until a governed credential path exists, Brave remains a truthful explicit online handoff.
 
 Broader provider discovery/registration, portable recovery of provider controls and file-root grants, Google Drive representative-device/OAuth-configuration acceptance, Brave Autosuggest, additional connected adapters, recents/history/context, optional GoreeCloud Search/Index backends, and complete accessibility/profile/performance acceptance remain separately gated.
 

@@ -266,6 +266,10 @@ class LauncherPreferencesTest {
             LauncherHomeGlanceAlignment.fromStorage("unknown"),
         )
         assertEquals(
+            LauncherHomeSearchPlacement.MOVABLE,
+            LauncherHomeSearchPlacement.fromStorage("movable"),
+        )
+        assertEquals(
             LauncherHomeSearchPlacement.TOP,
             LauncherHomeSearchPlacement.fromStorage("top"),
         )
@@ -291,6 +295,38 @@ class LauncherPreferencesTest {
         assertEquals(LauncherHomeSpacing.COMPACT, LauncherHomeSpacing.fromStorage("compact"))
         assertEquals(LauncherHomeSpacing.AIRY, LauncherHomeSpacing.fromStorage("airy"))
         assertEquals(LauncherHomeSpacing.BALANCED, LauncherHomeSpacing.fromStorage("unknown"))
+    }
+
+    @Test
+    fun homeSearchSurfaceResolvesSwipeMovableAndFixedModes() {
+        assertEquals(
+            LauncherHomeSearchSurface.SWIPE_DOWN_ONLY,
+            launcherHomeSearchSurface(
+                LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
+                LauncherHomeSearchPlacement.MOVABLE,
+            ),
+        )
+        assertEquals(
+            LauncherHomeSearchSurface.MOVABLE,
+            launcherHomeSearchSurface(
+                LauncherUniversalSearchHomeMode.PERMANENT,
+                LauncherHomeSearchPlacement.MOVABLE,
+            ),
+        )
+        assertEquals(
+            LauncherHomeSearchSurface.FIXED_TOP,
+            launcherHomeSearchSurface(
+                LauncherUniversalSearchHomeMode.PERMANENT,
+                LauncherHomeSearchPlacement.TOP,
+            ),
+        )
+        assertEquals(
+            LauncherHomeSearchSurface.FIXED_BOTTOM,
+            launcherHomeSearchSurface(
+                LauncherUniversalSearchHomeMode.PERMANENT,
+                LauncherHomeSearchPlacement.BOTTOM,
+            ),
+        )
     }
 
     @Test

@@ -119,6 +119,7 @@ enum class LauncherHomeGlanceAlignment(val storageValue: String) {
 }
 
 enum class LauncherHomeSearchPlacement(val storageValue: String) {
+    MOVABLE("movable"),
     TOP("top"),
     BOTTOM("bottom");
 
@@ -126,6 +127,27 @@ enum class LauncherHomeSearchPlacement(val storageValue: String) {
         fun fromStorage(value: String?): LauncherHomeSearchPlacement =
             entries.firstOrNull { it.storageValue == value } ?: BOTTOM
     }
+}
+
+internal enum class LauncherHomeSearchSurface {
+    SWIPE_DOWN_ONLY,
+    MOVABLE,
+    FIXED_TOP,
+    FIXED_BOTTOM,
+}
+
+internal fun launcherHomeSearchSurface(
+    mode: LauncherUniversalSearchHomeMode,
+    placement: LauncherHomeSearchPlacement,
+): LauncherHomeSearchSurface = when {
+    mode != LauncherUniversalSearchHomeMode.PERMANENT ->
+        LauncherHomeSearchSurface.SWIPE_DOWN_ONLY
+    placement == LauncherHomeSearchPlacement.MOVABLE ->
+        LauncherHomeSearchSurface.MOVABLE
+    placement == LauncherHomeSearchPlacement.TOP ->
+        LauncherHomeSearchSurface.FIXED_TOP
+    else ->
+        LauncherHomeSearchSurface.FIXED_BOTTOM
 }
 
 enum class LauncherHomeSearchStyle(val storageValue: String) {

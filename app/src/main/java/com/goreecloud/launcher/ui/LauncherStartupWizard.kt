@@ -262,7 +262,7 @@ fun LauncherStartupWizard(
                             )
                             WizardRadioRow(
                                 title = "Show a Search bar on Home",
-                                summary = "Keep a permanent Search affordance on the Home screen.",
+                                summary = "Keep Search visible. Launcher Settings lets you make it movable or pin it to the top or bottom.",
                                 selected = selectedSearchMode == LauncherUniversalSearchHomeMode.PERMANENT,
                                 onClick = {
                                     searchModeName = LauncherUniversalSearchHomeMode.PERMANENT.name
@@ -393,7 +393,7 @@ fun LauncherHomeHintCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                "Widgets: long-press and drag to a free Home cell or adjacent page edge; a stationary hold opens widget options, including Move to another Home page.",
+                "Widgets: long-press and drag to a free Home cell or adjacent page edge; movable Universal Search uses the same Home-grid behavior.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

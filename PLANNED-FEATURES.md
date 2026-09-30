@@ -2,14 +2,16 @@
 
 ## September 30, 2026 interaction-stabilization continuation
 
-The current Development candidate expands App Drawer sorting to **A–Z**, **Z–A**, **Most recent**, and **Most frequent**, keeps User/Work profile pager content warm around the active tab, restores stationary long-press context actions alongside drawer drag sources, removes the unwanted Settings-row arrow, enables configured vertical Home gestures from secondary pages, and moves ordinary page switching to the existing gesture threshold rather than pointer release.
+Merged PRs #103–#105 now cover the current mainline drawer/Home/profile stability tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, and bounded confirmation before publishing suspicious inventory loss from a still-active Android profile.
 
-Still open after this tranche: profile-qualified folders for Work/private-profile apps without cross-profile leakage, a genuinely movable persistent Universal Search surface beyond the existing gesture-only/top/bottom modes, representative-device verification that User/Work inventories never blank under profile/package churn, and physical-device jank/accessibility acceptance for drawer long-press/drag and multi-page Home.
+The current Development branch additionally implements a genuine **Movable** Universal Search Home mode by managing the existing Room-backed 4 × 1 Search widget. Fixed **Top** and **Bottom** bars remain available, **Swipe down** remains the new-install/default mode, and a bottom-bar fallback remains visible when the movable widget cannot yet fit. Fresh exact-head validation is required before this branch can be integrated.
+
+Still open after source integration: representative-device verification that User/Work inventories remain complete through package/profile churn, physical-device Home/App Drawer jank and frame pacing, movable/fixed Search accessibility and large-text/form-factor behavior, widget visual acceptance, connected-source acceptance, recovery/update continuity, and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
-**Repository:** `GoreeCloud/launcher`  
+**Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
-**Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record. Legacy Drive roadmap retirement was subsequently verified after PR #203.**  
+**Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
 **Runtime source baseline:** `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240 merged September 23, 2026). Repository-native feature records were reconciled after that runtime merge through PR #241.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
@@ -17,7 +19,7 @@ Still open after this tranche: profile-qualified folders for Work/private-profil
 
 This file carries forward every material open, planned, partial, deferred, blocked, or acceptance-gated feature obligation from the retired roadmap model. A partially implemented feature remains here until its defined implementation and acceptance scope is complete.
 
-Source/build/unit/schema/managed-emulator evidence does not by itself establish representative physical-device acceptance, Release Candidate, production, or Stable status. GoreeCloud Launcher remains **Development**. Issue #80 remains the active stabilization and release-gate record.
+Source/build/unit/schema/managed-emulator evidence does not by itself establish representative physical-device acceptance, Release Candidate, production, or Stable status. GoreeCloud Launcher remains **Development**. Monorepo issue #77 remains the active Launcher stabilization record.
 
 ## Migration reconciliation
 

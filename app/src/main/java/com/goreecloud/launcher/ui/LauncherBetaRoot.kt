@@ -129,6 +129,8 @@ import com.goreecloud.launcher.core.launcher.LauncherHomeSuggestionsPolicy
 import com.goreecloud.launcher.core.launcher.LauncherHomeGlanceAlignment
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchStyle
+import com.goreecloud.launcher.core.launcher.LauncherHomeSearchSurface
+import com.goreecloud.launcher.core.launcher.launcherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
@@ -398,6 +400,7 @@ fun LauncherBetaRoot(
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onOpenAppInfo: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
+    onSetManagedHomeSearchEnabled: (Boolean) -> Unit,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     availableIconPacks: List<LauncherIconPackDescriptor>,
     onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
@@ -819,6 +822,7 @@ fun LauncherBetaRoot(
                 onMoveHomeFolderToPageCell = onMoveFolderToPageCell,
                 onLaunchApp = onLaunchApp,
                 onAddBuiltInWidget = onAddBuiltInWidget,
+                onSetManagedHomeSearchEnabled = onSetManagedHomeSearchEnabled,
                 availableAndroidWidgets = availableAndroidWidgets,
                 onPickInstalledAndroidWidget = onPickInstalledAndroidWidget,
                 onPickAndroidWidget = onPickAndroidWidget,
@@ -1285,6 +1289,7 @@ private fun HomeSurface(
     onMoveHomeFolderToPageCell: (LauncherFolder, String, Int, Int) -> Unit,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
+    onSetManagedHomeSearchEnabled: (Boolean) -> Unit,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
@@ -1432,9 +1437,30 @@ private fun HomeSurface(
         LauncherWallpaperShade.SOFT -> 0.18f
         LauncherWallpaperShade.STRONG -> 0.34f
     }
-    val showPermanentSearch = preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT
-    val searchAtTop =
-        experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
+    val homeSearchSurface = launcherHomeSearchSurface(
+        mode = preferences.universalSearchHomeMode,
+        placement = experiencePreferences.homeSearchPlacement,
+    )
+    val hasMovableSearch = remember(homePages) {
+        homePages.any { page ->
+            page.widgetPlacements.any { placement ->
+                val descriptor = placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn
+                descriptor?.typeId == WorkspaceWidgetCatalog.SEARCH
+            }
+        }
+    }
+    LaunchedEffect(homeSearchSurface, hasMovableSearch, primaryHomePage) {
+        when {
+            homeSearchSurface == LauncherHomeSearchSurface.MOVABLE && !hasMovableSearch ->
+                onSetManagedHomeSearchEnabled(true)
+            homeSearchSurface != LauncherHomeSearchSurface.MOVABLE ->
+                onSetManagedHomeSearchEnabled(false)
+        }
+    }
+    val showFixedSearchAtTop = homeSearchSurface == LauncherHomeSearchSurface.FIXED_TOP
+    val showFixedSearchAtBottom =
+        homeSearchSurface == LauncherHomeSearchSurface.FIXED_BOTTOM ||
+            (homeSearchSurface == LauncherHomeSearchSurface.MOVABLE && !hasMovableSearch)
     val openSearch = onOpenLauncherSearch
 
     Box(
@@ -1621,7 +1647,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (showPermanentSearch && searchAtTop) {
+            if (showFixedSearchAtTop) {
                 GlazeSearchCapsule(
                     value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
@@ -1709,7 +1735,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (showPermanentSearch && !searchAtTop) {
+            if (showFixedSearchAtBottom) {
                 GlazeSearchCapsule(
                     value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
@@ -7122,55 +7148,78 @@ private fun LauncherSettingsRootSurface(
                 visible = selectedSettingsCategory == LauncherSettingsCategory.SEARCH,
             ) {
                 ChoiceRow(
-                    choices = listOf("Gesture only", "Show bar"),
-                    selected = if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) "Show bar" else "Gesture only",
-                    onChoice = {
-                        onSetUniversalSearchHomeMode(
-                            if (it == "Show bar") LauncherUniversalSearchHomeMode.PERMANENT
-                            else LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
+                    choices = listOf("Swipe down", "Movable", "Top", "Bottom"),
+                    selected = when (
+                        launcherHomeSearchSurface(
+                            mode = preferences.universalSearchHomeMode,
+                            placement = experiencePreferences.homeSearchPlacement,
                         )
+                    ) {
+                        LauncherHomeSearchSurface.SWIPE_DOWN_ONLY -> "Swipe down"
+                        LauncherHomeSearchSurface.MOVABLE -> "Movable"
+                        LauncherHomeSearchSurface.FIXED_TOP -> "Top"
+                        LauncherHomeSearchSurface.FIXED_BOTTOM -> "Bottom"
+                    },
+                    onChoice = { choice ->
+                        if (choice == "Swipe down") {
+                            onSetUniversalSearchHomeMode(
+                                LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
+                            )
+                        } else {
+                            onSetHomeSearchPlacement(
+                                when (choice) {
+                                    "Movable" -> LauncherHomeSearchPlacement.MOVABLE
+                                    "Top" -> LauncherHomeSearchPlacement.TOP
+                                    else -> LauncherHomeSearchPlacement.BOTTOM
+                                },
+                            )
+                            onSetUniversalSearchHomeMode(
+                                LauncherUniversalSearchHomeMode.PERMANENT,
+                            )
+                        }
                     },
                 )
                 if (preferences.universalSearchHomeMode == LauncherUniversalSearchHomeMode.PERMANENT) {
                     Text(
-                        "Home bar position",
+                        if (
+                            experiencePreferences.homeSearchPlacement ==
+                                LauncherHomeSearchPlacement.MOVABLE
+                        ) {
+                            "Movable Search uses the Home grid and can be dragged between pages. " +
+                                "If there is no free 4 × 1 area, Launcher keeps the bottom bar visible."
+                        } else {
+                            "Fixed Search stays outside the Home grid."
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodySmall,
                     )
-                    ChoiceRow(
-                        choices = listOf("Top", "Bottom"),
-                        selected = if (
-                            experiencePreferences.homeSearchPlacement == LauncherHomeSearchPlacement.TOP
-                        ) "Top" else "Bottom",
-                        onChoice = {
-                            onSetHomeSearchPlacement(
-                                if (it == "Top") LauncherHomeSearchPlacement.TOP
-                                else LauncherHomeSearchPlacement.BOTTOM,
-                            )
-                        },
-                    )
-                    Text(
-                        "Home bar style",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodySmall,
-                    )
-                    ChoiceRow(
-                        choices = listOf("Glass", "Clear", "Solid"),
-                        selected = when (experiencePreferences.homeSearchStyle) {
-                            LauncherHomeSearchStyle.GLASS -> "Glass"
-                            LauncherHomeSearchStyle.CLEAR -> "Clear"
-                            LauncherHomeSearchStyle.SOLID -> "Solid"
-                        },
-                        onChoice = {
-                            onSetHomeSearchStyle(
-                                when (it) {
-                                    "Clear" -> LauncherHomeSearchStyle.CLEAR
-                                    "Solid" -> LauncherHomeSearchStyle.SOLID
-                                    else -> LauncherHomeSearchStyle.GLASS
-                                },
-                            )
-                        },
-                    )
+                    if (
+                        experiencePreferences.homeSearchPlacement !=
+                            LauncherHomeSearchPlacement.MOVABLE
+                    ) {
+                        Text(
+                            "Home bar style",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        ChoiceRow(
+                            choices = listOf("Glass", "Clear", "Solid"),
+                            selected = when (experiencePreferences.homeSearchStyle) {
+                                LauncherHomeSearchStyle.GLASS -> "Glass"
+                                LauncherHomeSearchStyle.CLEAR -> "Clear"
+                                LauncherHomeSearchStyle.SOLID -> "Solid"
+                            },
+                            onChoice = {
+                                onSetHomeSearchStyle(
+                                    when (it) {
+                                        "Clear" -> LauncherHomeSearchStyle.CLEAR
+                                        "Solid" -> LauncherHomeSearchStyle.SOLID
+                                        else -> LauncherHomeSearchStyle.GLASS
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
                 SettingsReadOnlyRow("Home gestures", "Configured in Gestures")
                 SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
