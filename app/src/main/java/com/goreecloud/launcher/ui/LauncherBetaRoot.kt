@@ -91,6 +91,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -610,6 +611,8 @@ fun LauncherBetaRoot(
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
     hiddenHomeSuggestionKeys: Set<String>,
+    drawerPinnedAppKeys: Set<String>,
+    drawerSortOrderName: String?,
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     fileSearchRoots: List<Uri>,
     homePageCount: Int,
@@ -668,6 +671,8 @@ fun LauncherBetaRoot(
     onMoveDock: (LauncherActivityInfo, WorkspaceMoveDirection) -> Unit,
     onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
     onSetHomeSuggestionHidden: (String, Boolean) -> Unit,
+    onSetDrawerAppPinned: (String, Boolean) -> Unit,
+    onSetDrawerSortOrderName: (String?) -> Unit,
     onRequestUninstall: (LauncherActivityInfo) -> Unit,
     themeMode: GlazeThemeMode,
     onSetThemeMode: (GlazeThemeMode) -> Unit,
@@ -1366,6 +1371,8 @@ fun LauncherBetaRoot(
                 folders = folders,
                 recentAppKeys = recentAppKeys,
                 localLaunchCounts = localLaunchCounts,
+                pinnedAppKeys = drawerPinnedAppKeys,
+                sortOrderName = drawerSortOrderName,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
                 experiencePreferences = experiencePreferences,
@@ -1382,6 +1389,7 @@ fun LauncherBetaRoot(
                     folderManagerAddToHome = profileId == primaryFolderProfileId
                     showFolderManager = true
                 },
+                onSetSortOrderName = onSetDrawerSortOrderName,
                 onOpenSettings = {
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.SETTINGS.name
@@ -1467,6 +1475,7 @@ fun LauncherBetaRoot(
                 contextOrigin = selectedAppContextOrigin,
                 workspace = workspace,
                 layoutLocked = preferences.layoutLocked,
+                drawerPinned = appKey in drawerPinnedAppKeys,
                 availableAndroidWidgets = availableAndroidWidgets,
                 onHomeAction = {
                     if (
@@ -1492,6 +1501,14 @@ fun LauncherBetaRoot(
                 },
                 onRequestUninstall = {
                     onRequestUninstall(app)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onToggleDrawerPinned = {
+                    onSetDrawerAppPinned(
+                        appKey,
+                        appKey !in drawerPinnedAppKeys,
+                    )
                     selectedApp = null
                     selectedAppAnchor = null
                 },
@@ -5591,7 +5608,10 @@ private sealed interface LauncherDrawerVisualEntry {
     val label: String
     val stableKey: String
 
-    data class Application(val app: LauncherActivityInfo) : LauncherDrawerVisualEntry {
+    data class Application(
+        val app: LauncherActivityInfo,
+        val pinned: Boolean,
+    ) : LauncherDrawerVisualEntry {
         override val label: String = app.label.toString()
         override val stableKey: String = "app:" + app.workspaceKey()
     }
@@ -5609,10 +5629,18 @@ private fun orderedDrawerVisualEntries(
     sortOrder: LauncherDrawerSortOrder,
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
+    pinnedAppKeys: Set<String>,
 ): List<LauncherDrawerVisualEntry> {
     val recentRanks = recentAppKeys.withIndex().associate { (index, key) -> key to index }
     return buildList {
-        apps.forEach { add(LauncherDrawerVisualEntry.Application(it)) }
+        apps.forEach { app ->
+            add(
+                LauncherDrawerVisualEntry.Application(
+                    app = app,
+                    pinned = app.workspaceKey() in pinnedAppKeys,
+                )
+            )
+        }
         folders.forEach { add(LauncherDrawerVisualEntry.Folder(it)) }
     }.let { entries ->
         LauncherDrawerSortingPolicy.order(
@@ -5631,6 +5659,9 @@ private fun orderedDrawerVisualEntries(
                     ?.app
                     ?.workspaceKey()
                     ?.let(localLaunchCounts::get)
+            },
+            pinned = { entry ->
+                (entry as? LauncherDrawerVisualEntry.Application)?.pinned ?: false
             },
         )
     }
@@ -5656,6 +5687,7 @@ private fun LauncherDrawerVisualTile(
             showLabel = showLabel,
             compact = compact,
             fixedGridGeometry = true,
+            pinnedInDrawer = entry.pinned,
             onClick = { onLaunchApp(entry.app) },
             onLongClick = { anchor -> onManageApp(entry.app, anchor) },
             dragData = if (layoutLocked) null else LauncherAppDragData(
@@ -5797,6 +5829,8 @@ private fun AppDrawerSurface(
     folders: List<LauncherFolder>,
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
+    pinnedAppKeys: Set<String>,
+    sortOrderName: String?,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
@@ -5805,17 +5839,21 @@ private fun AppDrawerSurface(
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
     onManageFolders: (Int) -> Unit,
+    onSetSortOrderName: (String?) -> Unit,
     onOpenSettings: () -> Unit,
     onHome: () -> Unit,
 ) {
     var drawerQuery by rememberSaveable { mutableStateOf("") }
-    var drawerSortOrderName by rememberSaveable {
-        mutableStateOf(LauncherDrawerSortOrder.ALPHABETICAL.name)
-    }
     val drawerSortOrder = runCatching {
-        LauncherDrawerSortOrder.valueOf(drawerSortOrderName)
+        LauncherDrawerSortOrder.valueOf(sortOrderName.orEmpty())
     }.getOrDefault(LauncherDrawerSortOrder.ALPHABETICAL)
     var showDrawerSortMenu by remember { mutableStateOf(false) }
+    var showPinnedOnly by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(pinnedAppKeys) {
+        if (showPinnedOnly && pinnedAppKeys.isEmpty()) {
+            showPinnedOnly = false
+        }
+    }
     val primaryUser = remember { Process.myUserHandle() }
     val primaryProfileId = remember(primaryUser) { primaryUser.hashCode() }
     val profilePages = remember(apps, primaryUser) {
@@ -5913,16 +5951,19 @@ private fun AppDrawerSurface(
         selectedPageProfileIds,
         folders,
         drawerQuery,
+        pinnedAppKeys,
+        showPinnedOnly,
         primaryProfileId,
     ) {
         val matchingApps = selectedPage.items.count { app ->
-            LauncherLocalAppSearch.matches(
-                label = app.label.toString(),
-                packageName = app.componentName.packageName,
-                rawQuery = drawerQuery,
-            )
+            (!showPinnedOnly || app.workspaceKey() in pinnedAppKeys) &&
+                LauncherLocalAppSearch.matches(
+                    label = app.label.toString(),
+                    packageName = app.componentName.packageName,
+                    rawQuery = drawerQuery,
+                )
         }
-        val matchingFolders = folders.count { folder ->
+        val matchingFolders = if (showPinnedOnly) 0 else folders.count { folder ->
             selectedPageProfileIds.any { profileId ->
                 LauncherFolderProfilePolicy.belongsToProfile(
                     folder = folder,
@@ -6103,8 +6144,46 @@ private fun AppDrawerSurface(
                                             )
                                         },
                                         onClick = {
-                                            drawerSortOrderName = order.name
+                                            onSetSortOrderName(order.name)
                                             showDrawerSortMenu = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                        if (pinnedAppKeys.isNotEmpty()) {
+                            Surface(
+                                onClick = { showPinnedOnly = !showPinnedOnly },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .testTag("launcher-drawer-pinned-only")
+                                    .semantics {
+                                        contentDescription = if (showPinnedOnly) {
+                                            "Show all apps"
+                                        } else {
+                                            "Show pinned apps only"
+                                        }
+                                        stateDescription = if (showPinnedOnly) {
+                                            "Pinned apps only"
+                                        } else {
+                                            "All apps"
+                                        }
+                                    },
+                                shape = CircleShape,
+                                color = if (showPinnedOnly) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.72f)
+                                } else {
+                                    Color.Transparent
+                                },
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "★",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = if (showPinnedOnly) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            drawerSecondaryColor
                                         },
                                     )
                                 }
@@ -6174,17 +6253,22 @@ private fun AppDrawerSurface(
                     key = { index -> profilePages[index].kind.name },
                 ) { index ->
                     val page = profilePages[index]
-                    val pageApps = remember(page.items, drawerQuery) {
-                        if (drawerQuery.isBlank()) {
-                            page.items
-                        } else {
-                            page.items.filter { app ->
-                                LauncherLocalAppSearch.matches(
-                                    label = app.label.toString(),
-                                    packageName = app.componentName.packageName,
-                                    rawQuery = drawerQuery,
+                    val pageApps = remember(
+                        page.items,
+                        drawerQuery,
+                        pinnedAppKeys,
+                        showPinnedOnly,
+                    ) {
+                        page.items.filter { app ->
+                            (!showPinnedOnly || app.workspaceKey() in pinnedAppKeys) &&
+                                (
+                                    drawerQuery.isBlank() ||
+                                        LauncherLocalAppSearch.matches(
+                                            label = app.label.toString(),
+                                            packageName = app.componentName.packageName,
+                                            rawQuery = drawerQuery,
+                                        )
                                 )
-                            }
                         }
                     }
                     val pageProfileIds = remember(page.kind, page.items, primaryProfileId) {
@@ -6198,9 +6282,12 @@ private fun AppDrawerSurface(
                         pageProfileIds,
                         folders,
                         drawerQuery,
+                        showPinnedOnly,
                         primaryProfileId,
                     ) {
-                        folders.filter { folder ->
+                        if (showPinnedOnly) {
+                            emptyList()
+                        } else folders.filter { folder ->
                             pageProfileIds.any { profileId ->
                                 LauncherFolderProfilePolicy.belongsToProfile(
                                     folder = folder,
@@ -6221,7 +6308,11 @@ private fun AppDrawerSurface(
                     if (pageApps.isEmpty() && pageFolders.isEmpty() && drawerQuery.isBlank()) {
                         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                "No apps are available in " + page.kind.displayName + ".",
+                                if (showPinnedOnly) {
+                                    "No pinned apps in " + page.kind.displayName + "."
+                                } else {
+                                    "No apps are available in " + page.kind.displayName + "."
+                                },
                                 color = drawerSecondaryColor,
                             )
                         }
@@ -6231,6 +6322,7 @@ private fun AppDrawerSurface(
                             folders = pageFolders,
                             recentAppKeys = recentAppKeys,
                             localLaunchCounts = localLaunchCounts,
+                            pinnedAppKeys = pinnedAppKeys,
                             query = drawerQuery,
                             preferences = preferences,
                             drawerLayoutMode = drawerLayoutMode,
@@ -6377,6 +6469,7 @@ private fun DrawerAppsContent(
     folders: List<LauncherFolder>,
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
+    pinnedAppKeys: Set<String>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -6390,13 +6483,21 @@ private fun DrawerAppsContent(
     allowHorizontalPaging: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
-    val entries = remember(apps, folders, recentAppKeys, localLaunchCounts, sortOrder) {
+    val entries = remember(
+        apps,
+        folders,
+        recentAppKeys,
+        localLaunchCounts,
+        pinnedAppKeys,
+        sortOrder,
+    ) {
         orderedDrawerVisualEntries(
             apps = apps,
             folders = folders,
             sortOrder = sortOrder,
             recentAppKeys = recentAppKeys,
             localLaunchCounts = localLaunchCounts,
+            pinnedAppKeys = pinnedAppKeys,
         )
     }
     if (entries.isEmpty() && query.isNotBlank()) {
@@ -6612,6 +6713,7 @@ private fun DrawerAppsContent(
                         is LauncherDrawerVisualEntry.Application -> LauncherAppListRow(
                             app = entry.app,
                             iconScale = preferences.iconScale,
+                            pinnedInDrawer = entry.pinned,
                             onClick = { onLaunchApp(entry.app) },
                             onLongClick = { anchor -> onManageApp(entry.app, anchor) },
                             dragData = if (preferences.layoutLocked) null else LauncherAppDragData(
@@ -6720,6 +6822,7 @@ private fun DrawerAppsContent(
                                         showLabel = experiencePreferences.showDrawerLabels,
                                         compact = false,
                                         fixedGridGeometry = true,
+                                        pinnedInDrawer = app.workspaceKey() in pinnedAppKeys,
                                         onClick = { onLaunchApp(app) },
                                         onLongClick = { anchor -> onManageApp(app, anchor) },
                                         dragData = if (preferences.layoutLocked) null else {
@@ -9392,6 +9495,7 @@ private fun LauncherAppTile(
     showLabel: Boolean,
     compact: Boolean,
     fixedGridGeometry: Boolean = false,
+    pinnedInDrawer: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (Rect?) -> Unit,
     modifier: Modifier,
@@ -9479,6 +9583,9 @@ private fun LauncherAppTile(
                 onClick = onClick,
                 onLongClick = { onLongClick(tileBounds) },
             )
+            .semantics {
+                if (pinnedInDrawer) stateDescription = "Pinned in Apps"
+            }
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (useFixedGridGeometry) Arrangement.Top else Arrangement.Center,
@@ -9506,6 +9613,11 @@ private fun LauncherAppTile(
                 app,
                 modifier = launcherBadgePositionModifier(),
             )
+            if (pinnedInDrawer) {
+                DrawerPinnedMark(
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
         }
 
         if (showLabel) {
@@ -9547,12 +9659,38 @@ private fun LauncherAppTile(
     }
 }
 
+@Composable
+private fun DrawerPinnedMark(
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .size(18.dp)
+            .semantics { contentDescription = "Pinned in Apps" },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                "★",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}
+
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LauncherAppListRow(
     app: LauncherActivityInfo,
     iconScale: Float,
+    pinnedInDrawer: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (Rect?) -> Unit,
     dragData: LauncherAppDragData? = null,
@@ -9592,26 +9730,36 @@ private fun LauncherAppListRow(
                 onClick = onClick,
                 onLongClick = { onLongClick(rowBounds) },
             )
+            .semantics {
+                if (pinnedInDrawer) stateDescription = "Pinned in Apps"
+            }
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        if (icon != null) {
-            Image(
-                bitmap = icon,
-                contentDescription = app.label.toString(),
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-            )
-        } else {
-            Surface(
-                modifier = Modifier.size(iconSize).launcherIconMask(),
-                shape = RoundedCornerShape(13.dp),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+        Box(modifier = Modifier.size(iconSize)) {
+            if (icon != null) {
+                Image(
+                    bitmap = icon,
+                    contentDescription = app.label.toString(),
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                )
+            } else {
+                Surface(
+                    modifier = Modifier.fillMaxSize().launcherIconMask(),
+                    shape = RoundedCornerShape(13.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.72f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(app.label.toString().take(1).uppercase(), fontWeight = FontWeight.Bold)
+                    }
                 }
+            }
+            if (pinnedInDrawer) {
+                DrawerPinnedMark(
+                    modifier = Modifier.align(Alignment.TopStart),
+                )
             }
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -10936,11 +11084,13 @@ private fun AppContextPopup(
     contextOrigin: LauncherAppContextOrigin,
     workspace: WorkspaceState,
     layoutLocked: Boolean,
+    drawerPinned: Boolean,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onHomeAction: () -> Unit,
     onToggleDock: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onRequestUninstall: () -> Unit,
+    onToggleDrawerPinned: () -> Unit,
     onAddToFolder: () -> Unit,
     onOpenWidgets: (List<LauncherWidgetProviderDescriptor>) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
@@ -11028,6 +11178,7 @@ private fun AppContextPopup(
                             if (badgeCount > 0) {
                                 add("$badgeCount " + if (badgeCount == 1) "notification" else "notifications")
                             }
+                            if (drawerPinned) add("Pinned in Apps")
                             if (layoutLocked) add("Home layout locked")
                         }.joinToString(" · ")
                         if (status.isNotBlank()) {
@@ -11110,6 +11261,13 @@ private fun AppContextPopup(
                 }
 
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (contextOrigin == LauncherAppContextOrigin.DRAWER) {
+                    GlazeLauncherPopupAction(
+                        label = if (drawerPinned) "Unpin in Apps" else "Pin in Apps",
+                        symbol = GlazePopupActionSymbol.PIN,
+                        onClick = onToggleDrawerPinned,
+                    )
+                }
                 GlazeLauncherPopupAction(
                     label = "Add to folder",
                     symbol = GlazePopupActionSymbol.FOLDER,
@@ -11169,7 +11327,16 @@ private fun LauncherAppWidgetChoicesDialog(
     )
 }
 
-private enum class GlazePopupActionSymbol { HOME, DOCK, WIDGET, SHORTCUT, FOLDER, INFO, UNINSTALL }
+private enum class GlazePopupActionSymbol {
+    HOME,
+    DOCK,
+    WIDGET,
+    SHORTCUT,
+    PIN,
+    FOLDER,
+    INFO,
+    UNINSTALL,
+}
 
 /** Decorative vector geometry; labels remain the accessible action description. */
 @Composable
@@ -11216,6 +11383,15 @@ private fun GlazePopupActionGlyph(symbol: GlazePopupActionSymbol, color: Color) 
                 segment(.76f, .24f, .76f, .52f)
                 segment(.24f, .44f, .24f, .76f)
                 segment(.24f, .76f, .56f, .76f)
+            }
+            GlazePopupActionSymbol.PIN -> {
+                segment(.28f, .14f, .72f, .14f)
+                segment(.72f, .14f, .72f, .48f)
+                segment(.72f, .48f, .60f, .58f)
+                segment(.60f, .58f, .60f, .86f)
+                segment(.40f, .86f, .40f, .58f)
+                segment(.40f, .58f, .28f, .48f)
+                segment(.28f, .48f, .28f, .14f)
             }
             GlazePopupActionSymbol.FOLDER -> {
                 segment(.10f, .25f, .43f, .25f)

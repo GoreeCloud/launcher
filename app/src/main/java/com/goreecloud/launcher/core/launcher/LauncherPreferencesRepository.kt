@@ -401,6 +401,8 @@ class LauncherPreferencesRepository(
         val homeHintsDismissed = booleanPreferencesKey("home_hints_dismissed_v1")
         val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val hiddenHomeSuggestionKeys = stringSetPreferencesKey("hidden_home_suggestion_keys_v1")
+        val drawerPinnedAppKeys = stringSetPreferencesKey("drawer_pinned_app_keys_v1")
+        val drawerSortOrderName = stringPreferencesKey("drawer_sort_order_name_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -432,6 +434,28 @@ class LauncherPreferencesRepository(
                 .filterNot(String::isBlank)
                 .toSet()
         }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local App Drawer pins. Workspace keys already include Android profile identity, so a
+     * pinned Work app never aliases a same-package User app. Pinning is presentation metadata only:
+     * it does not move apps onto Home/Dock and intentionally remains outside portable preference v1.
+     */
+    val drawerPinnedAppKeys: Flow<Set<String>> = dataStore.data
+        .map { values ->
+            values[Keys.drawerPinnedAppKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Persisted Drawer sort selection. The UI owns the concrete sort enum so core preferences store
+     * only its stable name and let the UI fail closed to A–Z when an unknown value is encountered.
+     */
+    val drawerSortOrderName: Flow<String?> = dataStore.data
+        .map { values -> values[Keys.drawerSortOrderName]?.takeIf(String::isNotBlank) }
         .distinctUntilChanged()
 
     /**
@@ -869,6 +893,34 @@ class LauncherPreferencesRepository(
                 values.remove(Keys.hiddenHomeSuggestionKeys)
             } else {
                 values[Keys.hiddenHomeSuggestionKeys] = updated
+            }
+        }
+    }
+
+    fun setDrawerSortOrderName(sortOrderName: String?): Job = scope.launch {
+        dataStore.edit { values ->
+            val normalized = sortOrderName?.trim()?.takeIf(String::isNotEmpty)
+            if (normalized == null) {
+                values.remove(Keys.drawerSortOrderName)
+            } else {
+                values[Keys.drawerSortOrderName] = normalized
+            }
+        }
+    }
+
+    fun setDrawerAppPinned(appKey: String, pinned: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.drawerPinnedAppKeys].orEmpty().toMutableSet()
+            if (pinned) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerPinnedAppKeys)
+            } else {
+                values[Keys.drawerPinnedAppKeys] = updated
             }
         }
     }

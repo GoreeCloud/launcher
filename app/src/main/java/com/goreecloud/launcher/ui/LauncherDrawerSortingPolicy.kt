@@ -15,6 +15,7 @@ internal enum class LauncherDrawerSortOrder(val displayName: String) {
     REVERSE_ALPHABETICAL("Z–A"),
     MOST_RECENT("Most recent"),
     MOST_FREQUENT("Most frequent"),
+    PINNED_FIRST("Pinned first"),
 }
 
 internal object LauncherDrawerSortingPolicy {
@@ -25,6 +26,7 @@ internal object LauncherDrawerSortingPolicy {
         sortOrder: LauncherDrawerSortOrder = LauncherDrawerSortOrder.ALPHABETICAL,
         recentRank: (T) -> Int? = { null },
         frequency: (T) -> Long? = { null },
+        pinned: (T) -> Boolean = { false },
     ): List<T> = entries.sortedWith { left, right ->
         val leftLabel = normalizedLabel(label(left))
         val rightLabel = normalizedLabel(label(right))
@@ -54,6 +56,15 @@ internal object LauncherDrawerSortingPolicy {
                 when {
                     leftFrequency != rightFrequency ->
                         rightFrequency.compareTo(leftFrequency)
+                    labelOrder != 0 -> labelOrder
+                    else -> keyOrder
+                }
+            }
+            LauncherDrawerSortOrder.PINNED_FIRST -> {
+                val leftPinned = pinned(left)
+                val rightPinned = pinned(right)
+                when {
+                    leftPinned != rightPinned -> if (leftPinned) -1 else 1
                     labelOrder != 0 -> labelOrder
                     else -> keyOrder
                 }

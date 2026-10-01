@@ -87,6 +87,56 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun drawerPinsPersistByProfileQualifiedWorkspaceKey() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-pins.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            val personal = "0:com.example/.Main"
+            val work = "10:com.example/.Main"
+
+            repository.setDrawerAppPinned(personal, true).join()
+            repository.setDrawerAppPinned(work, true).join()
+            assertEquals(setOf(personal, work), repository.drawerPinnedAppKeys.first())
+
+            repository.setDrawerAppPinned(personal, false).join()
+            assertEquals(setOf(work), repository.drawerPinnedAppKeys.first())
+            assertEquals(
+                LauncherHomeAppMode.NONE,
+                repository.experiencePreferences.first().homeAppMode,
+            )
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
+    fun drawerSortSelectionPersistsAndCanResetToDefault() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-sort.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            assertEquals(null, repository.drawerSortOrderName.first())
+
+            repository.setDrawerSortOrderName("PINNED_FIRST").join()
+            assertEquals("PINNED_FIRST", repository.drawerSortOrderName.first())
+
+            repository.setDrawerSortOrderName(null).join()
+            assertEquals(null, repository.drawerSortOrderName.first())
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun replayStartupWizardReopensSetupWithoutResettingConfiguration() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

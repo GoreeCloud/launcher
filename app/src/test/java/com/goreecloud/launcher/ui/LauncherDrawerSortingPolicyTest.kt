@@ -132,6 +132,37 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun pinnedFirstKeepsPinnedAppsAheadOfUnpinnedAppsAndFolders() {
+        val entries = listOf(
+            Entry("Camera", "app:0:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Maps", "app:10:maps"),
+            Entry("Alarm", "app:0:alarm"),
+            Entry("Browser", "app:10:browser"),
+        )
+        val pinned = setOf("app:10:maps", "app:0:alarm")
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.PINNED_FIRST,
+            pinned = { it.stableKey in pinned },
+        )
+
+        assertEquals(
+            listOf(
+                "app:0:alarm",
+                "app:10:maps",
+                "folder:banking",
+                "app:10:browser",
+                "app:0:camera",
+            ),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
     fun gridGeometryKeepsIconAndLabelSlotsFixedAcrossSpacingModes() {
         val grid = LauncherDrawerSpacing.entries.map { spacing ->
             LauncherDrawerGridPolicy.geometry(compact = false, spacing = spacing)

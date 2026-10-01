@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — add local App Drawer favorites candidate
+
+A Development feature candidate on the accepted runtime-gate main adds profile-qualified App Drawer favorites without introducing new permissions, network access, or another workspace authority. Long-pressing an application in Apps can now **Pin in Apps** or **Unpin in Apps**. Pins use the existing profile-qualified Launcher workspace key, so a Work-profile package and a same-package User app remain independent.
+
+The App Drawer sort menu gains **Pinned first**. In that mode, pinned applications sort ahead of unpinned applications and folders, while each group retains deterministic normalized-label and stable-key ordering. The selected sort mode is now persisted as device-local Drawer presentation state, so A–Z / Z–A / Most recent / Most frequent / Pinned first survives Drawer re-entry and process restart. Pinned applications also receive a compact visual/accessibility marker, and a ★ header control can temporarily filter the current User/Work page to pinned applications only while still combining with local search. Folder membership, Home placement, Dock placement, and launch history are unchanged.
+
+Pinned state is device-local Launcher presentation metadata stored in DataStore and intentionally remains outside the strict portable-preference v1 contract. Focused JVM coverage verifies profile-qualified persistence and pinned-first ordering.
+
+**Acceptance boundary:** Development candidate restacked directly on accepted main `ecc839b06335fbc1068b3ec647339c9b36a5ef7b`. Fresh exact-head Launcher build/JVM/lint/schema, complete API 36 runtime, transition-performance, required-gate, and protected-promotion evidence are required before integration. Broader categories, tags, collections, custom ordering, portability policy, accessibility, and representative-device acceptance remain open.
+
+
 ## October 1, 2026 — restore monorepo Android 16 Launcher runtime gates
 
 A post-consolidation audit found that the migrated-app workflow still ran Launcher source guards, JVM tests, lint, schema verification, and APK assembly, but no longer executed the source-controlled Launcher Android instrumentation suite or the existing transition-performance instrumentation.
