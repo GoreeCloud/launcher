@@ -190,6 +190,40 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun stableHomeRootSelectsOnlyKnownSecondaryPages() {
+        val primary = WorkspaceRenderedHomePage(
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            rank = 0,
+            appKeys = emptyList(),
+            appPlacements = emptyList(),
+            folderPlacements = emptyList(),
+            widgetPlacements = emptyList(),
+            unsupportedItemCount = 0,
+        )
+        val secondary = primary.copy(pageId = "home:secondary", rank = 1)
+
+        assertEquals(
+            secondary,
+            selectedSecondaryHomePage(
+                selectedHomePageId = secondary.pageId,
+                pages = listOf(primary, secondary),
+            ),
+        )
+        assertNull(
+            selectedSecondaryHomePage(
+                selectedHomePageId = primary.pageId,
+                pages = listOf(primary, secondary),
+            ),
+        )
+        assertNull(
+            selectedSecondaryHomePage(
+                selectedHomePageId = "home:missing",
+                pages = listOf(primary, secondary),
+            ),
+        )
+    }
+
+    @Test
     fun primaryContentOnlyModeSuppressesPersistentChrome() {
         assertFalse(primaryHomeShouldRenderFixedSearch(contentOnly = true, requested = true))
         assertFalse(

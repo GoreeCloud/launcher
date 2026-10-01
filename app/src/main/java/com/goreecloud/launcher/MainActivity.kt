@@ -1033,195 +1033,6 @@ class MainActivity : ComponentActivity() {
                             },
                         ),
                 ) {
-                    if (!onPrimaryPage) {
-                        val secondaryPage = checkNotNull(selectedPage)
-                        ReadOnlyPagedHomeSurface(
-                            apps = apps,
-                            folders = folders,
-                            page = secondaryPage,
-                            pages = renderedPages,
-                            homeColumns = launcherPreferences.homeColumns,
-                            homeRows = launcherPreferences.homeRows,
-                            showLabels = experiencePreferences.showHomeLabels,
-                            iconScale = launcherPreferences.iconScale,
-                            dockApps = persistentDockApps,
-                            dockStyle = experiencePreferences.dockStyle,
-                            pageTransition = visualPreferences.homePageTransition,
-                            // One Activity-owned indicator stays visually fixed above the persistent
-                            // Dock while page content transitions. Avoid a second page-local copy.
-                            showPageIndicator = false,
-                            onSelectPage = { selectedHomePageId = it },
-                            layoutLocked = launcherPreferences.layoutLocked,
-                            homeLabelOverrides = homeLabelOverrides,
-                            onLaunchApp = launchApp,
-                            onSetHomeLabelOverride = { app, label ->
-                                launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
-                            },
-                            onRequestUninstall = ::requestUninstall,
-                            onMoveAppToPage = { app, targetPageId ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
-                                            sourcePageId = secondaryPage.pageId,
-                                            appKey = app.workspaceKey(),
-                                            targetPageId = targetPageId,
-                                            primaryColumns = launcherPreferences.homeColumns,
-                                            primaryRows = launcherPreferences.homeRows,
-                                        )
-                                        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
-                                            selectedHomePageId = result.pageId
-                                        }
-                                    }
-                                }
-                            },
-                            onMoveAppToPageCell = { app, targetPageId, cellX, cellY ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
-                                            sourcePageId = secondaryPage.pageId,
-                                            appKey = app.workspaceKey(),
-                                            targetPageId = targetPageId,
-                                            primaryColumns = launcherPreferences.homeColumns,
-                                            primaryRows = launcherPreferences.homeRows,
-                                            targetCellX = cellX,
-                                            targetCellY = cellY,
-                                        )
-                                        if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
-                                            selectedHomePageId = result.pageId
-                                        }
-                                    }
-                                }
-                            },
-                            onMoveAppToCell = { app, cellX, cellY ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.moveHomeAppToCellWithinPage(
-                                            pageId = secondaryPage.pageId,
-                                            appKey = app.workspaceKey(),
-                                            columns = launcherPreferences.homeColumns,
-                                            rows = launcherPreferences.homeRows,
-                                            cellX = cellX,
-                                            cellY = cellY,
-                                        )
-                                    }
-                                }
-                            },
-                            onMoveAppWithinPage = { app, direction ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.moveHomeAppWithinPage(
-                                            pageId = secondaryPage.pageId,
-                                            appKey = app.workspaceKey(),
-                                            direction = direction,
-                                        )
-                                    }
-                                }
-                            },
-                            onMoveAppOneCell = { app, direction ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
-                                            pageId = secondaryPage.pageId,
-                                            appKey = app.workspaceKey(),
-                                            direction = direction,
-                                        )
-                                    }
-                                }
-                            },
-                            onRenameFolder = ::renameFolder,
-                            onDeleteFolder = ::deleteFolder,
-                            onAddAppToFolder = ::addAppToFolder,
-                            onRemoveAppFromFolder = ::removeAppFromFolder,
-                            onRemoveFolderFromHome = ::removeFolderFromHome,
-                            onMoveFolderToPage = { folder, target ->
-                                moveFolderToPage(folder, target) { selectedHomePageId = it }
-                            },
-                            onMoveFolderToPageCell = { folder, target, cellX, cellY ->
-                                moveFolderToPage(
-                                    folder = folder,
-                                    targetPageId = target,
-                                    targetCellX = cellX,
-                                    targetCellY = cellY,
-                                ) { selectedHomePageId = it }
-                            },
-                            onMoveFolderToCell = { folder, cellX, cellY ->
-                                if (!launcherPreferences.layoutLocked) {
-                                    lifecycleScope.launch {
-                                        val result =
-                                            workspaceRuntimeCoordinator.moveHomeFolderToCellWithinPage(
-                                                pageId = secondaryPage.pageId,
-                                                folderId = folder.id,
-                                                columns = launcherPreferences.homeColumns,
-                                                rows = launcherPreferences.homeRows,
-                                                cellX = cellX,
-                                                cellY = cellY,
-                                            )
-                                        if (result !is WorkspaceFolderMutationResult.Moved) {
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                if (result == WorkspaceFolderMutationResult.NoSpace) {
-                                                    "This Home cell is occupied. Choose an empty cell."
-                                                } else {
-                                                    "Folder could not be moved; its original placement is preserved."
-                                                },
-                                                Toast.LENGTH_SHORT,
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            },
-                            onCreateAndroidWidgetView =
-                                appWidgetHostController::createHostView,
-                            onRemoveWidget = ::removeWidget,
-                            onResizeWidget = ::resizeWidget,
-                            onMoveWidgetToCell = ::moveWidget,
-                            onMoveWidgetToPage = { widget, targetPageId ->
-                                moveWidgetToPage(widget, targetPageId) {
-                                    selectedHomePageId = it
-                                }
-                            },
-                            onMoveWidgetToPageCell = {
-                                    widget, targetPageId, cellX, cellY ->
-                                moveWidgetToPage(
-                                    widget = widget,
-                                    targetPageId = targetPageId,
-                                    targetCellX = cellX,
-                                    targetCellY = cellY,
-                                ) {
-                                    selectedHomePageId = it
-                                }
-                            },
-                            onOpenWidgetSearch = {
-                                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                primarySurfaceModeName = LauncherSurfaceMode.SEARCH.name
-                            },
-                            onOpenWidgetApps = {
-                                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                primarySurfaceModeName = LauncherSurfaceMode.DRAWER.name
-                            },
-                            onOpenWidgetEditor = {
-                                pendingHomeEditorPageId = secondaryPage.pageId
-                                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                primarySurfaceModeName = LauncherSurfaceMode.HOME.name
-                                primaryHomeEditorRequestSequence += 1L
-                            },
-                            onOpenHomeEditor = {
-                                pendingHomeEditorPageId = secondaryPage.pageId
-                                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                primarySurfaceModeName = LauncherSurfaceMode.HOME.name
-                                primaryHomeEditorRequestSequence += 1L
-                            },
-                            onOpenWidgetSettings = {
-                                selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                                primarySurfaceModeName = LauncherSurfaceMode.SETTINGS.name
-                            },
-                            onGridBoundsChanged = { bounds ->
-                                if (selectedHomePageId == secondaryPage.pageId) {
-                                    currentHomeGridBounds = bounds
-                                }
-                            },
-                        )
-                    } else {
                         LauncherBetaRoot(
                             apps = apps,
                             workspace = workspace,
@@ -1657,8 +1468,196 @@ class MainActivity : ComponentActivity() {
                                     currentHomeGridBounds = bounds
                                 }
                             },
+                            secondaryHomeContent = { secondaryPage ->
+                                ReadOnlyPagedHomeSurface(
+                                    apps = apps,
+                                    folders = folders,
+                                    page = secondaryPage,
+                                    pages = renderedPages,
+                                    homeColumns = launcherPreferences.homeColumns,
+                                    homeRows = launcherPreferences.homeRows,
+                                    showLabels = experiencePreferences.showHomeLabels,
+                                    iconScale = launcherPreferences.iconScale,
+                                    dockApps = persistentDockApps,
+                                    dockStyle = experiencePreferences.dockStyle,
+                                    pageTransition = visualPreferences.homePageTransition,
+                                    // One Activity-owned indicator stays visually fixed above the persistent
+                                    // Dock while page content transitions. Avoid a second page-local copy.
+                                    showPageIndicator = false,
+                                    onSelectPage = { selectedHomePageId = it },
+                                    layoutLocked = launcherPreferences.layoutLocked,
+                                    homeLabelOverrides = homeLabelOverrides,
+                                    onLaunchApp = launchApp,
+                                    onSetHomeLabelOverride = { app, label ->
+                                        launcherPreferencesRepository.setHomeLabelOverride(app.workspaceKey(), label)
+                                    },
+                                    onRequestUninstall = ::requestUninstall,
+                                    onMoveAppToPage = { app, targetPageId ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                                    sourcePageId = secondaryPage.pageId,
+                                                    appKey = app.workspaceKey(),
+                                                    targetPageId = targetPageId,
+                                                    primaryColumns = launcherPreferences.homeColumns,
+                                                    primaryRows = launcherPreferences.homeRows,
+                                                )
+                                                if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                                    selectedHomePageId = result.pageId
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onMoveAppToPageCell = { app, targetPageId, cellX, cellY ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                val result = workspaceRuntimeCoordinator.moveHomeAppToPage(
+                                                    sourcePageId = secondaryPage.pageId,
+                                                    appKey = app.workspaceKey(),
+                                                    targetPageId = targetPageId,
+                                                    primaryColumns = launcherPreferences.homeColumns,
+                                                    primaryRows = launcherPreferences.homeRows,
+                                                    targetCellX = cellX,
+                                                    targetCellY = cellY,
+                                                )
+                                                if (result is WorkspacePagedRoomMutationResult.UpdatedItem) {
+                                                    selectedHomePageId = result.pageId
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onMoveAppToCell = { app, cellX, cellY ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                workspaceRuntimeCoordinator.moveHomeAppToCellWithinPage(
+                                                    pageId = secondaryPage.pageId,
+                                                    appKey = app.workspaceKey(),
+                                                    columns = launcherPreferences.homeColumns,
+                                                    rows = launcherPreferences.homeRows,
+                                                    cellX = cellX,
+                                                    cellY = cellY,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onMoveAppWithinPage = { app, direction ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                workspaceRuntimeCoordinator.moveHomeAppWithinPage(
+                                                    pageId = secondaryPage.pageId,
+                                                    appKey = app.workspaceKey(),
+                                                    direction = direction,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onMoveAppOneCell = { app, direction ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                workspaceRuntimeCoordinator.moveHomeAppOneCellWithinPage(
+                                                    pageId = secondaryPage.pageId,
+                                                    appKey = app.workspaceKey(),
+                                                    direction = direction,
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onRenameFolder = ::renameFolder,
+                                    onDeleteFolder = ::deleteFolder,
+                                    onAddAppToFolder = ::addAppToFolder,
+                                    onRemoveAppFromFolder = ::removeAppFromFolder,
+                                    onRemoveFolderFromHome = ::removeFolderFromHome,
+                                    onMoveFolderToPage = { folder, target ->
+                                        moveFolderToPage(folder, target) { selectedHomePageId = it }
+                                    },
+                                    onMoveFolderToPageCell = { folder, target, cellX, cellY ->
+                                        moveFolderToPage(
+                                            folder = folder,
+                                            targetPageId = target,
+                                            targetCellX = cellX,
+                                            targetCellY = cellY,
+                                        ) { selectedHomePageId = it }
+                                    },
+                                    onMoveFolderToCell = { folder, cellX, cellY ->
+                                        if (!launcherPreferences.layoutLocked) {
+                                            lifecycleScope.launch {
+                                                val result =
+                                                    workspaceRuntimeCoordinator.moveHomeFolderToCellWithinPage(
+                                                        pageId = secondaryPage.pageId,
+                                                        folderId = folder.id,
+                                                        columns = launcherPreferences.homeColumns,
+                                                        rows = launcherPreferences.homeRows,
+                                                        cellX = cellX,
+                                                        cellY = cellY,
+                                                    )
+                                                if (result !is WorkspaceFolderMutationResult.Moved) {
+                                                    Toast.makeText(
+                                                        this@MainActivity,
+                                                        if (result == WorkspaceFolderMutationResult.NoSpace) {
+                                                            "This Home cell is occupied. Choose an empty cell."
+                                                        } else {
+                                                            "Folder could not be moved; its original placement is preserved."
+                                                        },
+                                                        Toast.LENGTH_SHORT,
+                                                    ).show()
+                                                }
+                                            }
+                                        }
+                                    },
+                                    onCreateAndroidWidgetView =
+                                        appWidgetHostController::createHostView,
+                                    onRemoveWidget = ::removeWidget,
+                                    onResizeWidget = ::resizeWidget,
+                                    onMoveWidgetToCell = ::moveWidget,
+                                    onMoveWidgetToPage = { widget, targetPageId ->
+                                        moveWidgetToPage(widget, targetPageId) {
+                                            selectedHomePageId = it
+                                        }
+                                    },
+                                    onMoveWidgetToPageCell = {
+                                            widget, targetPageId, cellX, cellY ->
+                                        moveWidgetToPage(
+                                            widget = widget,
+                                            targetPageId = targetPageId,
+                                            targetCellX = cellX,
+                                            targetCellY = cellY,
+                                        ) {
+                                            selectedHomePageId = it
+                                        }
+                                    },
+                                    onOpenWidgetSearch = {
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        primarySurfaceModeName = LauncherSurfaceMode.SEARCH.name
+                                    },
+                                    onOpenWidgetApps = {
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        primarySurfaceModeName = LauncherSurfaceMode.DRAWER.name
+                                    },
+                                    onOpenWidgetEditor = {
+                                        pendingHomeEditorPageId = secondaryPage.pageId
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                                        primaryHomeEditorRequestSequence += 1L
+                                    },
+                                    onOpenHomeEditor = {
+                                        pendingHomeEditorPageId = secondaryPage.pageId
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        primarySurfaceModeName = LauncherSurfaceMode.HOME.name
+                                        primaryHomeEditorRequestSequence += 1L
+                                    },
+                                    onOpenWidgetSettings = {
+                                        selectedHomePageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                                        primarySurfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                                    },
+                                    onGridBoundsChanged = { bounds ->
+                                        if (selectedHomePageId == secondaryPage.pageId) {
+                                            currentHomeGridBounds = bounds
+                                        }
+                                    },
+                                )
+
+                            },
                         )
-                    }
 
                     if (
                         experiencePreferences.showHomePageIndicator &&

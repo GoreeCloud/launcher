@@ -1,12 +1,21 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — keep Launcher Home root mounted across Primary and secondary selection
+
+`MainActivity` now supplies the existing secondary Home renderer to `LauncherBetaRoot` as a composable slot. The root resolves the authoritative selected Home-page identity and renders either Primary Home or that secondary slot internally, so crossing the Primary boundary no longer removes and later reconstructs the entire Launcher root.
+
+The secondary renderer itself is unchanged: Room-backed app/folder/widget mutations, cross-page movement, secondary vertical gestures, follow-finger secondary paging, Dock presentation, Search/editor handoffs, and grid-bound reporting remain under their existing authorities. A focused policy test verifies that only a known non-Primary Room page can select the secondary slot.
+
+**Acceptance boundary:** Development performance/architecture candidate on authoritative main `f770f14d7be4a0ea5b23c6a7061478ae7196efde`; fresh exact-head validation is required before integration. Primary↔secondary follow-finger motion and representative-device frame pacing remain open.
+
+
 ## October 1, 2026 — thread authoritative selected Home page identity into the Primary root
 
 `MainActivity` now supplies the current selected Home-page ID to `LauncherBetaRoot` / `HomeSurface`. A fail-closed resolver accepts the identity only when it exists in the current Room-rendered page list; stale, missing, or null identities resolve to Primary Home.
 
 Current user-visible behavior is unchanged because the Primary root is still mounted only for Primary Home. The state thread is the next prerequisite for moving Primary and secondary content under one pager without creating a second selection or workspace authority.
 
-**Acceptance boundary:** Development architecture candidate reconciled onto merged PR #113 / current main `48a44a03b88dc04dcb5b7149dc79f936a5874a7c`; fresh exact-head validation is required before integration. Unified Primary↔secondary paging remains open.
+**Acceptance boundary:** PR #114 is merged after complete exact-head Development validation as `f770f14d7be4a0ea5b23c6a7061478ae7196efde`. Unified Primary↔secondary paging remains open.
 
 
 ## October 1, 2026 — keep one adjacent secondary Home page warm
