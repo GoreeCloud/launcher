@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — restore configured Home pager edge actions
+
+The unified Home `HorizontalPager` now observes outward horizontal gestures at its two outer boundaries without consuming pager input. A gesture that begins on the first page and moves right, or begins on the last page and moves left, dispatches the corresponding configured Launcher gesture action only after the existing 56 dp horizontal-dominance threshold.
+
+The observer snapshots the starting page for the gesture, so a normal follow-finger transition that settles onto an outer page cannot accidentally trigger an edge action during the same swipe. It is disabled while Home app drag routing owns the pager, and interior/vertical/short gestures remain ordinary pager or vertical input.
+
+Focused JVM coverage verifies first/right and last/left dispatch plus rejection of interior, inward, short, vertical, and single-page cases. Android 16 runtime coverage extends the existing real default-HOME multi-page flow by configuring Swipe right to Universal Search, swiping outward from Primary Home, requiring the real Search surface, and then returning HOME before continuing page/editor acceptance.
+
+**Acceptance boundary:** Development interaction-parity candidate based on authoritative main `e0c7bc787f8dab5a187127ea0819a5b7d80b5d19` (merged PR #118). Fresh exact-head migration provenance, Android validation/runtime CI, and protected-promotion evidence are required before integration. Representative-device gesture, frame-pacing, accessibility, large-text, and form-factor acceptance remain open.
+
+
 ## October 1, 2026 — unify Primary and secondary Home follow-finger paging
 
 The stable Home shell now renders the full Room-ordered Home page list through one Compose `HorizontalPager`. Primary Home and every secondary page participate in the same follow-finger motion path, while the already-shared editable Dock remains stationary below the moving content.
@@ -8,7 +19,7 @@ The pager synchronizes with the existing selected Home-page ID instead of becomi
 
 The pager keeps at most one adjacent page warm and Primary page-entry animation is held at its settled key while the outer pager moves, avoiding a second animation layered on top of follow-finger motion.
 
-**Acceptance boundary:** Development interaction/performance candidate on authoritative main `89ff54e485220d8f408a237c2ed5e4b4da5c5098`; fresh exact-head validation is required before integration. Representative-device/default-HOME frame pacing, input latency, memory/power, accessibility, large text, and form-factor acceptance remain open.
+**Acceptance boundary:** PR #118 is merged after complete exact-head Development validation as `e0c7bc787f8dab5a187127ea0819a5b7d80b5d19`. Representative-device/default-HOME frame pacing, input latency, memory/power, configured edge-action acceptance, accessibility, large text, and form-factor acceptance remain open.
 
 
 ## October 1, 2026 — host one editable Dock across Home pages

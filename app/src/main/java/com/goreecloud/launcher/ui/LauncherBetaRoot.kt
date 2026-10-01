@@ -82,6 +82,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -412,6 +413,93 @@ internal fun launcherHomePagerSelectedIndex(
 internal fun launcherHomeBeyondViewportPageCount(
     pageCount: Int,
 ): Int = if (pageCount > 1) 1 else 0
+
+internal enum class LauncherHomePagerBoundarySwipe {
+    LEFT,
+    RIGHT,
+}
+
+internal fun launcherHomePagerBoundarySwipe(
+    startPageIndex: Int,
+    pageCount: Int,
+    horizontalDistancePx: Float,
+    verticalDistancePx: Float,
+    minimumDistancePx: Float,
+): LauncherHomePagerBoundarySwipe? {
+    if (
+        pageCount <= 1 ||
+        startPageIndex !in 0 until pageCount ||
+        abs(horizontalDistancePx) < minimumDistancePx ||
+        abs(horizontalDistancePx) <= abs(verticalDistancePx) * 1.20f
+    ) {
+        return null
+    }
+
+    return when {
+        startPageIndex == 0 && horizontalDistancePx > 0f ->
+            LauncherHomePagerBoundarySwipe.RIGHT
+        startPageIndex == pageCount - 1 && horizontalDistancePx < 0f ->
+            LauncherHomePagerBoundarySwipe.LEFT
+        else -> null
+    }
+}
+
+internal fun Modifier.launcherHomePagerBoundaryGestureNavigation(
+    enabled: Boolean,
+    currentPageIndex: () -> Int,
+    pageCount: Int,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
+): Modifier {
+    if (!enabled || pageCount <= 1) return this
+
+    return pointerInput(enabled, pageCount, currentPageIndex, onSwipeLeft, onSwipeRight) {
+        val minimumDistancePx = 56.dp.toPx()
+
+        awaitEachGesture {
+            val down = awaitFirstDown(
+                requireUnconsumed = false,
+                pass = PointerEventPass.Final,
+            )
+            val startPageIndex = currentPageIndex()
+            var horizontalDistance = 0f
+            var verticalDistance = 0f
+            var triggered = false
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Final)
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                val delta = change.positionChange()
+                horizontalDistance += delta.x
+                verticalDistance += delta.y
+
+                if (!triggered) {
+                    when (
+                        launcherHomePagerBoundarySwipe(
+                            startPageIndex = startPageIndex,
+                            pageCount = pageCount,
+                            horizontalDistancePx = horizontalDistance,
+                            verticalDistancePx = verticalDistance,
+                            minimumDistancePx = minimumDistancePx,
+                        )
+                    ) {
+                        LauncherHomePagerBoundarySwipe.LEFT -> {
+                            triggered = true
+                            onSwipeLeft()
+                        }
+                        LauncherHomePagerBoundarySwipe.RIGHT -> {
+                            triggered = true
+                            onSwipeRight()
+                        }
+                        null -> Unit
+                    }
+                }
+
+                if (!change.pressed) break
+            }
+        }
+    }
+}
 
 internal fun primaryHomeTransitionKey(
     selectedHomePageId: String?,
@@ -935,6 +1023,35 @@ fun LauncherBetaRoot(
                 )
                 val pagerPages = homePages
                 val unifiedPagerEnabled = pagerPages.size > 1
+                val dispatchPagerBoundaryGesture: (LauncherGestureAction) -> Unit = { action ->
+                    dispatchLauncherHomeGestureAction(
+                        action = action,
+                        appsByKey = rootAppsByKey,
+                        onOpenApps = {
+                            drawerSearchRequested =
+                                experiencePreferences.drawerSearchPlacement !=
+                                    LauncherDrawerSearchPlacement.OFF &&
+                                    experiencePreferences.drawerEntryMode ==
+                                        LauncherDrawerEntryMode.SEARCH_FIRST
+                            surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                        },
+                        onOpenSearch = {
+                            drawerSearchRequested = false
+                            surfaceModeName = LauncherSurfaceMode.SEARCH.name
+                        },
+                        onOpenHomeEditor = {
+                            if (selectedSecondaryPage != null) {
+                                onSelectHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
+                            }
+                            homeEditorRequestSequence += 1L
+                        },
+                        onOpenWallpaperPicker = onOpenWallpaperPicker,
+                        onOpenThemeManager = {
+                            surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
+                        },
+                        onLaunchApp = onLaunchApp,
+                    )
+                }
                 val primaryHomeContent: @Composable (Boolean) -> Unit = { pagingHostedExternally ->
                     HomeSurface(
                         apps = apps,
@@ -1071,7 +1188,22 @@ fun LauncherBetaRoot(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
-                                .testTag("launcher-home-unified-pager"),
+                                .testTag("launcher-home-unified-pager")
+                                .launcherHomePagerBoundaryGestureNavigation(
+                                    enabled = activeDrag == null,
+                                    currentPageIndex = { pagerState.currentPage },
+                                    pageCount = pagerPages.size,
+                                    onSwipeLeft = {
+                                        dispatchPagerBoundaryGesture(
+                                            experiencePreferences.swipeLeftAction,
+                                        )
+                                    },
+                                    onSwipeRight = {
+                                        dispatchPagerBoundaryGesture(
+                                            experiencePreferences.swipeRightAction,
+                                        )
+                                    },
+                                ),
                             userScrollEnabled = activeDrag == null,
                             beyondViewportPageCount =
                                 launcherHomeBeyondViewportPageCount(pagerPages.size),

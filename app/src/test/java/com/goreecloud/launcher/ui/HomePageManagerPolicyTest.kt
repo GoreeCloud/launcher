@@ -244,6 +244,79 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun unifiedHomePagerBoundaryActionsOnlyFireOutwardFromOuterPages() {
+        assertEquals(
+            LauncherHomePagerBoundarySwipe.RIGHT,
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 0,
+                pageCount = 3,
+                horizontalDistancePx = 80f,
+                verticalDistancePx = 4f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertEquals(
+            LauncherHomePagerBoundarySwipe.LEFT,
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 2,
+                pageCount = 3,
+                horizontalDistancePx = -80f,
+                verticalDistancePx = 4f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 1,
+                pageCount = 3,
+                horizontalDistancePx = 90f,
+                verticalDistancePx = 4f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 0,
+                pageCount = 3,
+                horizontalDistancePx = -90f,
+                verticalDistancePx = 4f,
+                minimumDistancePx = 56f,
+            ),
+        )
+    }
+
+    @Test
+    fun unifiedHomePagerBoundaryActionsRejectShortOrVerticalGestures() {
+        assertNull(
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 0,
+                pageCount = 3,
+                horizontalDistancePx = 40f,
+                verticalDistancePx = 2f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 2,
+                pageCount = 3,
+                horizontalDistancePx = -80f,
+                verticalDistancePx = 76f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerBoundarySwipe(
+                startPageIndex = 0,
+                pageCount = 1,
+                horizontalDistancePx = 80f,
+                verticalDistancePx = 0f,
+                minimumDistancePx = 56f,
+            ),
+        )
+    }
+
+    @Test
     fun unifiedHomePagerKeepsOnlyOneAdjacentPageWarm() {
         assertEquals(0, launcherHomeBeyondViewportPageCount(0))
         assertEquals(0, launcherHomeBeyondViewportPageCount(1))

@@ -221,6 +221,11 @@ class ActivatedHomeLifecycleRuntimeTest {
 
         val secondaryPageId = "home:test:horizontal-swipe"
         val repository = WorkspaceRepository(context)
+        val preferencesRepository = LauncherPreferencesRepository(context)
+        val previousSwipeRight =
+            preferencesRepository.experiencePreferences.first().swipeRightAction
+        val searchAction =
+            LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
         var runtime: WorkspaceProductionRuntimeCoordinator? = null
         var directlyAddedPageId: String? = null
 
@@ -389,6 +394,46 @@ class ActivatedHomeLifecycleRuntimeTest {
                 waitForDisplayedLabel(candidate.label.toString())
                 waitForDisplayedTag("launcher-home-page-indicator")
 
+                preferencesRepository.setGestureAction(
+                    LauncherHomeGesture.SWIPE_RIGHT,
+                    searchAction,
+                ).join()
+                withTimeout(5_000) {
+                    preferencesRepository.experiencePreferences.first {
+                        it.swipeRightAction == searchAction
+                    }
+                }
+
+                composeRule
+                    .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
+                    .performTouchInput {
+                        swipeRight(
+                            startX = left + 24f,
+                            endX = right - 24f,
+                            durationMillis = 420,
+                        )
+                    }
+
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-universal-search-field",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-universal-search-field",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
+
+                runShellCommand("input keyevent KEYCODE_HOME")
+                waitForDisplayedLabel(candidate.label.toString())
+                waitForDisplayedTag("launcher-home-page-indicator")
+
                 composeRule
                     .onNodeWithTag(
                         "launcher-home-empty-space-actions",
@@ -504,6 +549,10 @@ class ActivatedHomeLifecycleRuntimeTest {
                 scenario.close()
             }
         } finally {
+            preferencesRepository.setGestureAction(
+                LauncherHomeGesture.SWIPE_RIGHT,
+                previousSwipeRight,
+            ).join()
             directlyAddedPageId?.let { runtime?.deleteEmptyHomePage(it) }
             runtime?.deleteEmptyHomePage(secondaryPageId)
             if (!alreadyDefaultHome) {

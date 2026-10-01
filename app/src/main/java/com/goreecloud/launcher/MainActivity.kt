@@ -149,7 +149,6 @@ import com.goreecloud.launcher.ui.rootDropPoint
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeTheme
 import com.goreecloud.launcher.ui.theme.GlazeThemeMode
-import com.goreecloud.launcher.ui.homePageSwipeNavigation
 import com.goreecloud.launcher.ui.homeVerticalGestureNavigation
 import com.goreecloud.launcher.ui.theme.GlazeThemeRepository
 import com.goreecloud.launcher.ui.theme.rememberAndroidGlazeV16PresentationContext

@@ -6,15 +6,17 @@ Merged PRs #103–#107 now cover the current mainline drawer/Home/profile/Search
 
 Merged PR #108 separates secondary Home page content from optional persistent Dock/page-indicator chrome. Merged PR #109 then uses `HorizontalPager` across secondary pages, keeps the Dock outside the moving page layer, synchronizes the selected Room-backed page identity as the pager current page changes, and limits the outer threshold recognizer to the Primary boundary.
 
-Merged PR #112 creates the Primary Home content-only path; #113 keeps one adjacent secondary page warm; #114 threads authoritative selected-page identity into the root; #115 keeps the Launcher root mounted across Primary↔secondary selection; #116 extracts the full editable Primary Dock contract; and #117 hosts one editable Dock in the stable Home shell. The current Development candidate replaces the remaining discrete Primary↔secondary threshold handoff with one `HorizontalPager` over the Room-rendered Home page list. Secondary pages render content-only inside that pager, Primary's internal horizontal recognizer is suppressed only while the pager owns motion, and active Home drag temporarily disables pager scrolling.
+Merged PR #112 creates the Primary Home content-only path; #113 keeps one adjacent secondary page warm; #114 threads authoritative selected-page identity into the root; #115 keeps the Launcher root mounted across Primary↔secondary selection; #116 extracts the full editable Primary Dock contract; #117 hosts one editable Dock in the stable Home shell; and #118 unifies Primary plus secondary Home content under one follow-finger `HorizontalPager` while preserving the Room page model and drag-edge authority.
 
-Still open after source integration: verify unified multi-page Home frame pacing on representative/default-HOME hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
+The current Development candidate restores configured horizontal edge actions on the unified pager. It observes pager gestures without consuming them, snapshots the starting page, and dispatches only outward first-page/right or last-page/left actions after the same 56 dp horizontal-dominance threshold used by the prior Primary fallback.
+
+Still open after the edge-action candidate: exact-head CI/protected integration; representative/default-HOME multi-page frame pacing, input latency, memory/power, drag/drop/widget and gesture acceptance; User/Work inventory churn acceptance; movable/fixed Search accessibility and large-text/form-factor acceptance; Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `89ff54e485220d8f408a237c2ed5e4b4da5c5098` after merged PR #117. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `e0c7bc787f8dab5a187127ea0819a5b7d80b5d19` after merged PR #118. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose
