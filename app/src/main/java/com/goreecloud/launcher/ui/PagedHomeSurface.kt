@@ -107,7 +107,13 @@ internal fun secondaryHomeShouldRenderPageIndicator(
 internal fun secondaryHomeShouldRenderDock(
     contentOnly: Boolean,
     dockAppCount: Int,
-): Boolean = !contentOnly && dockAppCount > 0
+    dockHostedExternally: Boolean = false,
+): Boolean = !contentOnly && !dockHostedExternally && dockAppCount > 0
+
+internal fun secondaryHomeShouldOwnBottomInset(
+    contentOnly: Boolean,
+    dockHostedExternally: Boolean,
+): Boolean = !contentOnly && !dockHostedExternally
 
 internal fun secondaryHomeBeyondViewportPageCount(
     pageCount: Int,
@@ -1128,6 +1134,7 @@ fun ReadOnlyPagedHomeSurface(
     layoutLocked: Boolean = false,
     onGridBoundsChanged: (Rect?) -> Unit = {},
     contentOnly: Boolean = false,
+    dockHostedExternally: Boolean = false,
 ) {
     if (!contentOnly) {
         val secondaryPages = remember(pages) {
@@ -1156,7 +1163,18 @@ fun ReadOnlyPagedHomeSurface(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .navigationBarsPadding(),
+                    .then(
+                        if (
+                            secondaryHomeShouldOwnBottomInset(
+                                contentOnly = false,
+                                dockHostedExternally = dockHostedExternally,
+                            )
+                        ) {
+                            Modifier.navigationBarsPadding()
+                        } else {
+                            Modifier
+                        },
+                    ),
             ) {
                 HorizontalPager(
                     state = pagerState,
@@ -1218,6 +1236,7 @@ fun ReadOnlyPagedHomeSurface(
                             { _ -> }
                         },
                         contentOnly = true,
+                        dockHostedExternally = dockHostedExternally,
                     )
                 }
 
@@ -1242,6 +1261,7 @@ fun ReadOnlyPagedHomeSurface(
                     secondaryHomeShouldRenderDock(
                         contentOnly = false,
                         dockAppCount = dockApps.size,
+                        dockHostedExternally = dockHostedExternally,
                     )
                 ) {
                     PersistentHomeDock(
@@ -1416,7 +1436,18 @@ fun ReadOnlyPagedHomeSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .then(if (contentOnly) Modifier else Modifier.navigationBarsPadding())
+                .then(
+                    if (
+                        secondaryHomeShouldOwnBottomInset(
+                            contentOnly = contentOnly,
+                            dockHostedExternally = dockHostedExternally,
+                        )
+                    ) {
+                        Modifier.navigationBarsPadding()
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(horizontal = GlazeMetrics.space4),
         ) {
             Spacer(Modifier.height(72.dp))
@@ -1696,6 +1727,7 @@ fun ReadOnlyPagedHomeSurface(
                 secondaryHomeShouldRenderDock(
                     contentOnly = contentOnly,
                     dockAppCount = dockApps.size,
+                    dockHostedExternally = dockHostedExternally,
                 )
             ) {
                 PersistentHomeDock(

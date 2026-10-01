@@ -1,12 +1,23 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — host one editable Dock across Home pages
+
+The stable Home root now owns one full `EditableHomeDock` below page-specific content. Primary Home suppresses only its internal Dock and bottom navigation inset; secondary Home does the same while retaining its existing `HorizontalPager`, page mutations, vertical gestures, and editor/Search handoffs.
+
+The shared Dock preserves the extracted Primary contract: layout lock, edit mode, drag geometry, Dock bounds/item bounds, local drag lifecycle, launch/manage actions, reorder/drop behavior, and configured swipe gestures. Bottom system-bar padding is owned once by the stable Home shell.
+
+Focused JVM policy coverage verifies that external Dock hosting suppresses page-local Dock/inset ownership while the default local path remains unchanged.
+
+**Acceptance boundary:** Development performance/architecture candidate on authoritative main `4cacb1af78bdd03c6df4a00e824983fc061ca411`; fresh exact-head validation is required before integration. Final Primary↔secondary follow-finger paging and representative-device frame pacing/input latency/memory/power acceptance remain open.
+
+
 ## October 1, 2026 — extract the full editable Home Dock for future pager hosting
 
 The Primary Home Dock path is now factored through a reusable `EditableHomeDock` composable. It forwards the existing `GlazeDock` configuration unchanged: layout lock, edit mode, active-drag geometry, Dock bounds/item bounds, local drag lifecycle, launch/manage actions, reorder/drop behavior, and configured vertical gestures.
 
 This is a behavior-neutral architecture foundation for the eventual shared Home pager. It deliberately preserves the editable Primary Dock contract instead of promoting the simplified read-only secondary Dock.
 
-**Acceptance boundary:** Development refactor reconciled onto merged PR #115 / current main `3b84f0d9023a395abf7612c4d5e6d543ab2462d3`; fresh exact-head validation is required before integration. Final Primary↔secondary follow-finger paging and representative-device acceptance remain open.
+**Acceptance boundary:** PR #116 is merged after exact-head Development validation as `4cacb1af78bdd03c6df4a00e824983fc061ca411`. Final Primary↔secondary follow-finger paging and representative-device acceptance remain open.
 
 
 ## October 1, 2026 — keep Launcher Home root mounted across Primary and secondary selection
@@ -15,7 +26,7 @@ This is a behavior-neutral architecture foundation for the eventual shared Home 
 
 The secondary renderer itself is unchanged: Room-backed app/folder/widget mutations, cross-page movement, secondary vertical gestures, follow-finger secondary paging, Dock presentation, Search/editor handoffs, and grid-bound reporting remain under their existing authorities. A focused policy test verifies that only a known non-Primary Room page can select the secondary slot.
 
-**Acceptance boundary:** Development performance/architecture candidate on authoritative main `f770f14d7be4a0ea5b23c6a7061478ae7196efde`; fresh exact-head validation is required before integration. Primary↔secondary follow-finger motion and representative-device frame pacing remain open.
+**Acceptance boundary:** PR #115 is merged after exact-head Development validation as `3b84f0d9023a395abf7612c4d5e6d543ab2462d3`. Primary↔secondary follow-finger motion and representative-device frame pacing remain open.
 
 
 ## October 1, 2026 — thread authoritative selected Home page identity into the Primary root

@@ -372,7 +372,13 @@ internal fun primaryHomeShouldRenderDock(
     contentOnly: Boolean,
     dockAppCount: Int,
     activeDrag: Boolean,
-): Boolean = !contentOnly && (dockAppCount > 0 || activeDrag)
+    dockHostedExternally: Boolean = false,
+): Boolean = !contentOnly && !dockHostedExternally && (dockAppCount > 0 || activeDrag)
+
+internal fun primaryHomeShouldOwnBottomInset(
+    contentOnly: Boolean,
+    dockHostedExternally: Boolean,
+): Boolean = !contentOnly && !dockHostedExternally
 
 internal fun primaryHomeShouldHandleHorizontalPaging(
     contentOnly: Boolean,
@@ -396,6 +402,32 @@ internal fun selectedSecondaryHomePage(
     return pages.firstOrNull { page ->
         page.pageId == resolvedPageId &&
             page.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID
+    }
+}
+
+internal fun dispatchLauncherHomeGestureAction(
+    action: LauncherGestureAction,
+    appsByKey: Map<String, LauncherActivityInfo>,
+    onOpenApps: () -> Unit,
+    onOpenSearch: () -> Unit,
+    onOpenHomeEditor: () -> Unit,
+    onOpenWallpaperPicker: () -> Unit,
+    onOpenThemeManager: () -> Unit,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+) {
+    when (action.type) {
+        LauncherGestureActionType.NONE -> Unit
+        LauncherGestureActionType.APPS -> onOpenApps()
+        LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenSearch()
+        LauncherGestureActionType.LAUNCHER_SETTINGS,
+        LauncherGestureActionType.HOME_EDITOR -> onOpenHomeEditor()
+        LauncherGestureActionType.WALLPAPER -> onOpenWallpaperPicker()
+        LauncherGestureActionType.THEME_MANAGER -> onOpenThemeManager()
+        LauncherGestureActionType.OPEN_APP -> {
+            action.appKey
+                ?.let(appsByKey::get)
+                ?.let(onLaunchApp)
+        }
     }
 }
 
@@ -601,6 +633,16 @@ fun LauncherBetaRoot(
     var launcherBounds by remember { mutableStateOf<Rect?>(null) }
     var primaryHomeGridBounds by remember { mutableStateOf<Rect?>(null) }
     var homeEditMode by rememberSaveable { mutableStateOf(false) }
+    val rootDockApps = remember(rootAppsByKey, workspace.dockKeys) {
+        workspace.dockKeys.mapNotNull(rootAppsByKey::get).take(MAX_DOCK_ITEMS)
+    }
+
+    LaunchedEffect(rootDockApps.map { it.workspaceKey() }) {
+        val visibleDockKeys = rootDockApps.map { it.workspaceKey() }.toSet()
+        dockItemBounds.keys
+            .filterNot(visibleDockKeys::contains)
+            .forEach(dockItemBounds::remove)
+    }
 
     DisposableEffect(Unit) {
         onDispose { onPrimaryHomeGridBoundsChanged(null) }
@@ -855,105 +897,203 @@ fun LauncherBetaRoot(
                     selectedHomePageId = selectedHomePageId,
                     pages = homePages,
                 )
-                if (selectedSecondaryPage != null) {
-                    secondaryHomeContent(selectedSecondaryPage)
-                } else {
-                    HomeSurface(
-                    apps = apps,
-                    workspace = workspace,
-                    preferences = preferences,
-                    experiencePreferences = experiencePreferences,
-                    homePageTransition = homePageTransition,
-                    recentAppKeys = recentAppKeys,
-                    localLaunchCounts = localLaunchCounts,
-                    hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
-                    homePageCount = homePageCount,
-                    selectedHomePageId = selectedHomePageId,
-                    homeResetSequence = homeResetSequence,
-                    homeEditorRequestSequence = homeEditorRequestSequence,
-                    homeEditorInitialPageId = homeEditorInitialPageId,
-                    homeLabelOverrides = homeLabelOverrides,
-                    folders = folders,
-                    primaryHomePage = primaryHomePage,
-                    homePages = homePages,
-                    editMode = homeEditMode,
-                    activeDrag = activeDrag,
-                    dragPoint = dragPoint,
-                    homeCellBounds = homeCellBounds,
-                    dockItemBounds = dockItemBounds,
-                    onHomeGridBoundsChanged = {
-                        primaryHomeGridBounds = it
-                        onPrimaryHomeGridBoundsChanged(it)
-                    },
-                    onDockBoundsChanged = { dockBounds = it },
-                    onBeginLocalDrag = beginLocalDrag,
-                    onUpdateLocalDrag = updateLocalDrag,
-                    onEndLocalDrag = endLocalDrag,
-                    onCancelLocalDrag = cancelLocalDrag,
-                    onExitEditMode = {
-                        homeEditMode = false
-                        selectedApp = null
-                        selectedAppAnchor = null
-                        selectedWidget = null
-                        activeDrag = null
-                        dragPoint = null
-                    },
-                    onManageHomePages = onManageHomePages,
-                    onCreateHomePage = onCreateHomePage,
-                    onSelectHomePage = onSelectHomePage,
-                    onDeleteHomePage = onDeleteHomePage,
-                    onSwipeHomePageLeft = onSwipeHomePageLeft,
-                    onSwipeHomePageRight = onSwipeHomePageRight,
-                    onManageFolders = {
-                        folderManagerProfileId = primaryFolderProfileId
-                        folderManagerAddToHome = true
-                        showFolderManager = true
-                    },
-                    onOpenFolder = { folder -> selectedFolderId = folder.id },
-                    onMoveFavoriteToCell = onMoveFavoriteToCell,
-                    onMoveWidget = onMoveWidget,
-                    onMoveWidgetToPageCell = onMoveWidgetToPageCell,
-                    onMoveHomeFolderToCell = onMoveHomeFolderToCell,
-                    onMoveHomeFolderToPageCell = onMoveFolderToPageCell,
-                    onLaunchApp = onLaunchApp,
-                    onAddBuiltInWidget = onAddBuiltInWidget,
-                    onSetManagedHomeSearchEnabled = onSetManagedHomeSearchEnabled,
-                    availableAndroidWidgets = availableAndroidWidgets,
-                    onPickInstalledAndroidWidget = onPickInstalledAndroidWidget,
-                    onPickAndroidWidget = onPickAndroidWidget,
-                    onCreateAndroidWidgetView = onCreateAndroidWidgetView,
-                    onManageWidget = {
-                        homeEditMode = true
-                        selectedApp = null
-                        selectedAppAnchor = null
-                        selectedWidget = it
-                    },
-                    onOpenLauncherSearch = {
-                        drawerSearchRequested = false
-                        surfaceModeName = LauncherSurfaceMode.SEARCH.name
-                    },
-                    onManageApp = { app, anchor, origin ->
-                        homeEditMode = true
-                        selectedWidget = null
-                        selectedApp = app
-                        selectedAppAnchor = anchor
-                        selectedAppContextOrigin = origin
-                    },
-                    onOpenDrawer = {
-                        drawerSearchRequested =
-                            experiencePreferences.drawerSearchPlacement !=
-                                LauncherDrawerSearchPlacement.OFF &&
-                                experiencePreferences.drawerEntryMode ==
-                                    LauncherDrawerEntryMode.SEARCH_FIRST
-                        surfaceModeName = LauncherSurfaceMode.DRAWER.name
-                    },
-                    onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
-                    onOpenThemeManager = { surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name },
-                    onOpenWallpaperPicker = onOpenWallpaperPicker,
-                    onSetHomeCardStyle = onSetHomeCardStyle,
-                    onHomeEditorVisibilityChanged = onHomeEditorVisibilityChanged,
-                    contentOnly = homeContentOnly,
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .navigationBarsPadding(),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                    if (selectedSecondaryPage != null) {
+                        secondaryHomeContent(selectedSecondaryPage)
+                    } else {
+                        HomeSurface(
+                        apps = apps,
+                        workspace = workspace,
+                        preferences = preferences,
+                        experiencePreferences = experiencePreferences,
+                        homePageTransition = homePageTransition,
+                        recentAppKeys = recentAppKeys,
+                        localLaunchCounts = localLaunchCounts,
+                        hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
+                        homePageCount = homePageCount,
+                        selectedHomePageId = selectedHomePageId,
+                        homeResetSequence = homeResetSequence,
+                        homeEditorRequestSequence = homeEditorRequestSequence,
+                        homeEditorInitialPageId = homeEditorInitialPageId,
+                        homeLabelOverrides = homeLabelOverrides,
+                        folders = folders,
+                        primaryHomePage = primaryHomePage,
+                        homePages = homePages,
+                        editMode = homeEditMode,
+                        activeDrag = activeDrag,
+                        dragPoint = dragPoint,
+                        homeCellBounds = homeCellBounds,
+                        dockItemBounds = dockItemBounds,
+                        onHomeGridBoundsChanged = {
+                            primaryHomeGridBounds = it
+                            onPrimaryHomeGridBoundsChanged(it)
+                        },
+                        onDockBoundsChanged = { dockBounds = it },
+                        onBeginLocalDrag = beginLocalDrag,
+                        onUpdateLocalDrag = updateLocalDrag,
+                        onEndLocalDrag = endLocalDrag,
+                        onCancelLocalDrag = cancelLocalDrag,
+                        onExitEditMode = {
+                            homeEditMode = false
+                            selectedApp = null
+                            selectedAppAnchor = null
+                            selectedWidget = null
+                            activeDrag = null
+                            dragPoint = null
+                        },
+                        onManageHomePages = onManageHomePages,
+                        onCreateHomePage = onCreateHomePage,
+                        onSelectHomePage = onSelectHomePage,
+                        onDeleteHomePage = onDeleteHomePage,
+                        onSwipeHomePageLeft = onSwipeHomePageLeft,
+                        onSwipeHomePageRight = onSwipeHomePageRight,
+                        onManageFolders = {
+                            folderManagerProfileId = primaryFolderProfileId
+                            folderManagerAddToHome = true
+                            showFolderManager = true
+                        },
+                        onOpenFolder = { folder -> selectedFolderId = folder.id },
+                        onMoveFavoriteToCell = onMoveFavoriteToCell,
+                        onMoveWidget = onMoveWidget,
+                        onMoveWidgetToPageCell = onMoveWidgetToPageCell,
+                        onMoveHomeFolderToCell = onMoveHomeFolderToCell,
+                        onMoveHomeFolderToPageCell = onMoveFolderToPageCell,
+                        onLaunchApp = onLaunchApp,
+                        onAddBuiltInWidget = onAddBuiltInWidget,
+                        onSetManagedHomeSearchEnabled = onSetManagedHomeSearchEnabled,
+                        availableAndroidWidgets = availableAndroidWidgets,
+                        onPickInstalledAndroidWidget = onPickInstalledAndroidWidget,
+                        onPickAndroidWidget = onPickAndroidWidget,
+                        onCreateAndroidWidgetView = onCreateAndroidWidgetView,
+                        onManageWidget = {
+                            homeEditMode = true
+                            selectedApp = null
+                            selectedAppAnchor = null
+                            selectedWidget = it
+                        },
+                        onOpenLauncherSearch = {
+                            drawerSearchRequested = false
+                            surfaceModeName = LauncherSurfaceMode.SEARCH.name
+                        },
+                        onManageApp = { app, anchor, origin ->
+                            homeEditMode = true
+                            selectedWidget = null
+                            selectedApp = app
+                            selectedAppAnchor = anchor
+                            selectedAppContextOrigin = origin
+                        },
+                        onOpenDrawer = {
+                            drawerSearchRequested =
+                                experiencePreferences.drawerSearchPlacement !=
+                                    LauncherDrawerSearchPlacement.OFF &&
+                                    experiencePreferences.drawerEntryMode ==
+                                        LauncherDrawerEntryMode.SEARCH_FIRST
+                            surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                        },
+                        onOpenSettings = { surfaceModeName = LauncherSurfaceMode.SETTINGS.name },
+                        onOpenThemeManager = { surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name },
+                        onOpenWallpaperPicker = onOpenWallpaperPicker,
+                        onSetHomeCardStyle = onSetHomeCardStyle,
+                        onHomeEditorVisibilityChanged = onHomeEditorVisibilityChanged,
+                        contentOnly = homeContentOnly,
+                        dockHostedExternally = true,
+                    )
+                    }
+                    }
+
+                    if (rootDockApps.isNotEmpty() || activeDrag != null) {
+                        EditableHomeDock(
+                            apps = rootDockApps,
+                            iconScale = preferences.iconScale,
+                            style = experiencePreferences.dockStyle,
+                            layoutLocked = preferences.layoutLocked,
+                            editMode = homeEditMode,
+                            activeDrag = activeDrag,
+                            dragPoint = dragPoint,
+                            onDockBoundsChanged = { dockBounds = it },
+                            dockItemBounds = dockItemBounds,
+                            onBeginLocalDrag = beginLocalDrag,
+                            onUpdateLocalDrag = updateLocalDrag,
+                            onEndLocalDrag = endLocalDrag,
+                            onCancelLocalDrag = cancelLocalDrag,
+                            onLaunchApp = onLaunchApp,
+                            onManageApp = { app, anchor ->
+                                homeEditMode = true
+                                selectedWidget = null
+                                selectedApp = app
+                                selectedAppAnchor = anchor
+                                selectedAppContextOrigin = LauncherAppContextOrigin.DOCK
+                            },
+                            onSwipeUp = {
+                                dispatchLauncherHomeGestureAction(
+                                    action = experiencePreferences.swipeUpAction,
+                                    appsByKey = rootAppsByKey,
+                                    onOpenApps = {
+                                        drawerSearchRequested =
+                                            experiencePreferences.drawerSearchPlacement !=
+                                                LauncherDrawerSearchPlacement.OFF &&
+                                                experiencePreferences.drawerEntryMode ==
+                                                LauncherDrawerEntryMode.SEARCH_FIRST
+                                        surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                                    },
+                                    onOpenSearch = {
+                                        drawerSearchRequested = false
+                                        surfaceModeName = LauncherSurfaceMode.SEARCH.name
+                                    },
+                                    onOpenHomeEditor = {
+                                        if (selectedSecondaryPage != null) {
+                                            onSelectHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
+                                        }
+                                        homeEditorRequestSequence += 1L
+                                    },
+                                    onOpenWallpaperPicker = onOpenWallpaperPicker,
+                                    onOpenThemeManager = {
+                                        surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
+                                    },
+                                    onLaunchApp = onLaunchApp,
+                                )
+                            },
+                            onSwipeDown = {
+                                dispatchLauncherHomeGestureAction(
+                                    action = experiencePreferences.swipeDownAction,
+                                    appsByKey = rootAppsByKey,
+                                    onOpenApps = {
+                                        drawerSearchRequested =
+                                            experiencePreferences.drawerSearchPlacement !=
+                                                LauncherDrawerSearchPlacement.OFF &&
+                                                experiencePreferences.drawerEntryMode ==
+                                                LauncherDrawerEntryMode.SEARCH_FIRST
+                                        surfaceModeName = LauncherSurfaceMode.DRAWER.name
+                                    },
+                                    onOpenSearch = {
+                                        drawerSearchRequested = false
+                                        surfaceModeName = LauncherSurfaceMode.SEARCH.name
+                                    },
+                                    onOpenHomeEditor = {
+                                        if (selectedSecondaryPage != null) {
+                                            onSelectHomePage(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
+                                        }
+                                        homeEditorRequestSequence += 1L
+                                    },
+                                    onOpenWallpaperPicker = onOpenWallpaperPicker,
+                                    onOpenThemeManager = {
+                                        surfaceModeName = LauncherSurfaceMode.THEME_MANAGER.name
+                                    },
+                                    onLaunchApp = onLaunchApp,
+                                )
+                            },
+                        )
+                    }
+                    Spacer(Modifier.height(2.dp))
                 }
             }
             LauncherSurfaceMode.SEARCH -> LauncherProviderControlledSearchSurface(
@@ -1403,6 +1543,7 @@ private fun HomeSurface(
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onHomeEditorVisibilityChanged: (Boolean) -> Unit,
     contentOnly: Boolean = false,
+    dockHostedExternally: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val personalApps = remember(apps) {
@@ -1511,20 +1652,16 @@ private fun HomeSurface(
     }
 
     val executeGestureAction: (LauncherGestureAction) -> Unit = { action ->
-        when (action.type) {
-            LauncherGestureActionType.NONE -> Unit
-            LauncherGestureActionType.APPS -> onOpenDrawer()
-            LauncherGestureActionType.UNIVERSAL_SEARCH -> onOpenLauncherSearch()
-            LauncherGestureActionType.LAUNCHER_SETTINGS -> showHomeEditor = true
-            LauncherGestureActionType.HOME_EDITOR -> showHomeEditor = true
-            LauncherGestureActionType.WALLPAPER -> onOpenWallpaperPicker()
-            LauncherGestureActionType.THEME_MANAGER -> onOpenThemeManager()
-            LauncherGestureActionType.OPEN_APP -> {
-                action.appKey
-                    ?.let(appsByKey::get)
-                    ?.let(onLaunchApp)
-            }
-        }
+        dispatchLauncherHomeGestureAction(
+            action = action,
+            appsByKey = appsByKey,
+            onOpenApps = onOpenDrawer,
+            onOpenSearch = onOpenLauncherSearch,
+            onOpenHomeEditor = { showHomeEditor = true },
+            onOpenWallpaperPicker = onOpenWallpaperPicker,
+            onOpenThemeManager = onOpenThemeManager,
+            onLaunchApp = onLaunchApp,
+        )
     }
     val currentGesturePreferences by rememberUpdatedState(experiencePreferences)
     val currentExecuteGestureAction by rememberUpdatedState(executeGestureAction)
@@ -1707,7 +1844,18 @@ private fun HomeSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .then(if (contentOnly) Modifier else Modifier.navigationBarsPadding())
+                .then(
+                    if (
+                        primaryHomeShouldOwnBottomInset(
+                            contentOnly = contentOnly,
+                            dockHostedExternally = dockHostedExternally,
+                        )
+                    ) {
+                        Modifier.navigationBarsPadding()
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
             verticalArrangement = Arrangement.spacedBy(homeVerticalSpacing),
         ) {
@@ -1880,6 +2028,7 @@ private fun HomeSurface(
                     contentOnly = contentOnly,
                     dockAppCount = dockApps.size,
                     activeDrag = activeDrag != null,
+                    dockHostedExternally = dockHostedExternally,
                 )
             ) {
                 EditableHomeDock(
@@ -1909,7 +2058,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (!contentOnly) {
+            if (!contentOnly && !dockHostedExternally) {
                 Spacer(Modifier.height(2.dp))
             }
         }

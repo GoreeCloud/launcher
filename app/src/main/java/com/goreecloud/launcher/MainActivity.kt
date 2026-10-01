@@ -1654,6 +1654,7 @@ class MainActivity : ComponentActivity() {
                                             currentHomeGridBounds = bounds
                                         }
                                     },
+                                    dockHostedExternally = true,
                                 )
 
                             },

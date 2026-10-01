@@ -287,6 +287,53 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun externallyHostedDockSuppressesPageLocalDockAndBottomInset() {
+        assertFalse(
+            primaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 5,
+                activeDrag = true,
+                dockHostedExternally = true,
+            ),
+        )
+        assertFalse(
+            primaryHomeShouldOwnBottomInset(
+                contentOnly = false,
+                dockHostedExternally = true,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 5,
+                dockHostedExternally = true,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldOwnBottomInset(
+                contentOnly = false,
+                dockHostedExternally = true,
+            ),
+        )
+    }
+
+    @Test
+    fun pageLocalDockRetainsExistingBottomInsetByDefault() {
+        assertTrue(
+            primaryHomeShouldOwnBottomInset(
+                contentOnly = false,
+                dockHostedExternally = false,
+            ),
+        )
+        assertTrue(
+            secondaryHomeShouldOwnBottomInset(
+                contentOnly = false,
+                dockHostedExternally = false,
+            ),
+        )
+    }
+
+    @Test
     fun secondaryContentOnlyModeSuppressesPersistentChrome() {
         assertFalse(
             secondaryHomeShouldRenderPageIndicator(
