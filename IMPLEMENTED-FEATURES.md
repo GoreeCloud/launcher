@@ -1,5 +1,11 @@
 # GoreeCloud Launcher — Implemented Features
 
+## October 1, 2026 — Home and Universal Search Glaze polish candidate
+
+The current Development branch adds a presentation-only polish tranche inspired by the approved Home and Universal Search concepts: a stronger Universal Search hierarchy, explicit local/connected-source boundary copy, direct source access, a device-wide search prompt, a ranked Top result, counted source sections, purpose-specific original vector result glyphs, semantic Search headings, refined translucent Glaze surfaces, adaptive Glance/Calendar/Weather cards, a more restrained floating Dock/page-indicator treatment, and updated Home Glance/Search optical treatment. Widget-picker and wallpaper Home previews use current local date/time or neutral purpose-specific glyphs rather than fabricated weather, date, time, or battery values. Existing provider execution, opt-in behavior, Android permissions, profile identity, Room workspace authority, Search actions, and reduced-transparency/performance fallbacks are preserved.
+
+This is source implementation, not release acceptance. Launcher remains mapped to Official Stable GLAZE UI 1.6.0; Glaze 1.7 remains Development and is not claimed as a consumer baseline.
+
 ## October 1, 2026 — App Drawer favorites
 
 Merged PR #144 adds device-local, profile-qualified App Drawer pinning. Application long-press actions can pin/unpin an app in Apps, pinned state is surfaced in the app context status and directly on pinned app tiles/rows, the drawer sort menu includes **Pinned first**, and a ★ control can show pinned apps only on the active User/Work page. Drawer sort selection is persisted locally across surface/process recreation. Pin filtering/sorting remains presentation-only and never mutates Home/Dock/folder placement or cross-profile identity.

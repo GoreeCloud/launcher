@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -105,6 +106,9 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
+import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
+import com.goreecloud.launcher.ui.theme.GlazeV16PresentationPolicy
+import com.goreecloud.launcher.ui.theme.LocalGlazeV16PresentationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -136,6 +140,38 @@ internal fun LauncherProviderControlledSearchSurface(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val presentationContext = LocalGlazeV16PresentationContext.current
+    val searchPresentation = remember(presentationContext) {
+        GlazeV16PresentationPolicy.resolve(
+            requestedMaterial = GlazeV16MaterialRole.FUNCTIONAL_GLASS,
+            context = presentationContext,
+        )
+    }
+    val searchSurfaceAlpha = when (searchPresentation.materialRole) {
+        GlazeV16MaterialRole.SOLID -> 1.00f
+        GlazeV16MaterialRole.RAISED -> 0.97f
+        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> 0.90f
+        GlazeV16MaterialRole.CLEAR_GLASS -> 0.82f
+        GlazeV16MaterialRole.CANVAS,
+        GlazeV16MaterialRole.OVERLAY -> 0.94f
+    }
+    val searchSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = searchSurfaceAlpha)
+    val searchSurfaceOutline = MaterialTheme.colorScheme.onSurface.copy(
+        alpha = if (
+            searchPresentation.materialRole == GlazeV16MaterialRole.FUNCTIONAL_GLASS ||
+                searchPresentation.materialRole == GlazeV16MaterialRole.CLEAR_GLASS
+        ) {
+            0.11f
+        } else {
+            0.08f
+        },
+    )
+    val searchSurfaceElevation = when (searchPresentation.materialRole) {
+        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> 8.dp
+        GlazeV16MaterialRole.CLEAR_GLASS -> 3.dp
+        GlazeV16MaterialRole.RAISED -> 4.dp
+        else -> 1.dp
+    }
     val searchAppearancePreferences = remember(context.applicationContext) {
         LauncherSearchSuggestionPresentationRepository(context.applicationContext)
     }
@@ -321,21 +357,94 @@ internal fun LauncherProviderControlledSearchSurface(
                 modifier = Modifier.weight(1f),
             )
         } else {
+            val searchHeaderTitle: @Composable () -> Unit = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    Text(
+                        "Universal Search",
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Text(
+                        "Local first · connected sources are opt-in",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            val searchSourcesAction: @Composable () -> Unit = {
+                Surface(
+                    modifier = Modifier
+                        .heightIn(min = searchPresentation.minimumInteractionTarget),
+                    onClick = { showSources = true },
+                    shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                    ),
+                ) {
+                    Box(
+                        modifier = Modifier.padding(
+                            horizontal = GlazeMetrics.space3,
+                            vertical = GlazeMetrics.space1,
+                        ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            "Sources",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+            if (searchPresentation.densityMayYieldToReflow) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = GlazeMetrics.space1),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    searchHeaderTitle()
+                    searchSourcesAction()
+                }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = GlazeMetrics.space1),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                ) {
+                    Box(Modifier.weight(1f)) {
+                        searchHeaderTitle()
+                    }
+                    searchSourcesAction()
+                }
+            }
+
             val idleSearch = query.isBlank()
             val searchContainerColor by animateColorAsState(
                 targetValue = if (idleSearch) {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
+                    searchSurfaceColor
                 } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.20f)
+                    MaterialTheme.colorScheme.surface.copy(
+                        alpha = (searchSurfaceAlpha - 0.06f).coerceAtLeast(0.76f),
+                    )
                 },
                 animationSpec = tween(durationMillis = 220),
                 label = "launcherSearchContainerColor",
             )
             val searchContainerOutline by animateColorAsState(
                 targetValue = if (idleSearch) {
-                    MaterialTheme.colorScheme.outlineVariant
+                    searchSurfaceOutline
                 } else {
-                    MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.18f)
+                    searchSurfaceOutline.copy(alpha = searchSurfaceOutline.alpha * 0.72f)
                 },
                 animationSpec = tween(durationMillis = 220),
                 label = "launcherSearchContainerOutline",
@@ -350,7 +459,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 label = "launcherSearchContainerRadius",
             )
             val searchContainerElevation by animateDpAsState(
-                targetValue = if (idleSearch) 12.dp else 2.dp,
+                targetValue = if (idleSearch) searchSurfaceElevation else 2.dp,
                 animationSpec = tween(durationMillis = 220),
                 label = "launcherSearchContainerElevation",
             )
@@ -386,7 +495,7 @@ internal fun LauncherProviderControlledSearchSurface(
                         onValueChange = { query = it },
                         modifier = Modifier.fillMaxWidth(),
                         requestFocus = true,
-                        placeholder = "Search apps",
+                        placeholder = "Search this device",
                         inputTestTag = "launcher-universal-search-field",
                         trailingContent = {
                             LauncherUniversalSearchSettingsAction(
@@ -422,9 +531,9 @@ internal fun LauncherProviderControlledSearchSurface(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                     .testTag("launcher-glaze-search-panel"),
                 shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                shadowElevation = 12.dp,
+                color = searchSurfaceColor,
+                border = BorderStroke(1.dp, searchSurfaceOutline),
+                shadowElevation = searchSurfaceElevation,
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
@@ -477,21 +586,77 @@ internal fun LauncherProviderControlledSearchSurface(
                             )
                         }
                     } else {
-                        val grouped = LauncherGlazeSearchGroups.group(results)
+                        val topResult = results.firstOrNull()
+                        val fullSectionCounts = results
+                            .groupBy { result -> result.category }
+                            .mapValues { (_, items) -> items.size }
+                        val grouped = LauncherGlazeSearchGroups.group(results.drop(1))
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                                 .testTag("launcher-glaze-search-results"),
                             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                         ) {
+                            if (topResult != null) {
+                                item(key = "top-result-label") {
+                                    Text(
+                                        "Top result",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .semantics { heading() }
+                                            .padding(
+                                                start = GlazeMetrics.space2,
+                                                top = GlazeMetrics.space1,
+                                                bottom = GlazeMetrics.space1,
+                                            ),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                }
+                                item(
+                                    key = "top-result:" +
+                                        topResult.providerId + ":" + topResult.resultId,
+                                ) {
+                                    LauncherGlazeSearchResult(
+                                        result = topResult,
+                                        sourceLabel =
+                                            LauncherGlazeSearchGroups.connectedSourceLabel(
+                                                result = topResult,
+                                                providerControls = controls,
+                                            ),
+                                        onActivate = {
+                                            when (val action = topResult.action) {
+                                                is LaunchApplicationSearchAction ->
+                                                    onLaunchApp(action.app)
+                                                is LauncherLaunchShortcutSearchAction ->
+                                                    onLaunchShortcut(action)
+                                                is LauncherOpenUriSearchAction ->
+                                                    onOpenSearchUri(action)
+                                                is LauncherOpenDocumentSearchAction ->
+                                                    onOpenDocument(action)
+                                                is LauncherNavigateSearchAction ->
+                                                    onNavigate(action.destination)
+                                                else -> Unit
+                                            }
+                                        },
+                                        onOpenSearchUri = onOpenSearchUri,
+                                    )
+                                }
+                            }
                             grouped.forEach { section ->
                                 item(key = "header:" + section.category.name) {
                                     Text(
-                                        section.title,
-                                        modifier = Modifier.fillMaxWidth().padding(
-                                            start = GlazeMetrics.space2,
-                                            top = GlazeMetrics.space2,
-                                            bottom = GlazeMetrics.space1,
-                                        ),
+                                        section.title + " (" +
+                                            (fullSectionCounts[section.category] ?: section.items.size) +
+                                            ")",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .semantics { heading() }
+                                            .padding(
+                                                start = GlazeMetrics.space2,
+                                                top = GlazeMetrics.space2,
+                                                bottom = GlazeMetrics.space1,
+                                            ),
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.SemiBold,
@@ -1213,7 +1378,7 @@ internal object LauncherGlazeSearchGroups {
     private val order = listOf(
         LauncherSearchCategory.APPLICATION to "Apps",
         LauncherSearchCategory.SHORTCUT to "App shortcuts",
-        LauncherSearchCategory.CONTACT to "People",
+        LauncherSearchCategory.CONTACT to "Contacts",
         LauncherSearchCategory.CALL_HISTORY to "Recent calls",
         LauncherSearchCategory.MESSAGE to "Messages",
         LauncherSearchCategory.FILE to "Files",
@@ -1375,6 +1540,8 @@ private fun LauncherGlazeSearchResult(
     onOpenSearchUri: (LauncherOpenUriSearchAction) -> Unit,
 ) {
     val isContact = result.category == LauncherSearchCategory.CONTACT
+    val appAction = result.action as? LaunchApplicationSearchAction
+    val appIcon = if (appAction != null) rememberLauncherAppIcon(appAction.app) else null
     val number = result.subtitle?.takeIf { it.any(Char::isDigit) }
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1398,7 +1565,14 @@ private fun LauncherGlazeSearchResult(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
-                    if (isContact) {
+                    if (appIcon != null) {
+                        Image(
+                            bitmap = appIcon,
+                            contentDescription = null,
+                            contentScale = ContentScale.Fit,
+                            modifier = Modifier.size(42.dp).launcherIconMask(),
+                        )
+                    } else if (isContact) {
                         Surface(
                             modifier = Modifier.size(38.dp),
                             shape = RoundedCornerShape(GlazeMetrics.radiusPill),
@@ -1412,6 +1586,8 @@ private fun LauncherGlazeSearchResult(
                                 )
                             }
                         }
+                    } else {
+                        LauncherSearchResultCategoryGlyph(result.category)
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
@@ -1468,6 +1644,235 @@ private fun LauncherGlazeSearchResult(
                         },
                         modifier = Modifier.heightIn(min = 48.dp),
                     ) { Text("Message") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSearchResultCategoryGlyph(
+    category: LauncherSearchCategory,
+) {
+    val color = MaterialTheme.colorScheme.primary
+    Surface(
+        modifier = Modifier.size(38.dp),
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.primaryContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(20.dp)) {
+                val u = size.minDimension
+                val stroke = 1.65.dp.toPx()
+                val round = androidx.compose.ui.geometry.CornerRadius(u * 0.12f)
+                when (category) {
+                    LauncherSearchCategory.APPLICATION -> {
+                        drawRoundRect(
+                            color = color,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.14f, u * 0.14f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.72f, u * 0.72f),
+                            cornerRadius = round,
+                            style = Stroke(width = stroke),
+                        )
+                        listOf(
+                            0.34f to 0.34f,
+                            0.66f to 0.34f,
+                            0.34f to 0.66f,
+                            0.66f to 0.66f,
+                        ).forEach { (x, y) ->
+                            drawCircle(
+                                color = color,
+                                radius = u * 0.055f,
+                                center = androidx.compose.ui.geometry.Offset(u * x, u * y),
+                            )
+                        }
+                    }
+
+                    LauncherSearchCategory.SHORTCUT -> {
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.24f, u * 0.76f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.24f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.48f, u * 0.24f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.24f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.24f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.52f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                    }
+
+                    LauncherSearchCategory.CONTACT -> {
+                        drawCircle(
+                            color = color,
+                            radius = u * 0.17f,
+                            center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.36f),
+                            style = Stroke(width = stroke),
+                        )
+                        drawArc(
+                            color = color,
+                            startAngle = 205f,
+                            sweepAngle = 130f,
+                            useCenter = false,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.22f, u * 0.48f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.56f, u * 0.40f),
+                            style = Stroke(width = stroke),
+                        )
+                    }
+
+                    LauncherSearchCategory.CALL_HISTORY -> {
+                        drawArc(
+                            color = color,
+                            startAngle = 30f,
+                            sweepAngle = 250f,
+                            useCenter = false,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.18f, u * 0.18f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.64f, u * 0.64f),
+                            style = Stroke(
+                                width = stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            ),
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.50f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.29f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.50f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.67f, u * 0.58f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                    }
+
+                    LauncherSearchCategory.MESSAGE -> {
+                        drawRoundRect(
+                            color = color,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.13f, u * 0.20f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.74f, u * 0.54f),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * 0.14f),
+                            style = Stroke(width = stroke),
+                        )
+                        listOf(0.36f, 0.50f, 0.64f).forEach { x ->
+                            drawCircle(
+                                color = color,
+                                radius = u * 0.04f,
+                                center = androidx.compose.ui.geometry.Offset(u * x, u * 0.47f),
+                            )
+                        }
+                    }
+
+                    LauncherSearchCategory.FILE -> {
+                        drawRoundRect(
+                            color = color,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.24f, u * 0.12f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.52f, u * 0.76f),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * 0.07f),
+                            style = Stroke(width = stroke),
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.52f, u * 0.12f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.35f),
+                            strokeWidth = stroke,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.52f, u * 0.12f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.52f, u * 0.35f),
+                            strokeWidth = stroke,
+                        )
+                    }
+
+                    LauncherSearchCategory.SETTING -> {
+                        val center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.50f)
+                        drawCircle(
+                            color = color,
+                            radius = u * 0.20f,
+                            center = center,
+                            style = Stroke(width = stroke),
+                        )
+                        drawCircle(
+                            color = color,
+                            radius = u * 0.065f,
+                            center = center,
+                            style = Stroke(width = stroke),
+                        )
+                        listOf(
+                            0.50f to 0.14f,
+                            0.86f to 0.50f,
+                            0.50f to 0.86f,
+                            0.14f to 0.50f,
+                        ).forEach { (x, y) ->
+                            val dx = x - 0.50f
+                            val dy = y - 0.50f
+                            drawLine(
+                                color = color,
+                                start = androidx.compose.ui.geometry.Offset(
+                                    u * (0.50f + dx * 0.72f),
+                                    u * (0.50f + dy * 0.72f),
+                                ),
+                                end = androidx.compose.ui.geometry.Offset(u * x, u * y),
+                                strokeWidth = stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                        }
+                    }
+
+                    LauncherSearchCategory.ACTION -> {
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.20f, u * 0.50f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.78f, u * 0.50f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.60f, u * 0.32f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.78f, u * 0.50f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.78f, u * 0.50f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.60f, u * 0.68f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                    }
+
+                    LauncherSearchCategory.CONNECTED_SOURCE -> {
+                        val center = androidx.compose.ui.geometry.Offset(u * 0.43f, u * 0.42f)
+                        drawCircle(
+                            color = color,
+                            radius = u * 0.22f,
+                            center = center,
+                            style = Stroke(width = stroke),
+                        )
+                        drawLine(
+                            color = color,
+                            start = androidx.compose.ui.geometry.Offset(u * 0.58f, u * 0.58f),
+                            end = androidx.compose.ui.geometry.Offset(u * 0.82f, u * 0.82f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                        )
+                    }
                 }
             }
         }

@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — polish Home and Universal Search Glaze composition
+
+This Development candidate turns the supplied Home/Universal Search visual direction into a bounded native Launcher polish pass without changing provider authority, permissions, workspace persistence, or network policy. Universal Search now has a clear product heading, an explicit **Local first · connected sources are opt-in** boundary, a direct Sources action, a broader **Search this device** field, presentation-policy-resolved translucent surfaces, a ranked **Top result** treatment, counted result sections, **Contacts** naming, purpose-specific original vector category glyphs, and preserved explicit Call/Message actions. The product title and result-section labels are also exposed as semantic headings so the stronger visual hierarchy remains useful to assistive technology.
+
+Home keeps the current Room-authoritative layout and configurable presentation model while refining the fixed Search capsule copy to **Search with GoreeCloud…** and giving the fixed Glance hero slightly more optical radius, restrained depth, and the non-authoritative product line **A calmer Home. Your way.** The built-in Glance, Calendar, and Weather cards now resolve their inner presentation through the same Glaze material fallback instead of retaining light-only inner surfaces; the Dock and shared Home page indicator use a more restrained floating-glass treatment. Widget-picker previews no longer show fabricated dates, temperatures, clock times, or battery percentages: previews use current local date/time where authoritative and neutral purpose-specific glyphs where live data is unavailable. The wallpaper Home preview follows the same rule by using the current local time/date plus a neutral permission-gated Weather treatment instead of a fixed sample forecast. Reduced-transparency and performance fallbacks continue to resolve through the accepted GLAZE UI V1.6 presentation policy.
+
+The source intentionally remains pinned to Official Stable GLAZE UI **1.6.0** / revision `a7180679ea851389e0f3004515f9a25f420e716d`. The active Glaze 1.7 Development line is not treated as consumer-eligible or as Launcher conformance evidence.
+
+**Acceptance boundary:** Development candidate based on authoritative main after merged PR #146. Fresh exact-head build/JVM/lint/schema, complete API 36 runtime, transition-performance, protected-promotion, accessibility/large-text, and representative-device visual acceptance remain required.
+
 ## October 1, 2026 — stabilize Drawer runtime setup authority
 
 A later exact-head feature validation reproduced a lifecycle-suite setup race that can occur before any Drawer gesture assertion: the Drawer runtime test observed terminal ROOM authority, then used the compatibility repository snapshot to decide whether its candidate app needed Home placement. The launched Home could still be finishing startup-owned reconciliation at that point, so the guarded test-owned Room write could legitimately return a non-Written result and contaminate subsequent lifecycle cases.

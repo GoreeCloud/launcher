@@ -1,5 +1,6 @@
 package com.goreecloud.launcher.ui
 
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -9,6 +10,7 @@ import android.view.FrameMetrics
 import android.view.InputDevice
 import android.view.MotionEvent
 import android.view.Window
+import android.view.accessibility.AccessibilityNodeInfo
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -157,31 +159,57 @@ class LauncherTransitionPerformanceRuntimeTest {
     }
 
     private fun tapEmptySearchArea(scenario: ActivityScenario<MainActivity>) {
-        var bounds: GestureBounds? = null
+        // The Search composition is adaptive: adding a heading, source controls, or large-text
+        // reflow legitimately moves the unused backdrop. Target the real semantic dismiss region
+        // instead of assuming a fixed percentage of the physical screen remains empty.
         scenario.onActivity { activity ->
-            val decor = activity.window.decorView
-            val location = IntArray(2)
-            decor.getLocationOnScreen(location)
-            bounds = GestureBounds(
-                x = location[0] + decor.width * 0.5f,
-                top = location[1].toFloat(),
-                height = decor.height.toFloat(),
-            )
+            check(activity.window.decorView.hasWindowFocus()) {
+                "Launcher Search window must be focused before tapping its dismiss backdrop"
+            }
         }
 
-        val target = checkNotNull(bounds)
-        val y = target.top + target.height * 0.42f
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val deadline = SystemClock.elapsedRealtime() + MODE_TIMEOUT_MS
+        var dismissBounds: Rect? = null
+        while (SystemClock.elapsedRealtime() < deadline && dismissBounds == null) {
+            val root = automation.rootInActiveWindow
+            val dismissNode = findAccessibilityNode(
+                root = root,
+                contentDescription = "Close Universal Search",
+            )
+            dismissBounds = dismissNode?.let { node ->
+                Rect().also(node::getBoundsInScreen).takeIf { !it.isEmpty }
+            }
+            if (dismissBounds == null) SystemClock.sleep(POLL_MS)
+        }
+
+        val target = checkNotNull(dismissBounds) {
+            "Universal Search must expose a semantic empty-backdrop dismiss region"
+        }
+        val x = target.exactCenterX()
+        val y = target.exactCenterY()
         val downTime = SystemClock.uptimeMillis()
-        injectTouch(automation, downTime, downTime, MotionEvent.ACTION_DOWN, target.x, y)
+        injectTouch(automation, downTime, downTime, MotionEvent.ACTION_DOWN, x, y)
         injectTouch(
             automation,
             downTime,
             SystemClock.uptimeMillis(),
             MotionEvent.ACTION_UP,
-            target.x,
+            x,
             y,
         )
+    }
+
+    private fun findAccessibilityNode(
+        root: AccessibilityNodeInfo?,
+        contentDescription: String,
+    ): AccessibilityNodeInfo? {
+        if (root == null) return null
+        if (root.contentDescription?.toString() == contentDescription) return root
+        for (index in 0 until root.childCount) {
+            findAccessibilityNode(root.getChild(index), contentDescription)?.let { return it }
+        }
+        return null
     }
 
     private fun pressBack(scenario: ActivityScenario<MainActivity>) {

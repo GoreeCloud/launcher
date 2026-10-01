@@ -43,7 +43,11 @@ import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaper
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpaperId
 import com.goreecloud.launcher.core.launcher.LauncherBuiltInWallpapers
+import com.goreecloud.launcher.core.launcher.LauncherWeatherVisualKind
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
  * Launcher-owned wallpaper chooser.
@@ -237,6 +241,14 @@ private fun WallpaperChoiceCard(
 @Composable
 private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
     val previewForeground = Color.White
+    val now = remember { LocalDateTime.now() }
+    val locale = Locale.getDefault()
+    val previewTime = remember(now.minute, locale) {
+        now.format(DateTimeFormatter.ofPattern("h:mm", locale))
+    }
+    val previewDate = remember(now.dayOfYear, locale) {
+        now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
+    }
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
@@ -260,13 +272,13 @@ private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
                     verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
-                        "2:37",
+                        previewTime,
                         style = MaterialTheme.typography.displaySmall,
                         color = previewForeground.copy(alpha = 0.96f),
                         fontWeight = FontWeight.Light,
                     )
                     Text(
-                        "Wed, Sep 23",
+                        previewDate,
                         style = MaterialTheme.typography.bodySmall,
                         color = previewForeground.copy(alpha = 0.82f),
                     )
@@ -286,14 +298,14 @@ private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
                             modifier = Modifier.padding(14.dp),
                             verticalArrangement = Arrangement.SpaceBetween,
                         ) {
-                            Text(
-                                "72°",
-                                style = MaterialTheme.typography.headlineMedium,
+                            LauncherWeatherIcon(
+                                kind = LauncherWeatherVisualKind.UNKNOWN,
+                                isDay = true,
                                 color = previewForeground,
-                                fontWeight = FontWeight.Light,
+                                size = 32.dp,
                             )
                             Text(
-                                "Clear · Weather widget",
+                                "Weather · permission-gated",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = previewForeground.copy(alpha = 0.80f),
                                 maxLines = 1,
@@ -316,7 +328,7 @@ private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
                                 color = previewForeground.copy(alpha = 0.78f),
                             )
                             Text(
-                                "23",
+                                now.dayOfMonth.toString(),
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = previewForeground,
                                 fontWeight = FontWeight.Light,
@@ -385,7 +397,7 @@ private fun WallpaperHomePreview(wallpaper: LauncherBuiltInWallpaper) {
                                 .background(Color.White.copy(alpha = 0.74f), CircleShape),
                         )
                         Text(
-                            "Search GoreeCloud",
+                            "Search with GoreeCloud…",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.86f),
                         )

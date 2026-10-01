@@ -68,6 +68,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.positionChange
@@ -94,7 +95,11 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeWidget
 import com.goreecloud.launcher.core.workspace.db.context
 import com.goreecloud.launcher.core.workspace.workspaceKey
+import com.goreecloud.launcher.ui.theme.GlazeAtmosphere
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
+import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
+import com.goreecloud.launcher.ui.theme.GlazeV16PresentationPolicy
+import com.goreecloud.launcher.ui.theme.LocalGlazeV16PresentationContext
 import kotlin.math.abs
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -1050,6 +1055,35 @@ fun HomePageDots(
         .takeIf { it >= 0 }
         ?: 0
     val selectedPage = pages[selectedIndex]
+    val presentationContext = LocalGlazeV16PresentationContext.current
+    val presentation = remember(presentationContext) {
+        GlazeV16PresentationPolicy.resolve(
+            requestedMaterial = GlazeV16MaterialRole.FUNCTIONAL_GLASS,
+            context = presentationContext,
+        )
+    }
+    val usesWallpaperGlass = presentation.materialRole !in setOf(
+        GlazeV16MaterialRole.SOLID,
+        GlazeV16MaterialRole.RAISED,
+    )
+    val indicatorForeground = if (usesWallpaperGlass) {
+        Color.White
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val indicatorBackground = when (presentation.materialRole) {
+        GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
+        GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
+        GlazeV16MaterialRole.CLEAR_GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.18f)
+        GlazeV16MaterialRole.FUNCTIONAL_GLASS ->
+            GlazeAtmosphere.canvasBlack.copy(alpha = 0.26f)
+        else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+    }
+    val indicatorOutline = if (usesWallpaperGlass) {
+        Color.White.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.outlineVariant
+    }
 
     Box(modifier = modifier) {
         Surface(
@@ -1061,10 +1095,12 @@ fun HomePageDots(
                         .accessibilityLabel(selectedIndex + 1, selected = true)
                 },
             shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.34f),
+            color = indicatorBackground,
+            border = BorderStroke(1.dp, indicatorOutline),
+            shadowElevation = if (usesWallpaperGlass) 1.dp else 0.dp,
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -1072,13 +1108,13 @@ fun HomePageDots(
                     val selected = page.pageId == selectedPageId
                     Surface(
                         modifier = Modifier
-                            .width(if (selected) 14.dp else 5.dp)
+                            .width(if (selected) 16.dp else 5.dp)
                             .height(5.dp),
                         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
                         color = if (selected) {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.90f)
+                            indicatorForeground.copy(alpha = 0.96f)
                         } else {
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.30f)
+                            indicatorForeground.copy(alpha = 0.34f)
                         },
                     ) {}
                 }

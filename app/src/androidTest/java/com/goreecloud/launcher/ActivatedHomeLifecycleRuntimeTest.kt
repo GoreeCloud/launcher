@@ -1077,7 +1077,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 composeRule
                     .onNodeWithText(
-                        "Search apps",
+                        "Search this device",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
@@ -1123,22 +1123,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsSelected()
                 assertEquals(
-                    0,
+                    1,
                     composeRule
                         .onAllNodesWithText("Universal Search", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .size,
                 )
-                assertEquals(
-                    0,
-                    composeRule
-                        .onAllNodesWithText(
-                            "Search privately across enabled sources",
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .size,
-                )
+                composeRule
+                    .onNodeWithText(
+                        "Local first · connected sources are opt-in",
+                        useUnmergedTree = true,
+                    )
+                    .assertIsDisplayed()
                 assertEquals(
                     0,
                     composeRule

@@ -40,7 +40,7 @@ Current source includes:
 - Guarded exact one-cell movement left/right/up/down that fails closed on occupied or out-of-bounds targets.
 - Guarded primary-Home compatibility-to-spatial migration in terminal Room authority, preserving rank-zero page identity while enabling persistent configured-grid cell placement, empty-cell drops, and occupied-cell swaps.
 - Development presentation of unsupported workspace-item counts instead of silently hiding their presence.
-- Launcher-owned Universal Search Home entry through the **Search GoreeCloud** affordance in Permanent mode and one-finger downward Home invocation in both supported entry modes. Earlier Index activity-handoff revisions remain historical provenance.
+- Launcher-owned Universal Search Home entry through the **Search with GoreeCloud…** affordance in Permanent mode and one-finger downward Home invocation in both supported entry modes. Earlier Index activity-handoff revisions remain historical provenance.
 - Scoped `MAIN` + `LAUNCHER` package visibility for app discovery without the legacy Index search-action query, `QUERY_ALL_PACKAGES`, or Launcher Internet permission.
 - Canonical Launcher visual-asset provenance from `GoreeCloud/goreecloud-branding-assets`, with this repository limited to traceable Android derivatives.
 - Repository-level Glaze UI Adoption Candidate mapping and validation guard.

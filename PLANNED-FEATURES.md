@@ -14,6 +14,8 @@ Merged PR #127 restores the complete API 36 `connectedDebugAndroidTest` suite pl
 
 Merged PR #144 adds device-local, profile-qualified App Drawer favorites with long-press **Pin in Apps / Unpin in Apps** actions, visible/accessibility pin state, a ★ pinned-only page filter, a deterministic **Pinned first** sort mode, and local persistence of the selected Drawer sort mode across restarts. This partially advances the broader user-controlled drawer organization obligation without claiming categories, tags, collections, or general custom ordering complete.
 
+The current Home/Search polish candidate advances the visual-composition portion of the Glaze acceptance work but does not close representative-device, accessibility, performance, or consumer-conformance gates.
+
 Still open after runtime-gate integration: representative/default-HOME multi-page frame pacing, input latency, memory/power, drag/drop/widget and gesture acceptance; User/Work inventory churn acceptance; movable/fixed Search accessibility and large-text/form-factor acceptance; Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  

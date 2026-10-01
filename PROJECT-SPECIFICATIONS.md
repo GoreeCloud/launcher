@@ -64,9 +64,9 @@ Launcher must remain original GoreeCloud-owned software built from the ground up
 
 ### Home
 
-The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and—when the selected entry mode is **Permanent on Home**—a Search GoreeCloud affordance that opens Launcher Universal Search.
+The rebuilt primary Home is a launcher-style surface rather than an engineering Favorites screen. Android renders the system wallpaper behind the launcher window through the native window-wallpaper contract, requiring no wallpaper/storage privilege. The primary surface renders the current Home application grid, Dock, Apps affordance, Launcher Settings affordance, and—when the selected entry mode is **Permanent on Home**—a Search with GoreeCloud… affordance that opens Launcher Universal Search.
 
-A one-finger downward gesture on the unobstructed Home search zone opens Launcher Universal Search in both supported Home-entry modes. **Swipe down only** removes the persistent Search GoreeCloud affordance while retaining the Launcher-owned search gesture.
+A one-finger downward gesture on the unobstructed Home search zone opens Launcher Universal Search in both supported Home-entry modes. **Swipe down only** removes the persistent Search with GoreeCloud… affordance while retaining the Launcher-owned search gesture.
 
 Current supported settings include Home grid presets within the 4–6 column / 4–7 row bounds exposed by the UI, Apps layout modes of Grid/Compact/List, Apps columns of 4/5/6 for grid-based modes, Small/Medium/Large icon presentation, app-label visibility, System/Light/Dark appearance, Home layout lock, and Launcher Universal Search Home-entry mode.
 
@@ -1291,7 +1291,7 @@ GoreeCloud Drive Integration
 
 
 - Surface recently accessed files and folders
-- Search GoreeCloud Drive directly from launcher search
+- Search with GoreeCloud… Drive directly from launcher search
 - Pin files and folders to the home screen
 - File and folder shortcut widgets
 - Contextual document recommendations
