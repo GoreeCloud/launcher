@@ -209,6 +209,14 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun secondaryPagerWarmsAtMostOneAdjacentPage() {
+        assertEquals(0, secondaryHomeBeyondViewportPageCount(0))
+        assertEquals(0, secondaryHomeBeyondViewportPageCount(1))
+        assertEquals(1, secondaryHomeBeyondViewportPageCount(2))
+        assertEquals(1, secondaryHomeBeyondViewportPageCount(6))
+    }
+
+    @Test
     fun secondaryContentOnlyModeSuppressesPersistentChrome() {
         assertFalse(
             secondaryHomeShouldRenderPageIndicator(

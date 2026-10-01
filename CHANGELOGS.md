@@ -1,5 +1,14 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — keep one adjacent secondary Home page warm
+
+The secondary Home `HorizontalPager` now requests one beyond-viewport page only when two or more secondary pages exist. This keeps an adjacent page composed around the active page to reduce swipe-edge composition work while avoiding broad offscreen page retention.
+
+A focused JVM policy keeps the behavior bounded: zero warm pages for zero/one page and exactly one for larger secondary page sets.
+
+**Acceptance boundary:** Development performance candidate reconciled onto merged PR #112 / current main `54b65654075667d48bc4c757357897c128f3337c`; fresh exact-head validation is required before integration. Representative-device frame pacing, input latency, memory, and power acceptance remain open.
+
+
 ## September 30, 2026 — separate Primary Home page content from persistent chrome
 
 `LauncherBetaRoot` now exposes a behavior-neutral Primary Home content-only mode. When that mode is used, the Primary page leaves fixed Top/Bottom Search, page-indicator reserve space, Dock rendering, bottom navigation-bar padding, and horizontal page-gesture ownership to an outer Home shell/pager; the existing full surface remains the default for current callers.

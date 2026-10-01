@@ -109,6 +109,10 @@ internal fun secondaryHomeShouldRenderDock(
     dockAppCount: Int,
 ): Boolean = !contentOnly && dockAppCount > 0
 
+internal fun secondaryHomeBeyondViewportPageCount(
+    pageCount: Int,
+): Int = if (pageCount > 1) 1 else 0
+
 internal fun homePageSwipeTargetIndex(
     currentIndex: Int,
     pageCount: Int,
@@ -1161,6 +1165,8 @@ fun ReadOnlyPagedHomeSurface(
                         .fillMaxWidth()
                         .testTag("launcher-secondary-home-pager"),
                     userScrollEnabled = true,
+                    beyondViewportPageCount =
+                        secondaryHomeBeyondViewportPageCount(secondaryPages.size),
                 ) { index ->
                     val candidate = secondaryPages[index]
                     ReadOnlyPagedHomeSurface(
