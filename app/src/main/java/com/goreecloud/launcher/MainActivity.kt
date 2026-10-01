@@ -1235,6 +1235,7 @@ class MainActivity : ComponentActivity() {
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
+                            selectedHomePageId = selectedHomePageId,
                             homeResetSequence = homeResetSequenceValue,
                             requestedSurfaceMode = primarySurfaceMode,
                             externalHomeEditorRequestSequence = primaryHomeEditorRequestSequence,

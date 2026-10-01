@@ -6,7 +6,7 @@ Merged PRs #103–#107 now cover the current mainline drawer/Home/profile/Search
 
 Merged PR #108 separates secondary Home page content from optional persistent Dock/page-indicator chrome. Merged PR #109 then uses `HorizontalPager` across secondary pages, keeps the Dock outside the moving page layer, synchronizes the selected Room-backed page identity as the pager current page changes, and limits the outer threshold recognizer to the Primary boundary.
 
-Merged PR #112 creates the matching Primary Home content-only path in `LauncherBetaRoot`: fixed Search, page-indicator reserve, Dock, bottom navigation-bar padding, and horizontal page-gesture ownership can be handed to a future outer Home shell/pager while current callers keep the full surface by default. The stacked performance candidate keeps one adjacent secondary Home page warm while paging exists, avoiding unbounded precomposition. PR #112 is merged as `54b65654075667d48bc4c757357897c128f3337c`; the warmup candidate is reconciled onto current main and requires fresh exact-head validation.
+Merged PR #112 creates the matching Primary Home content-only path in `LauncherBetaRoot`: fixed Search, page-indicator reserve, Dock, bottom navigation-bar padding, and horizontal page-gesture ownership can be handed to a future outer Home shell/pager while current callers keep the full surface by default. Merged PR #113 keeps one adjacent secondary Home page warm while paging exists, avoiding unbounded precomposition. The stacked architecture candidate then threads authoritative selected-page identity into `LauncherBetaRoot`/`HomeSurface` with a fail-closed Room-page resolver, giving the Primary root the page state needed for a future all-page pager. PR #113 is merged as `48a44a03b88dc04dcb5b7149dc79f936a5874a7c`; the state-hoist candidate is reconciled onto current main and requires fresh exact-head validation.
 
 Still open after the Primary content-layer split: place Primary plus secondary page content under one follow-finger pager while preserving one Room workspace authority and persistent Home chrome; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
@@ -14,7 +14,7 @@ Still open after the Primary content-layer split: place Primary plus secondary p
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `54b65654075667d48bc4c757357897c128f3337c` after merged PR #112. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `48a44a03b88dc04dcb5b7149dc79f936a5874a7c` after merged PR #113. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

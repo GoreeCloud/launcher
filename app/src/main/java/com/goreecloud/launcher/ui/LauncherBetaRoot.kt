@@ -378,6 +378,13 @@ internal fun primaryHomeShouldHandleHorizontalPaging(
     contentOnly: Boolean,
 ): Boolean = !contentOnly
 
+internal fun resolvedHomePageId(
+    selectedHomePageId: String?,
+    pages: List<WorkspaceRenderedHomePage>,
+): String =
+    pages.firstOrNull { it.pageId == selectedHomePageId }?.pageId
+        ?: WorkspaceLegacyImportMapper.HOME_PAGE_ID
+
 @Composable
 fun LauncherBetaRoot(
     apps: List<LauncherActivityInfo>,
@@ -392,6 +399,7 @@ fun LauncherBetaRoot(
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     fileSearchRoots: List<Uri>,
     homePageCount: Int,
+    selectedHomePageId: String = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
     homeResetSequence: Long,
     requestedSurfaceMode: LauncherSurfaceMode = LauncherSurfaceMode.HOME,
     externalHomeEditorRequestSequence: Long = 0L,
@@ -796,6 +804,7 @@ fun LauncherBetaRoot(
                 localLaunchCounts = localLaunchCounts,
                 hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
                 homePageCount = homePageCount,
+                selectedHomePageId = selectedHomePageId,
                 homeResetSequence = homeResetSequence,
                 homeEditorRequestSequence = homeEditorRequestSequence,
                 homeEditorInitialPageId = homeEditorInitialPageId,
@@ -1278,6 +1287,7 @@ private fun HomeSurface(
     localLaunchCounts: Map<String, Long>,
     hiddenHomeSuggestionKeys: Set<String>,
     homePageCount: Int,
+    selectedHomePageId: String,
     homeResetSequence: Long,
     homeEditorRequestSequence: Long,
     homeEditorInitialPageId: String?,
@@ -1765,8 +1775,10 @@ private fun HomeSurface(
                     },
                     modifier = Modifier.launcherHomePageEntryTransition(
                         transition = homePageTransition,
-                        transitionKey = primaryHomePage?.pageId
-                            ?: WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+                        transitionKey = resolvedHomePageId(
+                            selectedHomePageId = selectedHomePageId,
+                            pages = homePages,
+                        ),
                     ),
                 )
             }
