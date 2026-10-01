@@ -311,7 +311,12 @@ class LauncherSearchProviderUserControlPolicyTest {
     fun builtInNamesAndPrivacySummaryAreUserReadable() {
         val apps = metadata(LauncherInstalledAppsSearchProvider.PROVIDER_ID)
         val actions = metadata(LauncherCoreActionsSearchProvider.PROVIDER_ID)
+        val quickAnswers = metadata(LauncherQuickAnswersSearchProvider.PROVIDER_ID)
 
+        assertEquals(
+            "Quick answers",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(quickAnswers.providerId),
+        )
         assertEquals("Apps", LauncherSearchProviderUserControlPolicy.displayNameFor(apps.providerId))
         assertEquals(
             "Launcher actions",

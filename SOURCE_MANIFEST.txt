@@ -65,6 +65,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreS
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreStartupSequence.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPortableStoredPreferencePolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesRepository.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherQuickAnswersSearchProvider.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchPresentationPolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPreferenceContract.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPreferencesRepository.kt
@@ -163,6 +164,7 @@ app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreS
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestoreStartupSequenceTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPortableStoredPreferencePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherPreferencesTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherQuickAnswersSearchProviderTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchPresentationPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderContractTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherSearchProviderPreferenceContractTest.kt

@@ -1,10 +1,13 @@
 package com.goreecloud.launcher.ui
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.net.Uri
 import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -74,6 +77,7 @@ import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.BuildConfig
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherCopyTextSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherContactsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherCallHistorySearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherFilesSearchProvider
@@ -741,6 +745,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                             ),
                                             onActivate = {
                                                 when (val action = result.action) {
+                                                    is LauncherCopyTextSearchAction -> copyQuickAnswer(context, action)
                                                     is LauncherLaunchShortcutSearchAction -> onLaunchShortcut(action)
                                                     is LauncherOpenUriSearchAction -> onOpenSearchUri(action)
                                                     is LauncherOpenDocumentSearchAction -> onOpenDocument(action)
@@ -1532,6 +1537,17 @@ private fun LauncherGlazeShortcutPanel(
 }
 
 /** Local result actions are explicit user taps; Message opens the system's default SMS handler. */
+private fun copyQuickAnswer(
+    context: android.content.Context,
+    action: LauncherCopyTextSearchAction,
+) {
+    val clipboard = context.getSystemService(ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(ClipData.newPlainText("Quick answer", action.text))
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+        Toast.makeText(context, "Answer copied", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 private fun LauncherGlazeSearchResult(
     result: LauncherSearchResult,
@@ -1618,7 +1634,11 @@ private fun LauncherGlazeSearchResult(
                         }
                     }
                     Text(
-                        if (isContact) "View ›" else "Open ›",
+                        when {
+                            isContact -> "View ›"
+                            result.action is LauncherCopyTextSearchAction -> "Copy ›"
+                            else -> "Open ›"
+                        },
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelMedium,
                     )

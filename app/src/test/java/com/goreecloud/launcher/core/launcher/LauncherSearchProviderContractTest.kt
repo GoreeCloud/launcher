@@ -8,6 +8,7 @@ class LauncherSearchProviderContractTest {
     @Test
     fun builtInMetadataIsCurrentLocalOnlyAndRetentionFree() {
         val providerIds = listOf(
+            LauncherQuickAnswersSearchProvider.PROVIDER_ID,
             LauncherCoreActionsSearchProvider.PROVIDER_ID,
             LauncherInstalledAppsSearchProvider.PROVIDER_ID,
         )

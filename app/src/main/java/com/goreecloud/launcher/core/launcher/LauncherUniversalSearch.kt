@@ -405,6 +405,7 @@ class LauncherCoreActionsSearchProvider : LauncherSearchProvider {
 object LauncherBuiltInSearchProviderRegistry {
     fun registrations(apps: List<LauncherActivityInfo>): List<LauncherSearchProviderRegistration> =
         listOf(
+            builtInRegistration(LauncherQuickAnswersSearchProvider()),
             builtInRegistration(LauncherCoreActionsSearchProvider()),
             builtInRegistration(LauncherInstalledAppsSearchProvider(apps)),
         )

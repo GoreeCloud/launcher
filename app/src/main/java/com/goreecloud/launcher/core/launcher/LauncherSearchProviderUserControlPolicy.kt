@@ -268,6 +268,7 @@ object LauncherSearchProviderUserControlPolicy {
     }
 
     fun displayNameFor(providerId: String): String = when (providerId) {
+        LauncherQuickAnswersSearchProvider.PROVIDER_ID -> "Quick answers"
         LauncherInstalledAppsSearchProvider.PROVIDER_ID -> "Apps"
         LauncherCoreActionsSearchProvider.PROVIDER_ID -> "Launcher actions"
         LauncherShortcutsSearchProvider.PROVIDER_ID -> "App shortcuts"
