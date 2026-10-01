@@ -780,10 +780,15 @@ class ActivatedHomeLifecycleRuntimeTest {
                 Unit
             } finally {
                 // This test intentionally selects a temporary secondary page. Return through the
-                // real HOME path before deleting that page so the persisted selected-page identity
-                // cannot leak into later ActivityScenario tests as a now-stale page selection.
+                // real HOME path before deleting that page so the selected page cannot leak into
+                // later ActivityScenario tests as a now-stale page selection.
+                //
+                // HOME may either reset the currently observed root or replace the scenario-owned
+                // LAUNCHER Activity with a fresh HOME Activity. In the replacement path the Compose
+                // test rule legitimately loses the old hierarchy, while the fresh Activity starts
+                // from primary Home. Do not require post-HOME page-indicator semantics from the
+                // scenario-owned hierarchy during teardown.
                 resetHomeBeforeScenarioClose()
-                waitForSelectedHomePage(pageNumber = 1)
                 scenario.close()
             }
         } finally {
@@ -850,14 +855,47 @@ class ActivatedHomeLifecycleRuntimeTest {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
-                if (candidateKey !in repository.state.first().favoriteKeys) {
+
+                // ROOM authority can become visible before the launched Home finishes startup-owned
+                // reconciliation. Wait for the real Home surface plus both authoritative Room
+                // projections before performing this test-owned setup mutation; otherwise a healthy
+                // guarded write can legitimately lose a snapshot race and contaminate later tests.
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-swipe-up-apps",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule.waitForIdle()
+                withTimeout(10_000) {
+                    runtime.observeHomePages().first { state ->
+                        state is WorkspacePagedHomeState.Ready
+                    }
+                }
+                val placement = withTimeout(10_000) {
+                    runtime.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+                if (candidateKey !in placement.snapshot.favoriteKeys) {
                     val preferences = LauncherPreferencesRepository(context).preferences.first()
                     val write = runtime.toggleFavorite(
                         key = candidateKey,
                         homeColumns = preferences.homeColumns,
                         homeRows = preferences.homeRows,
                     )
-                    check(write is WorkspaceAuthoritativeWriteResult.Written)
+                    check(write is WorkspaceAuthoritativeWriteResult.Written) {
+                        "Expected authoritative Home setup placement; result was $write."
+                    }
+                    withTimeout(10_000) {
+                        runtime.observePlacement().first { state ->
+                            state is WorkspaceAuthoritativePlacementState.Ready &&
+                                candidateKey in state.snapshot.favoriteKeys
+                        }
+                    }
                 }
 
                 waitForDisplayedLabel(candidate.label.toString())

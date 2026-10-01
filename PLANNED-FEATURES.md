@@ -12,7 +12,7 @@ Merged PR #121 restores configured horizontal edge actions on the unified pager.
 
 Merged PR #127 restores the complete API 36 `connectedDebugAndroidTest` suite plus focused `LauncherTransitionPerformanceRuntimeTest` diagnostics and makes both promotion requirements for Launcher changes.
 
-A Development feature candidate restacked directly on accepted main adds device-local, profile-qualified App Drawer favorites with long-press **Pin in Apps / Unpin in Apps** actions, visible/accessibility pin state, a ★ pinned-only page filter, a deterministic **Pinned first** sort mode, and local persistence of the selected Drawer sort mode across restarts. This partially advances the broader user-controlled drawer organization obligation without claiming categories, tags, collections, or general custom ordering complete.
+Merged PR #144 adds device-local, profile-qualified App Drawer favorites with long-press **Pin in Apps / Unpin in Apps** actions, visible/accessibility pin state, a ★ pinned-only page filter, a deterministic **Pinned first** sort mode, and local persistence of the selected Drawer sort mode across restarts. This partially advances the broader user-controlled drawer organization obligation without claiming categories, tags, collections, or general custom ordering complete.
 
 Still open after runtime-gate integration: representative/default-HOME multi-page frame pacing, input latency, memory/power, drag/drop/widget and gesture acceptance; User/Work inventory churn acceptance; movable/fixed Search accessibility and large-text/form-factor acceptance; Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
@@ -20,7 +20,7 @@ Still open after runtime-gate integration: representative/default-HOME multi-pag
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `ecc839b06335fbc1068b3ec647339c9b36a5ef7b` after merged runtime-gate PR #127; Launcher remains Development. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `d78ef5625ad14ef62c2405fdb697fe37aba81bec` after merged App Drawer favorites PR #144; Launcher remains Development. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

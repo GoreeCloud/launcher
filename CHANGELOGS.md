@@ -1,14 +1,26 @@
 # GoreeCloud Launcher — Changelogs
 
-## October 1, 2026 — add local App Drawer favorites candidate
+## October 1, 2026 — stabilize Drawer runtime setup authority
 
-A Development feature candidate on the accepted runtime-gate main adds profile-qualified App Drawer favorites without introducing new permissions, network access, or another workspace authority. Long-pressing an application in Apps can now **Pin in Apps** or **Unpin in Apps**. Pins use the existing profile-qualified Launcher workspace key, so a Work-profile package and a same-package User app remain independent.
+A later exact-head feature validation reproduced a lifecycle-suite setup race that can occur before any Drawer gesture assertion: the Drawer runtime test observed terminal ROOM authority, then used the compatibility repository snapshot to decide whether its candidate app needed Home placement. The launched Home could still be finishing startup-owned reconciliation at that point, so the guarded test-owned Room write could legitimately return a non-Written result and contaminate subsequent lifecycle cases.
+
+The test now waits for the actual rendered Drawer gesture surface, Compose idle, a ready paged-Home projection, and a ready authoritative placement snapshot before deciding whether it must add the candidate. If a setup write is required, the test verifies the exact write result and then observes authoritative placement until the candidate is present before continuing.
+
+Exact head `3dac0fa9c39b6cd29172a7bd9eea46667beb7000` cleared build/JVM/lint/schema, Android Development Foundation, provenance, and transition-performance, but the complete API 36 run exposed a second teardown-only race in `secondaryHomeRendersMovedBuiltInWidget`. The widget render/move assertions completed; teardown then sent HOME and waited for page-indicator semantics from the scenario-owned Compose hierarchy. HOME can validly replace that LAUNCHER Activity with a fresh HOME Activity, so the old test hierarchy may disappear even though the reset succeeded. Runtime artifact `11157485154` preserves the failed evidence. The repaired test still sends the real HOME reset before deleting its temporary page, but no longer requires post-HOME page-indicator semantics from an ActivityScenario instance that Android may legitimately replace.
+
+No Launcher production Kotlin behavior, permissions, workspace authority, persistence schema, or user-facing interaction is changed.
+
+**Acceptance boundary:** Development test/runtime-stabilization candidate restacked on accepted main `d78ef5625ad14ef62c2405fdb697fe37aba81bec`. Fresh exact-head build and complete API 36 runtime/promotion evidence are required before integration.
+
+## October 1, 2026 — add local App Drawer favorites
+
+Merged PR #144 adds profile-qualified App Drawer favorites without introducing new permissions, network access, or another workspace authority. Long-pressing an application in Apps can now **Pin in Apps** or **Unpin in Apps**. Pins use the existing profile-qualified Launcher workspace key, so a Work-profile package and a same-package User app remain independent.
 
 The App Drawer sort menu gains **Pinned first**. In that mode, pinned applications sort ahead of unpinned applications and folders, while each group retains deterministic normalized-label and stable-key ordering. The selected sort mode is now persisted as device-local Drawer presentation state, so A–Z / Z–A / Most recent / Most frequent / Pinned first survives Drawer re-entry and process restart. Pinned applications also receive a compact visual/accessibility marker, and a ★ header control can temporarily filter the current User/Work page to pinned applications only while still combining with local search. Folder membership, Home placement, Dock placement, and launch history are unchanged.
 
 Pinned state is device-local Launcher presentation metadata stored in DataStore and intentionally remains outside the strict portable-preference v1 contract. Focused JVM coverage verifies profile-qualified persistence and pinned-first ordering.
 
-**Acceptance boundary:** Development candidate restacked directly on accepted main `ecc839b06335fbc1068b3ec647339c9b36a5ef7b`. Fresh exact-head Launcher build/JVM/lint/schema, complete API 36 runtime, transition-performance, required-gate, and protected-promotion evidence are required before integration. Broader categories, tags, collections, custom ordering, portability policy, accessibility, and representative-device acceptance remain open.
+**Acceptance boundary:** merged to authoritative `main` as `d78ef5625ad14ef62c2405fdb697fe37aba81bec` from exact head `f98fd45d7c7dae86790f24ab4c05c13e4f66eb37` after Mandatory app migration provenance #360, Android Development Foundation #820, Migrated Android apps CI #373 including complete API 36 runtime and transition-performance, and Protected promotion gate #327 all succeeded. Broader categories, tags, collections, custom ordering, portability policy, accessibility, and representative-device acceptance remain open; Launcher remains Development.
 
 
 ## October 1, 2026 — restore monorepo Android 16 Launcher runtime gates
