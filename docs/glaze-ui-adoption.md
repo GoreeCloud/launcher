@@ -11,6 +11,18 @@ Automated contract: `scripts/check_glaze_ui.py`
 
 ## Authority boundary
 
+## Current Launcher mockup authority
+
+The owner-supplied Launcher references stored in `GoreeCloud/Mockups/GoreeCloud Launcher/` are the current product-specific visual authority for this Development pass:
+
+- `Launcher Home — Current Mockup.png`
+- `Universal Search — Current Mockup.png`
+
+Those references control composition, hierarchy, translucency, spacing, density, and visual emphasis for Home and Universal Search. They do **not** authorize fabricated calendar events, contacts, files, cloud state, privacy metrics, or other sample data shown only to communicate the intended composition. Runtime surfaces must continue to present authoritative device/local/provider state and fail closed when data or permission is unavailable.
+
+The mockup-alignment candidate therefore keeps Launcher search/provider authority, explicit connected-source handoff rules, workspace persistence, Android permissions, and Glaze V1.6 source authority unchanged while replacing the prior dark/opaque Home and Search presentation with wallpaper-first light glass.
+
+
 The exact V1.6 Stable release is consumer-eligible, but downstream application acceptance is explicitly non-transferable. The integrated Launcher source therefore separates **source mapping** from **consumer acceptance**:
 
 - `GlazeMetrics` and `GlazeV16PresentationPolicy` pin exact V1.6 source provenance.

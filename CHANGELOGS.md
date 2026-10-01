@@ -1,5 +1,18 @@
 # GoreeCloud Launcher — Changelogs
 
+
+## October 1, 2026 — realign Home and Universal Search to the owner mockups
+
+This Development candidate treats the two owner-supplied references in `GoreeCloud/Mockups/GoreeCloud Launcher/` — **Launcher Home — Current Mockup** and **Universal Search — Current Mockup** — as the product-specific visual source of truth for the current Launcher redesign.
+
+Home moves away from the oversized dark Glance card toward the mockup's wallpaper-first composition: time/date/weather are presented as open foreground content, the product line becomes **A calmer, more private you**, fixed Search and Dock use light translucent Glaze materials, and fresh/untouched v1 starter layouts replace the reserved starter Glance card with the fixed glance plus real Calendar and Quick actions widgets when grid space permits. Existing user-created layouts are not identified by that reserved starter id and are not rewritten by this migration.
+
+Universal Search keeps the existing local-first provider and permission boundaries but adopts the mockup's lighter hierarchy: a larger product heading, descriptive scope copy, a subtle **A more private you** source-management action, **Search with GoreeCloud…** input copy, a transparent wallpaper-preserving results host, lighter independent result cards, and a three-column app presentation instead of the prior dense four-column grid plus duplicate list tail. Installed-app search also rejects resource-reference strings such as `res/mipmap-...xml` as visible labels and falls back to a human-readable package-derived label rather than leaking diagnostic resource text.
+
+The mockups are presentation authority only. The implementation does not fabricate the sample contact, file, calendar-event, privacy-status, cloud-sync, or other demo content shown in the references; live Launcher data and explicit permission/provider state remain authoritative.
+
+**Acceptance boundary:** source implementation is under exact-head CI/runtime validation. Representative physical-device visual comparison against the canonical mockups, accessibility/large-text/form-factor review, protected distribution, and Stable qualification remain open until their evidence exists. Launcher remains Development.
+
 ## October 1, 2026 — add local arithmetic and unit-conversion Quick answers
 
 Universal Search now includes a Launcher-owned **Quick answers** source. Arithmetic uses a deliberately bounded parser with precedence, parentheses, unary signs, and the four basic operators rather than arbitrary expression/code evaluation. Unit conversion uses an explicit local allowlist for common length, mass, time, and temperature units.

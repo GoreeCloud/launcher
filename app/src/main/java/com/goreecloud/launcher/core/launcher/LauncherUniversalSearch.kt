@@ -275,6 +275,35 @@ data class LauncherNavigateSearchAction(
  * Results expose a small profile label so same-name personal/work applications are distinguishable
  * without merging or reclassifying Android's authoritative per-user inventory.
  */
+internal fun launcherVisibleAppLabel(app: LauncherActivityInfo): String {
+    val raw = app.label.toString().trim()
+    val looksLikeResourceReference =
+        raw.startsWith("res/", ignoreCase = true) ||
+            raw.endsWith(".xml", ignoreCase = true) ||
+            raw.contains("/mipmap", ignoreCase = true) ||
+            raw.contains("/drawable", ignoreCase = true)
+
+    if (raw.isNotBlank() && !looksLikeResourceReference) return raw
+
+    return app.componentName.packageName
+        .substringAfterLast('.')
+        .replace('_', ' ')
+        .replace('-', ' ')
+        .trim()
+        .split(Regex("\\s+"))
+        .filter(String::isNotBlank)
+        .joinToString(" ") { token ->
+            token.replaceFirstChar { character ->
+                if (character.isLowerCase()) {
+                    character.titlecase(Locale.getDefault())
+                } else {
+                    character.toString()
+                }
+            }
+        }
+        .ifBlank { "App" }
+}
+
 class LauncherInstalledAppsSearchProvider(
     private val apps: List<LauncherActivityInfo>,
     private val primaryUser: UserHandle = Process.myUserHandle(),
@@ -283,7 +312,7 @@ class LauncherInstalledAppsSearchProvider(
 
     override fun search(rawQuery: String): List<LauncherSearchResult> =
         apps.mapNotNull { app ->
-            val label = app.label.toString()
+            val label = launcherVisibleAppLabel(app)
             val packageName = app.componentName.packageName
             val profileLabel = if (app.user == primaryUser) "User" else "Work"
             val subtitle = "$profileLabel · $packageName"

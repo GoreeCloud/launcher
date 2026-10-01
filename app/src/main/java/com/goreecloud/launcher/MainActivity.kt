@@ -639,19 +639,73 @@ class MainActivity : ComponentActivity() {
 
                 workspaceRuntimeCoordinator.reconcileAndActivate()
 
-                val starterGlance = workspaceRuntimeCoordinator.addBuiltInWidget(
-                    itemId = STARTER_GLANCE_WIDGET_ID,
-                    typeId = WorkspaceWidgetCatalog.GLANCE,
+                launcherPreferencesRepository.setHomeCardStyle(
+                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
+                )
+                workspaceRuntimeCoordinator.addBuiltInWidget(
+                    itemId = STARTER_CALENDAR_WIDGET_ID,
+                    typeId = WorkspaceWidgetCatalog.CALENDAR,
                     columns = launcherPreferences.homeColumns,
                     rows = launcherPreferences.homeRows,
                 )
-                if (starterGlance is WorkspaceWidgetMutationResult.Added) {
-                    launcherPreferencesRepository.setHomeCardStyle(
-                        com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.OFF,
-                    )
-                }
+                workspaceRuntimeCoordinator.addBuiltInWidget(
+                    itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
+                    typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
+                    columns = launcherPreferences.homeColumns,
+                    rows = launcherPreferences.homeRows,
+                )
 
                 launcherPreferencesRepository.markStarterLayoutApplied()
+            }
+
+            // Migrate only the untouched v1 Development starter signature. A user-created
+            // layout does not contain the reserved starter Glance id and is left alone.
+            LaunchedEffect(
+                apps,
+                renderedPages,
+                workspace.authority,
+                workspace.favoriteKeys,
+                workspace.dockKeys,
+                experiencePreferences.starterLayoutApplied,
+                experiencePreferences.startupWizardCompleted,
+                launcherPreferences.homeColumns,
+                launcherPreferences.homeRows,
+            ) {
+                val primaryPage = renderedPages.firstOrNull {
+                    it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                }
+                val hasLegacyStarterGlance = primaryPage?.widgetPlacements?.any { placement ->
+                    placement.itemId == STARTER_GLANCE_WIDGET_ID &&
+                        (placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn)?.typeId ==
+                            WorkspaceWidgetCatalog.GLANCE
+                } == true
+                if (
+                    apps.isEmpty() ||
+                    workspace.authority != WorkspaceAuthority.ROOM ||
+                    !experiencePreferences.starterLayoutApplied ||
+                    !experiencePreferences.startupWizardCompleted ||
+                    workspace.favoriteKeys.isNotEmpty() ||
+                    !hasLegacyStarterGlance
+                ) {
+                    return@LaunchedEffect
+                }
+
+                workspaceRuntimeCoordinator.removeWidget(STARTER_GLANCE_WIDGET_ID)
+                launcherPreferencesRepository.setHomeCardStyle(
+                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
+                )
+                workspaceRuntimeCoordinator.addBuiltInWidget(
+                    itemId = STARTER_CALENDAR_WIDGET_ID,
+                    typeId = WorkspaceWidgetCatalog.CALENDAR,
+                    columns = launcherPreferences.homeColumns,
+                    rows = launcherPreferences.homeRows,
+                )
+                workspaceRuntimeCoordinator.addBuiltInWidget(
+                    itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
+                    typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
+                    columns = launcherPreferences.homeColumns,
+                    rows = launcherPreferences.homeRows,
+                )
             }
 
             LaunchedEffect(
@@ -2688,6 +2742,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val STARTER_GLANCE_WIDGET_ID = "widget:builtin:starter-glance-v1"
+        const val STARTER_CALENDAR_WIDGET_ID = "widget:builtin:starter-calendar-v2"
+        const val STARTER_QUICK_ACTIONS_WIDGET_ID = "widget:builtin:starter-quick-actions-v2"
         const val MANAGED_HOME_SEARCH_WIDGET_ID = "widget:builtin:managed-home-search-v1"
         const val GOOGLE_DRIVE_METADATA_READONLY_SCOPE =
             "https://www.googleapis.com/auth/drive.metadata.readonly"

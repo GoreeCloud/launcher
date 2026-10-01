@@ -1077,7 +1077,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 composeRule
                     .onNodeWithText(
-                        "Search this device",
+                        "Search with GoreeCloud…",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
@@ -1131,7 +1131,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 composeRule
                     .onNodeWithText(
-                        "Local first · connected sources are opt-in",
+                        "Search apps, files, contacts, settings, and the web",
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()

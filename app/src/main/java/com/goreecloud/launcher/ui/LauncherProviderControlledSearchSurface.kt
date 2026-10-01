@@ -108,6 +108,7 @@ import com.goreecloud.launcher.core.launcher.LauncherSearchSuggestionPresentatio
 import com.goreecloud.launcher.core.launcher.LauncherSearchProviderUserControlPolicy
 import com.goreecloud.launcher.core.launcher.LauncherSearchResult
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearch
+import com.goreecloud.launcher.core.launcher.launcherVisibleAppLabel
 import com.goreecloud.launcher.core.workspace.workspaceKey
 import com.goreecloud.launcher.ui.theme.GlazeMetrics
 import com.goreecloud.launcher.ui.theme.GlazeV16MaterialRole
@@ -154,10 +155,10 @@ internal fun LauncherProviderControlledSearchSurface(
     val searchSurfaceAlpha = when (searchPresentation.materialRole) {
         GlazeV16MaterialRole.SOLID -> 1.00f
         GlazeV16MaterialRole.RAISED -> 0.97f
-        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> 0.90f
-        GlazeV16MaterialRole.CLEAR_GLASS -> 0.82f
+        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> 0.70f
+        GlazeV16MaterialRole.CLEAR_GLASS -> 0.58f
         GlazeV16MaterialRole.CANVAS,
-        GlazeV16MaterialRole.OVERLAY -> 0.94f
+        GlazeV16MaterialRole.OVERLAY -> 0.72f
     }
     val searchSurfaceColor = MaterialTheme.colorScheme.surface.copy(alpha = searchSurfaceAlpha)
     val searchSurfaceOutline = MaterialTheme.colorScheme.onSurface.copy(
@@ -368,12 +369,12 @@ internal fun LauncherProviderControlledSearchSurface(
                     Text(
                         "Universal Search",
                         modifier = Modifier.semantics { heading() },
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        "Local first · connected sources are opt-in",
+                        "Search apps, files, contacts, settings, and the web",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -382,27 +383,36 @@ internal fun LauncherProviderControlledSearchSurface(
             val searchSourcesAction: @Composable () -> Unit = {
                 Surface(
                     modifier = Modifier
-                        .heightIn(min = searchPresentation.minimumInteractionTarget),
+                        .heightIn(min = searchPresentation.minimumInteractionTarget)
+                        .semantics {
+                            contentDescription = "A more private you. Manage Universal Search sources."
+                        },
                     onClick = { showSources = true },
                     shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.34f),
                     border = BorderStroke(
                         1.dp,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f),
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
                     ),
                 ) {
-                    Box(
+                    Row(
                         modifier = Modifier.padding(
-                            horizontal = GlazeMetrics.space3,
+                            horizontal = GlazeMetrics.space2,
                             vertical = GlazeMetrics.space1,
                         ),
-                        contentAlignment = Alignment.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            "Sources",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
+                            "◆",
+                            style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
+                        )
+                        Text(
+                            "A more private you",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -499,7 +509,7 @@ internal fun LauncherProviderControlledSearchSurface(
                         onValueChange = { query = it },
                         modifier = Modifier.fillMaxWidth(),
                         requestFocus = true,
-                        placeholder = "Search this device",
+                        placeholder = "Search with GoreeCloud…",
                         inputTestTag = "launcher-universal-search-field",
                         trailingContent = {
                             LauncherUniversalSearchSettingsAction(
@@ -535,12 +545,12 @@ internal fun LauncherProviderControlledSearchSurface(
                 modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                     .testTag("launcher-glaze-search-panel"),
                 shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
-                color = searchSurfaceColor,
-                border = BorderStroke(1.dp, searchSurfaceOutline),
-                shadowElevation = searchSurfaceElevation,
+                color = Color.Transparent,
+                border = null,
+                shadowElevation = 0.dp,
             ) {
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space2),
+                    modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
                     val providerIssues by LauncherLocalSearchDiagnostics.issues.collectAsState()
@@ -667,8 +677,8 @@ internal fun LauncherProviderControlledSearchSurface(
                                     )
                                 }
                                 if (section.category == LauncherSearchCategory.APPLICATION) {
-                                    val topApps = section.items.take(8)
-                                    topApps.chunked(4).forEachIndexed { index, chunk ->
+                                    val topApps = section.items
+                                    topApps.chunked(3).forEachIndexed { index, chunk ->
                                         item(key = "app-grid:" + index) {
                                             Row(
                                                 modifier = Modifier.fillMaxWidth(),
@@ -685,17 +695,8 @@ internal fun LauncherProviderControlledSearchSurface(
                                                         )
                                                     }
                                                 }
-                                                repeat(4 - chunk.size) { Spacer(Modifier.weight(1f)) }
+                                                repeat(3 - chunk.size) { Spacer(Modifier.weight(1f)) }
                                             }
-                                        }
-                                    }
-                                    items(
-                                        section.items.drop(8),
-                                        key = { "app:" + it.providerId + ":" + it.resultId },
-                                    ) { result ->
-                                        LauncherProviderSearchRow(result) {
-                                            (result.action as? LaunchApplicationSearchAction)
-                                                ?.let { onLaunchApp(it.app) }
                                         }
                                     }
                                 } else if (section.category == LauncherSearchCategory.SHORTCUT) {
@@ -1424,8 +1425,12 @@ private fun LauncherGlazeSearchAppTile(
     Surface(
         modifier = modifier.heightIn(min = 96.dp),
         onClick = onLaunch,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
-        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        ),
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 3.dp, vertical = GlazeMetrics.space2),
@@ -1480,7 +1485,11 @@ private fun LauncherGlazeShortcutPanel(
     Surface(
         modifier = Modifier.fillMaxWidth().testTag("launcher-glaze-shortcut-panel"),
         shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.62f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        ),
     ) {
         Column(
             modifier = Modifier.padding(GlazeMetrics.space2),
@@ -1500,7 +1509,7 @@ private fun LauncherGlazeShortcutPanel(
                     )
                 }
                 Text(
-                    app?.label?.toString() ?: packageName.substringAfterLast('.'),
+                    app?.let(::launcherVisibleAppLabel) ?: packageName.substringAfterLast('.'),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
@@ -1562,7 +1571,11 @@ private fun LauncherGlazeSearchResult(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.36f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        ),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(
@@ -2427,9 +2440,10 @@ private fun LauncherProviderSearchRow(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
         ),
     ) {
         Row(

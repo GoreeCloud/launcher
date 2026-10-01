@@ -3422,10 +3422,10 @@ private fun LauncherWeatherStatusChip(
         )
     } ?: LauncherWeatherVisualKind.UNKNOWN
 
-    Surface(
+    Row(
         modifier = Modifier
-            .widthIn(min = if (compact) 104.dp else 188.dp)
-            .heightIn(min = if (compact) 64.dp else 76.dp)
+            .widthIn(min = if (compact) 112.dp else 154.dp)
+            .heightIn(min = if (compact) 56.dp else 68.dp)
             .semantics {
                 contentDescription = when {
                     !hasLocationPermission ->
@@ -3447,76 +3447,51 @@ private fun LauncherWeatherStatusChip(
                 } else {
                     permissionRevision += 1
                 }
-            },
-        shape = RoundedCornerShape(if (compact) 18.dp else 22.dp),
-        color = foreground.copy(alpha = if (compact) 0.10f else 0.12f),
-        border = BorderStroke(1.dp, foreground.copy(alpha = 0.11f)),
+            }
+            .padding(horizontal = 4.dp, vertical = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) 8.dp else 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            foreground.copy(alpha = 0.055f),
-                            Color.Transparent,
-                        ),
-                    ),
-                ),
+        LauncherWeatherIcon(
+            kind = visualKind,
+            isDay = snapshot?.isDay ?: true,
+            color = MaterialTheme.colorScheme.primary,
+            size = if (compact) 36.dp else 44.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = if (compact) 12.dp else 14.dp,
-                        vertical = if (compact) 9.dp else 11.dp,
-                    ),
-                horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                LauncherWeatherIcon(
-                    kind = visualKind,
-                    isDay = snapshot?.isDay ?: true,
-                    color = foreground.copy(alpha = 0.98f),
-                    size = if (compact) 42.dp else 52.dp,
+            Text(
+                primaryLabel,
+                style = if (compact) {
+                    MaterialTheme.typography.titleMedium
+                } else {
+                    MaterialTheme.typography.headlineSmall
+                },
+                fontWeight = FontWeight.Medium,
+                color = foreground,
+                maxLines = 1,
+            )
+            Text(
+                secondaryLabel,
+                style = if (compact) {
+                    MaterialTheme.typography.labelSmall
+                } else {
+                    MaterialTheme.typography.bodySmall
+                },
+                color = foreground.copy(alpha = 0.76f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (detailLabel != null) {
+                Text(
+                    detailLabel,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = foreground.copy(alpha = 0.60f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(1.dp),
-                ) {
-                    Text(
-                        primaryLabel,
-                        style = if (compact) {
-                            MaterialTheme.typography.titleMedium
-                        } else {
-                            MaterialTheme.typography.headlineSmall
-                        },
-                        fontWeight = FontWeight.SemiBold,
-                        color = foreground,
-                        maxLines = 1,
-                    )
-                    Text(
-                        secondaryLabel,
-                        style = if (compact) {
-                            MaterialTheme.typography.labelMedium
-                        } else {
-                            MaterialTheme.typography.bodySmall
-                        },
-                        fontWeight = FontWeight.Medium,
-                        color = foreground.copy(alpha = 0.82f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (detailLabel != null) {
-                        Text(
-                            detailLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = foreground.copy(alpha = 0.66f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
             }
         }
     }
@@ -3537,6 +3512,7 @@ private fun HomeAtAGlance(
     val date = remember(now.dayOfYear, locale) {
         now.format(DateTimeFormatter.ofPattern("EEE, MMM d", locale))
     }
+    val foreground = MaterialTheme.colorScheme.onSurface
     val horizontalAlignment = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
         Alignment.CenterHorizontally
     } else {
@@ -3547,32 +3523,8 @@ private fun HomeAtAGlance(
     } else {
         TextAlign.Start
     }
-    val presentationContext = LocalGlazeV16PresentationContext.current
-    val resolvedPresentation = remember(presentationContext) {
-        GlazeV16PresentationPolicy.resolve(
-            requestedMaterial = GlazeV16MaterialRole.FUNCTIONAL_GLASS,
-            context = presentationContext,
-        )
-    }
-    val usesWallpaperGlass = launcherUsesWallpaperGlass(
-        resolvedPresentation.materialRole,
-    )
-    val foreground = if (usesWallpaperGlass) {
-        Color.White
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    val background = when (resolvedPresentation.materialRole) {
-        GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
-        GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-        else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.26f)
-    }
-    val outline = if (usesWallpaperGlass) {
-        Color.White.copy(alpha = 0.14f)
-    } else {
-        MaterialTheme.colorScheme.outlineVariant
-    }
-    Surface(
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("launcher-home-at-a-glance")
@@ -3587,21 +3539,15 @@ private fun HomeAtAGlance(
                 } else {
                     "Time, date and weather. Unlock Home layout to make this movable."
                 }
-            },
-        shape = RoundedCornerShape(GlazeMetrics.opticalHero),
-        color = background,
-        border = BorderStroke(1.dp, outline),
-        shadowElevation = if (usesWallpaperGlass) 2.dp else 1.dp,
+            }
+            .padding(horizontal = 4.dp, vertical = if (compact) 2.dp else 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        verticalAlignment = Alignment.Top,
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = if (compact) GlazeMetrics.space3 else GlazeMetrics.space4,
-                    vertical = if (compact) GlazeMetrics.space2 else GlazeMetrics.space3,
-                ),
+            modifier = Modifier.weight(1f),
             horizontalAlignment = horizontalAlignment,
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             Text(
                 time,
@@ -3611,47 +3557,61 @@ private fun HomeAtAGlance(
                     Modifier
                 },
                 style = if (compact) {
-                    MaterialTheme.typography.headlineMedium
+                    MaterialTheme.typography.displaySmall
                 } else {
-                    MaterialTheme.typography.displayMedium
+                    MaterialTheme.typography.displayLarge
                 },
                 color = foreground,
                 fontWeight = FontWeight.Light,
                 textAlign = textAlign,
+                maxLines = 1,
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    date,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = foreground.copy(alpha = 0.86f),
-                    textAlign = textAlign,
-                    maxLines = 1,
-                )
-                LauncherWeatherStatusChip(
-                    foreground = foreground,
-                    compact = compact,
-                )
-            }
+            Text(
+                date,
+                modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
+                    Modifier.fillMaxWidth()
+                } else {
+                    Modifier
+                },
+                style = if (compact) {
+                    MaterialTheme.typography.bodyMedium
+                } else {
+                    MaterialTheme.typography.titleLarge
+                },
+                color = foreground.copy(alpha = 0.90f),
+                textAlign = textAlign,
+                maxLines = 1,
+            )
             if (!compact) {
+                Spacer(Modifier.height(5.dp))
                 Text(
-                    "A calmer Home. Your way.",
+                    "A calmer, more private you",
                     modifier = if (alignment == LauncherHomeGlanceAlignment.CENTER) {
                         Modifier.fillMaxWidth()
                     } else {
                         Modifier
                     },
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = foreground.copy(alpha = 0.72f),
                     textAlign = textAlign,
                     maxLines = 1,
                 )
+                Spacer(Modifier.height(5.dp))
+                Box(
+                    modifier = Modifier
+                        .width(28.dp)
+                        .height(2.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                            RoundedCornerShape(GlazeMetrics.radiusPill),
+                        ),
+                )
             }
         }
+        LauncherWeatherStatusChip(
+            foreground = foreground,
+            compact = compact,
+        )
     }
 }
 
@@ -4656,22 +4616,29 @@ private fun LauncherBuiltInWidget(
     val usesWallpaperGlass = launcherUsesWallpaperGlass(
         resolvedPresentation.materialRole,
     )
-    val foreground = if (usesWallpaperGlass) {
-        Color.White
+    val isOpenGlance = typeId == WorkspaceWidgetCatalog.GLANCE
+    val foreground = if (isOpenGlance) {
+        MaterialTheme.colorScheme.onSurface
+    } else if (usesWallpaperGlass) {
+        MaterialTheme.colorScheme.onSurface
     } else {
         MaterialTheme.colorScheme.onSurface
     }
-    val background = when (resolvedPresentation.materialRole) {
+    val background = if (isOpenGlance) {
+        Color.Transparent
+    } else when (resolvedPresentation.materialRole) {
         GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
         GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
         else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f)
     }
-    val outline = if (usesWallpaperGlass) {
-        Color.White.copy(alpha = 0.11f)
+    val outline = if (isOpenGlance) {
+        Color.Transparent
     } else {
-        MaterialTheme.colorScheme.outlineVariant
+        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
     }
-    val widgetGradientColors = if (usesWallpaperGlass) {
+    val widgetGradientColors = if (isOpenGlance) {
+        listOf(Color.Transparent, Color.Transparent)
+    } else if (usesWallpaperGlass) {
         listOf(
             GlazeAtmosphere.deepTeal.copy(alpha = 0.88f),
             GlazeAtmosphere.slateGraphite.copy(alpha = 0.90f),
@@ -4694,95 +4661,74 @@ private fun LauncherBuiltInWidget(
         modifier = modifier,
         shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
         color = background,
-        border = BorderStroke(1.dp, outline),
-        shadowElevation = when (resolvedPresentation.materialRole) {
-            GlazeV16MaterialRole.SOLID -> 1.dp
-            GlazeV16MaterialRole.RAISED -> 2.dp
-            else -> 3.dp
+        border = if (isOpenGlance) null else BorderStroke(1.dp, outline),
+        shadowElevation = if (isOpenGlance) {
+            0.dp
+        } else {
+            when (resolvedPresentation.materialRole) {
+                GlazeV16MaterialRole.SOLID -> 1.dp
+                GlazeV16MaterialRole.RAISED -> 2.dp
+                else -> 1.dp
+            }
         },
     ) {
         when (typeId) {
             WorkspaceWidgetCatalog.GLANCE -> {
-                Column(
+                Row(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(widgetGradientColors),
-                            RoundedCornerShape(GlazeMetrics.opticalHero),
-                        )
-                        .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
-                    verticalArrangement = Arrangement.SpaceBetween,
+                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                            color = insetFill,
-                            border = BorderStroke(1.dp, insetOutline),
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
-                                horizontalArrangement = Arrangement.spacedBy(7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    now.dayOfMonth.toString(),
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = foreground,
-                                    fontWeight = FontWeight.Light,
-                                )
-                                Column {
-                                    Text(
-                                        now.format(
-                                            DateTimeFormatter.ofPattern(
-                                                "MMM",
-                                                Locale.getDefault(),
-                                            ),
-                                        ).uppercase(),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = foreground.copy(alpha = 0.64f),
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Text(
-                                        now.format(
-                                            DateTimeFormatter.ofPattern(
-                                                "EEE",
-                                                Locale.getDefault(),
-                                            ),
-                                        ),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        color = foreground,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                }
-                            }
-                        }
-                        LauncherWeatherStatusChip(
-                            foreground = foreground,
-                            compact = true,
+                        Text(
+                            now.format(
+                                DateTimeFormatter.ofPattern(
+                                    "h:mm",
+                                    Locale.getDefault(),
+                                ),
+                            ),
+                            style = MaterialTheme.typography.displayLarge,
+                            color = foreground,
+                            fontWeight = FontWeight.Light,
+                            maxLines = 1,
+                        )
+                        Text(
+                            now.format(
+                                DateTimeFormatter.ofPattern(
+                                    "EEE, MMM d",
+                                    Locale.getDefault(),
+                                ),
+                            ),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = foreground.copy(alpha = 0.88f),
+                            maxLines = 1,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "A calmer, more private you",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = foreground.copy(alpha = 0.68f),
+                            maxLines = 1,
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(28.dp)
+                                .height(2.dp)
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.82f),
+                                    RoundedCornerShape(GlazeMetrics.radiusPill),
+                                ),
                         )
                     }
-                    Text(
-                        now.format(
-                            DateTimeFormatter.ofPattern(
-                                "h:mm",
-                                Locale.getDefault(),
-                            ),
-                        ),
-                        style = MaterialTheme.typography.displayLarge,
-                        color = foreground,
-                        fontWeight = FontWeight.Light,
-                        maxLines = 1,
-                    )
-                    Text(
-                        "Time and date stay local · weather is permission-gated",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = foreground.copy(alpha = 0.72f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                    LauncherWeatherStatusChip(
+                        foreground = foreground,
+                        compact = true,
                     )
                 }
             }
@@ -9314,36 +9260,18 @@ private fun GlazeSearchCapsule(
         GlazeV16MaterialRole.SOLID,
         GlazeV16MaterialRole.RAISED,
     )
-    val foreground = if (solidResolved) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        Color.White
-    }
+    val foreground = MaterialTheme.colorScheme.onSurface
     val background = when (resolvedPresentation.materialRole) {
         GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
-        GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-        GlazeV16MaterialRole.CLEAR_GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.12f)
-        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f)
-        else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+        GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+        GlazeV16MaterialRole.CLEAR_GLASS -> MaterialTheme.colorScheme.surface.copy(alpha = 0.56f)
+        GlazeV16MaterialRole.FUNCTIONAL_GLASS -> MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.70f)
     }
-    val outline = if (solidResolved) {
-        MaterialTheme.colorScheme.outlineVariant
-    } else {
-        when (style) {
-            LauncherHomeSearchStyle.GLASS -> Color.White.copy(alpha = 0.14f)
-            LauncherHomeSearchStyle.CLEAR -> Color.White.copy(alpha = 0.24f)
-            LauncherHomeSearchStyle.SOLID -> Color.White.copy(alpha = 0.10f)
-        }
-    }
-    val leadingFill = if (solidResolved) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
-    } else {
-        when (style) {
-            LauncherHomeSearchStyle.GLASS -> Color.White.copy(alpha = 0.13f)
-            LauncherHomeSearchStyle.CLEAR -> Color.White.copy(alpha = 0.06f)
-            LauncherHomeSearchStyle.SOLID -> Color.White.copy(alpha = 0.08f)
-        }
-    }
+    val outline = MaterialTheme.colorScheme.onSurface.copy(
+        alpha = if (style == LauncherHomeSearchStyle.CLEAR) 0.05f else 0.08f,
+    )
+    val leadingFill = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
     val height = launcherHomeSearchHeightDp(
         style = style,
         largeText = presentationContext.largeText,
@@ -9398,14 +9326,19 @@ private fun GlazeSearchCapsule(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (style != LauncherHomeSearchStyle.CLEAR) {
-                Text(
-                    "›",
-                    modifier = Modifier.padding(end = 10.dp),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = foreground.copy(alpha = 0.72f),
-                    maxLines = 1,
-                )
+            Surface(
+                modifier = Modifier.size(34.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        "•••",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }
@@ -9554,18 +9487,14 @@ internal fun GlazeDock(
     val color = when (resolvedPresentation.materialRole) {
         GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
         GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-        GlazeV16MaterialRole.CLEAR_GLASS -> Color.Transparent
+        GlazeV16MaterialRole.CLEAR_GLASS -> MaterialTheme.colorScheme.surface.copy(alpha = 0.44f)
         GlazeV16MaterialRole.FUNCTIONAL_GLASS -> when (style) {
-            LauncherDockStyle.EDGE -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f)
-            else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.26f)
+            LauncherDockStyle.EDGE -> MaterialTheme.colorScheme.surface.copy(alpha = 0.72f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.64f)
         }
-        else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.28f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.60f)
     }
-    val dockForeground = if (solidResolved) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        Color.White
-    }
+    val dockForeground = MaterialTheme.colorScheme.onSurface
     var measuredBounds by remember { mutableStateOf<Rect?>(null) }
     val dockHovered = activeDrag != null &&
         dragPoint?.let { point -> measuredBounds?.contains(point) } == true
@@ -9582,7 +9511,9 @@ internal fun GlazeDock(
         solidResolved -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         else -> BorderStroke(
             1.dp,
-            Color.White.copy(alpha = if (style == LauncherDockStyle.EDGE) 0.14f else 0.12f),
+            MaterialTheme.colorScheme.onSurface.copy(
+                alpha = if (style == LauncherDockStyle.EDGE) 0.10f else 0.07f,
+            ),
         )
     }
     val dockScrollState = rememberScrollState()
