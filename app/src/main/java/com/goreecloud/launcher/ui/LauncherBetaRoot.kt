@@ -357,6 +357,27 @@ private fun dockInsertionTarget(
         .firstOrNull { it.value.center.x > dropX }
         ?.key
 
+internal fun primaryHomeShouldRenderFixedSearch(
+    contentOnly: Boolean,
+    requested: Boolean,
+): Boolean = !contentOnly && requested
+
+internal fun primaryHomeShouldReservePageIndicator(
+    contentOnly: Boolean,
+    pageCount: Int,
+    requested: Boolean,
+): Boolean = !contentOnly && requested && pageCount > 1
+
+internal fun primaryHomeShouldRenderDock(
+    contentOnly: Boolean,
+    dockAppCount: Int,
+    activeDrag: Boolean,
+): Boolean = !contentOnly && (dockAppCount > 0 || activeDrag)
+
+internal fun primaryHomeShouldHandleHorizontalPaging(
+    contentOnly: Boolean,
+): Boolean = !contentOnly
+
 @Composable
 fun LauncherBetaRoot(
     apps: List<LauncherActivityInfo>,
@@ -480,6 +501,7 @@ fun LauncherBetaRoot(
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
     onHomeEditorVisibilityChanged: (Boolean) -> Unit = {},
     onPrimaryHomeGridBoundsChanged: (Rect?) -> Unit = {},
+    homeContentOnly: Boolean = false,
 ) {
     var surfaceModeName by rememberSaveable { mutableStateOf(requestedSurfaceMode.name) }
     val surfaceMode = runCatching { LauncherSurfaceMode.valueOf(surfaceModeName) }
@@ -857,6 +879,7 @@ fun LauncherBetaRoot(
                 onOpenWallpaperPicker = onOpenWallpaperPicker,
                 onSetHomeCardStyle = onSetHomeCardStyle,
                 onHomeEditorVisibilityChanged = onHomeEditorVisibilityChanged,
+                contentOnly = homeContentOnly,
             )
             LauncherSurfaceMode.SEARCH -> LauncherProviderControlledSearchSurface(
                 apps = apps,
@@ -1303,6 +1326,7 @@ private fun HomeSurface(
     onOpenWallpaperPicker: () -> Unit,
     onSetHomeCardStyle: (LauncherHomeCardStyle) -> Unit,
     onHomeEditorVisibilityChanged: (Boolean) -> Unit,
+    contentOnly: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val personalApps = remember(apps) {
@@ -1349,6 +1373,12 @@ private fun HomeSurface(
         dockItemBounds.keys
             .filterNot(visibleDockKeys::contains)
             .forEach(dockItemBounds::remove)
+    }
+    LaunchedEffect(contentOnly) {
+        if (contentOnly) {
+            dockItemBounds.clear()
+            onDockBoundsChanged(Rect.Zero)
+        }
     }
 
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
@@ -1525,48 +1555,54 @@ private fun HomeSurface(
                         },
                     )
                 }
-                .pointerInput(swipeThreshold) {
-                    var drag = 0f
-                    var triggered = false
-                    detectHorizontalDragGestures(
-                        onDragStart = {
-                            drag = 0f
-                            triggered = false
-                        },
-                        onDragCancel = {
-                            drag = 0f
-                            triggered = false
-                        },
-                        onDragEnd = {
-                            drag = 0f
-                            triggered = false
-                        },
-                        onHorizontalDrag = { change, amount ->
-                            change.consume()
-                            if (!triggered) {
-                                drag += amount
-                                when {
-                                    drag >= swipeThreshold -> {
-                                        triggered = true
-                                        if (!currentSwipeHomePageRight()) {
-                                            currentExecuteGestureAction(
-                                                currentGesturePreferences.swipeRightAction,
-                                            )
+                .then(
+                    if (primaryHomeShouldHandleHorizontalPaging(contentOnly)) {
+                        Modifier.pointerInput(swipeThreshold) {
+                            var drag = 0f
+                            var triggered = false
+                            detectHorizontalDragGestures(
+                                onDragStart = {
+                                    drag = 0f
+                                    triggered = false
+                                },
+                                onDragCancel = {
+                                    drag = 0f
+                                    triggered = false
+                                },
+                                onDragEnd = {
+                                    drag = 0f
+                                    triggered = false
+                                },
+                                onHorizontalDrag = { change, amount ->
+                                    change.consume()
+                                    if (!triggered) {
+                                        drag += amount
+                                        when {
+                                            drag >= swipeThreshold -> {
+                                                triggered = true
+                                                if (!currentSwipeHomePageRight()) {
+                                                    currentExecuteGestureAction(
+                                                        currentGesturePreferences.swipeRightAction,
+                                                    )
+                                                }
+                                            }
+                                            drag <= -swipeThreshold -> {
+                                                triggered = true
+                                                if (!currentSwipeHomePageLeft()) {
+                                                    currentExecuteGestureAction(
+                                                        currentGesturePreferences.swipeLeftAction,
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
-                                    drag <= -swipeThreshold -> {
-                                        triggered = true
-                                        if (!currentSwipeHomePageLeft()) {
-                                            currentExecuteGestureAction(
-                                                currentGesturePreferences.swipeLeftAction,
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                    )
-                },
+                                },
+                            )
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
         )
 
         if (wallpaperShadeAlpha > 0f) {
@@ -1595,7 +1631,7 @@ private fun HomeSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .navigationBarsPadding()
+                .then(if (contentOnly) Modifier else Modifier.navigationBarsPadding())
                 .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space2),
             verticalArrangement = Arrangement.spacedBy(homeVerticalSpacing),
         ) {
@@ -1647,7 +1683,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (showFixedSearchAtTop) {
+            if (primaryHomeShouldRenderFixedSearch(contentOnly, showFixedSearchAtTop)) {
                 GlazeSearchCapsule(
                     value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
@@ -1735,7 +1771,7 @@ private fun HomeSurface(
                 )
             }
 
-            if (showFixedSearchAtBottom) {
+            if (primaryHomeShouldRenderFixedSearch(contentOnly, showFixedSearchAtBottom)) {
                 GlazeSearchCapsule(
                     value = "Search GoreeCloud",
                     style = experiencePreferences.homeSearchStyle,
@@ -1745,8 +1781,11 @@ private fun HomeSurface(
             }
 
             if (
-                homePageCount > 1 &&
-                experiencePreferences.showHomePageIndicator
+                primaryHomeShouldReservePageIndicator(
+                    contentOnly = contentOnly,
+                    pageCount = homePageCount,
+                    requested = experiencePreferences.showHomePageIndicator,
+                )
             ) {
                 // MainActivity renders the page dots as an overlay so they stay clickable while
                 // Home content changes. Reserve a real strip in the Home layout so the final app
@@ -1758,7 +1797,13 @@ private fun HomeSurface(
                 )
             }
 
-            if (dockApps.isNotEmpty() || activeDrag != null) {
+            if (
+                primaryHomeShouldRenderDock(
+                    contentOnly = contentOnly,
+                    dockAppCount = dockApps.size,
+                    activeDrag = activeDrag != null,
+                )
+            ) {
                 GlazeDock(
                     apps = dockApps,
                     iconScale = preferences.iconScale,
@@ -1786,7 +1831,9 @@ private fun HomeSurface(
                 )
             }
 
-            Spacer(Modifier.height(2.dp))
+            if (!contentOnly) {
+                Spacer(Modifier.height(2.dp))
+            }
         }
 
         if (effectiveShowHomeEditor) {

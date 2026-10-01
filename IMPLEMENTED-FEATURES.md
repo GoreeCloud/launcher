@@ -9,9 +9,10 @@
 - Merged PR #106 adds **Movable** Universal Search beside **Swipe down**, fixed **Top**, and fixed **Bottom**. Movable Search reuses the existing 4 × 1 Room-backed Universal Search widget, supports ordinary Home widget movement and cross-page placement, keeps a fixed-bottom fallback when no 4 × 1 primary-Home area is free, and retries managed placement after primary-Home geometry changes.
 - Merged PR #107 removes the redundant 180–220 ms first-composition page-entry animation while preserving configured transitions for actual page-key changes.
 - Merged PR #108 adds a content-only mode for secondary Home surfaces so page content can be rendered independently from persistent page indicators and Dock chrome.
-- The current stacked Development branch uses that boundary to page between two or more secondary Home pages with Compose `HorizontalPager`. Secondary page content now follows the finger while the persistent Dock stays outside the pager. The Activity-level threshold recognizer is filtered so it continues to own only the Primary↔secondary boundary rather than racing secondary↔secondary paging.
+- Merged PR #109 pages between two or more secondary Home pages with Compose `HorizontalPager`. Secondary page content follows the finger while the persistent Dock stays outside the pager, and the Activity-level threshold recognizer owns only the Primary↔secondary boundary.
+- The current Development architecture branch adds a Primary Home content-only mode to `LauncherBetaRoot`/Home that suppresses fixed Search, indicator reserve, Dock, bottom system-bar ownership, and the Primary horizontal page recognizer while preserving the existing full surface by default. This is the matching Primary-side rendering boundary needed before a unified all-page pager can own page motion.
 
-**Acceptance boundary:** PRs #103–#107 are merged Development evidence. PR #108 is merged as `26d26ad03ea6d444d509ec705d9ce834db1b98ba`; this follow-finger candidate is reconciled onto that authoritative base and now requires fresh exact-head validation. Primary↔secondary follow-finger unification, representative-device multi-page frame pacing, Search placement, package/profile churn, accessibility, large-text/form-factor, visual quality, and power acceptance remain open.
+**Acceptance boundary:** PRs #103–#109 are merged Development evidence. The Primary content-layer split requires fresh exact-head CI before integration and does not itself change current paging behavior. Primary↔secondary follow-finger unification, representative-device multi-page frame pacing, Search placement, package/profile churn, accessibility, large-text/form-factor, visual quality, and power acceptance remain open.
 
 ## September 30, 2026 — polished Calendar and Weather widgets
 
@@ -43,7 +44,7 @@ Paged App Drawer layouts now keep the existing restrained **6/8 dp** visual dots
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. New Launcher source work belongs only under `apps/launcher/`; legacy standalone history below is retained as dated provenance.**  
-**Current authoritative main:** `26d26ad03ea6d444d509ec705d9ce834db1b98ba` after merged PR #108. Historical baseline sections below retain their dated provenance and are superseded for current-state interpretation by the September 30 checkpoint above.  
+**Current authoritative main:** `3bcb9922a3552fb67e35741f78d25d457ec54431` after merged PR #109. Historical baseline sections below retain their dated provenance and are superseded for current-state interpretation by the September 30 checkpoint above.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Interpretation

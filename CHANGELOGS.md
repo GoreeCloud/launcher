@@ -1,5 +1,16 @@
 # GoreeCloud Launcher — Changelogs
 
+## September 30, 2026 — separate Primary Home page content from persistent chrome
+
+`LauncherBetaRoot` now exposes a behavior-neutral Primary Home content-only mode. When that mode is used, the Primary page leaves fixed Top/Bottom Search, page-indicator reserve space, Dock rendering, bottom navigation-bar padding, and horizontal page-gesture ownership to an outer Home shell/pager; the existing full surface remains the default for current callers.
+
+The content-only path also clears stale in-root Dock geometry so future use inside a unified pager cannot accidentally retain an old Dock drop target. Focused JVM policy coverage locks both content-only suppression and the unchanged full-surface behavior.
+
+This creates the Primary-side counterpart to merged PR #108's secondary content boundary and merged PR #109's secondary follow-finger pager without changing Room authority, placement semantics, Search providers, permissions, networking, or telemetry.
+
+**Acceptance boundary:** Development architecture candidate; fresh exact-head CI is required before integration. A unified Primary↔secondary follow-finger pager and representative-device frame pacing remain open.
+
+
 ## September 30, 2026 — follow-finger paging between secondary Home pages
 
 Secondary Home pages now use a single Compose `HorizontalPager` when two or more secondary pages exist. The moving layer contains page content only; the persistent Dock is rendered once outside the pager so it does not slide away with page content.
@@ -8,7 +19,7 @@ The selected secondary page identity is synchronized from the pager's current pa
 
 The single-secondary-page path remains unchanged, and app/folder/widget placement, cross-page move authority, Search behavior, permissions, networking, and telemetry are unchanged.
 
-**Acceptance boundary:** Development candidate reconciled onto merged PR #108 / current main `26d26ad03ea6d444d509ec705d9ce834db1b98ba`; fresh exact-head validation is required before integration. Primary↔secondary follow-finger paging and representative-device frame pacing remain open.
+**Acceptance boundary:** PR #109 is merged after complete exact-head Development validation. Primary↔secondary follow-finger paging and representative-device frame pacing remain open.
 
 
 ## September 30, 2026 — separate secondary Home page content from persistent chrome
@@ -19,7 +30,7 @@ Focused policy coverage locks both modes: content-only suppresses Dock/page-indi
 
 This creates a clean rendering boundary for the next follow-finger paging tranche without adding another workspace authority, changing Room state, or modifying app/folder/widget placement behavior.
 
-**Acceptance boundary:** Development architecture candidate; fresh exact-head CI is required before integration. A real follow-finger pager and Primary↔secondary unification remain open.
+**Acceptance boundary:** PR #108 is merged after complete exact-head Development validation. PR #109 now provides secondary↔secondary follow-finger paging; Primary↔secondary unification remains open.
 
 
 ## September 30, 2026 — remove redundant first-composition Home page animation

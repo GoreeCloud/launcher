@@ -4,15 +4,17 @@
 
 Merged PRs #103–#107 now cover the current mainline drawer/Home/profile/Search/performance stabilization tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, bounded confirmation before publishing suspicious inventory loss from a still-active Android profile, genuine **Movable** Universal Search backed by the existing Room 4 × 1 Search widget, and removal of the redundant first-composition 180–220 ms page-entry animation.
 
-Merged PR #108 separates secondary Home page content from optional persistent Dock/page-indicator chrome through a content-only rendering mode. The stacked follow-finger candidate then uses `HorizontalPager` across secondary pages, keeps the Dock outside the moving page layer, synchronizes the selected Room-backed page identity as the pager current page changes, and limits the outer threshold recognizer to the Primary boundary. PR #108 is merged as `26d26ad03ea6d444d509ec705d9ce834db1b98ba`; the follow-finger candidate is reconciled onto current main and requires fresh exact-head validation.
+Merged PR #108 separates secondary Home page content from optional persistent Dock/page-indicator chrome. Merged PR #109 then uses `HorizontalPager` across secondary pages, keeps the Dock outside the moving page layer, synchronizes the selected Room-backed page identity as the pager current page changes, and limits the outer threshold recognizer to the Primary boundary.
 
-Still open after secondary follow-finger paging: unify the Primary↔secondary boundary without creating a second workspace authority; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
+The current Development architecture branch creates the matching Primary Home content-only path in `LauncherBetaRoot`: fixed Search, page-indicator reserve, Dock, bottom navigation-bar padding, and horizontal page-gesture ownership can be handed to a future outer Home shell/pager while current callers keep the full surface by default. Fresh exact-head validation is required before this foundation can integrate.
+
+Still open after the Primary content-layer split: place Primary plus secondary page content under one follow-finger pager while preserving one Room workspace authority and persistent Home chrome; verify multi-page Home frame pacing on representative hardware; verify User/Work inventories through package/profile churn; complete movable/fixed Search accessibility and large-text/form-factor acceptance; complete Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `26d26ad03ea6d444d509ec705d9ce834db1b98ba` after merged PR #108. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `3bcb9922a3552fb67e35741f78d25d457ec54431` after merged PR #109. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

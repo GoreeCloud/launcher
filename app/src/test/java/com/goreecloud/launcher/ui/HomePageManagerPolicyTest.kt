@@ -154,6 +154,61 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun primaryContentOnlyModeSuppressesPersistentChrome() {
+        assertFalse(primaryHomeShouldRenderFixedSearch(contentOnly = true, requested = true))
+        assertFalse(
+            primaryHomeShouldReservePageIndicator(
+                contentOnly = true,
+                pageCount = 3,
+                requested = true,
+            ),
+        )
+        assertFalse(
+            primaryHomeShouldRenderDock(
+                contentOnly = true,
+                dockAppCount = 5,
+                activeDrag = true,
+            ),
+        )
+        assertFalse(primaryHomeShouldHandleHorizontalPaging(contentOnly = true))
+    }
+
+    @Test
+    fun primaryFullSurfaceKeepsRequestedPersistentChrome() {
+        assertTrue(primaryHomeShouldRenderFixedSearch(contentOnly = false, requested = true))
+        assertFalse(primaryHomeShouldRenderFixedSearch(contentOnly = false, requested = false))
+        assertTrue(
+            primaryHomeShouldReservePageIndicator(
+                contentOnly = false,
+                pageCount = 3,
+                requested = true,
+            ),
+        )
+        assertFalse(
+            primaryHomeShouldReservePageIndicator(
+                contentOnly = false,
+                pageCount = 1,
+                requested = true,
+            ),
+        )
+        assertTrue(
+            primaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 0,
+                activeDrag = true,
+            ),
+        )
+        assertFalse(
+            primaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 0,
+                activeDrag = false,
+            ),
+        )
+        assertTrue(primaryHomeShouldHandleHorizontalPaging(contentOnly = false))
+    }
+
+    @Test
     fun secondaryContentOnlyModeSuppressesPersistentChrome() {
         assertFalse(
             secondaryHomeShouldRenderPageIndicator(
