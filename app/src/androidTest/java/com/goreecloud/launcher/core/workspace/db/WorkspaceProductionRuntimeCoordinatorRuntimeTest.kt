@@ -171,7 +171,16 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
                 primaryRows = 5,
             ),
         )
-        assertReady(runtime, listOf(INITIAL_FAVORITES[1]), INITIAL_DOCK)
+        // This test owns the guarded primary-boundary mutation contract, not Room Flow
+        // cancellation behavior. Read the authoritative Room snapshot directly between mutations
+        // so cancelling a one-shot observer cannot race the AndroidSQLiteDriver transaction lock.
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = listOf(INITIAL_FAVORITES[1]),
+                dockKeys = INITIAL_DOCK,
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
 
         assertEquals(
             WorkspacePagedRoomMutationResult.UpdatedItem(

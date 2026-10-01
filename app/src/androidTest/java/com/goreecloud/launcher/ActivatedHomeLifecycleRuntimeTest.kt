@@ -2,9 +2,11 @@ package com.goreecloud.launcher
 
 import android.app.role.RoleManager
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
@@ -38,6 +41,7 @@ import com.goreecloud.launcher.core.workspace.WorkspaceGridPlacement
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
 import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
 import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
+import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativePlacementState
 import com.goreecloud.launcher.core.workspace.db.WorkspaceAuthoritativeWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
@@ -253,6 +257,47 @@ class ActivatedHomeLifecycleRuntimeTest {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
+
+                // Let the launched Home root finish its own startup reconciliation before this
+                // test performs a direct Room page mutation. Racing startup-owned placement work can
+                // correctly produce a snapshot-conflict result even though page creation itself is
+                // healthy.
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule.waitForIdle()
+                withTimeout(10_000) {
+                    runtime!!.observeHomePages().first { state ->
+                        state is WorkspacePagedHomeState.Ready
+                    }
+                }
+
+                // ensureDefaults() only seeds an uninitialized workspace. This test may run after
+                // another lifecycle case has already initialized Room, so explicitly ensure the
+                // candidate exists in the authoritative Dock before asserting persistent-Dock
+                // geometry on the secondary page.
+                val placement = withTimeout(10_000) {
+                    runtime!!.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+                if (candidate.workspaceKey() !in placement.snapshot.dockKeys) {
+                    val dockWrite = runtime!!.toggleDock(candidate.workspaceKey())
+                    check(dockWrite is WorkspaceAuthoritativeWriteResult.Written) {
+                        "Expected authoritative Dock placement; result was $dockWrite."
+                    }
+                    withTimeout(10_000) {
+                        runtime!!.observePlacement().first { state ->
+                            state is WorkspaceAuthoritativePlacementState.Ready &&
+                                candidate.workspaceKey() in state.snapshot.dockKeys
+                        }
+                    }
+                }
+                waitForDisplayedTag("launcher-home-dock")
+
                 // Remove any residue from an interrupted prior emulator attempt, then create one
                 // empty secondary page so the test exercises the exact primary -> secondary path.
                 runtime?.deleteEmptyHomePage(secondaryPageId)
@@ -260,14 +305,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                 check(
                     created is WorkspacePagedRoomMutationResult.CreatedPage ||
                         created is WorkspacePagedRoomMutationResult.PageAlreadyExists
-                )
+                ) { "Expected a usable secondary Home page; create result was $created." }
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
+                val placementAfterPageCreate = withTimeout(10_000) {
+                    runtime!!.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+                check(candidate.workspaceKey() in placementAfterPageCreate.snapshot.dockKeys) {
+                    "Creating a secondary Home page must not remove the authoritative Dock item; " +
+                        "dockKeys=${placementAfterPageCreate.snapshot.dockKeys}"
                 }
+                waitForDisplayedTag("launcher-home-dock")
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
@@ -335,6 +384,27 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .onNodeWithTag("launcher-home-page-indicator", useUnmergedTree = true)
                     .fetchSemanticsNode()
                     .boundsInRoot
+                val placementOnSecondary = withTimeout(10_000) {
+                    runtime!!.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+                check(candidate.workspaceKey() in placementOnSecondary.snapshot.dockKeys) {
+                    "Secondary Home selection must not remove authoritative Dock placement; " +
+                        "dockKeys=${placementOnSecondary.snapshot.dockKeys}"
+                }
+                withTimeout(10_000) {
+                    LauncherAppsRepository(context).apps.first { inventory ->
+                        inventory.any { it.workspaceKey() == candidate.workspaceKey() }
+                    }
+                }
+                val secondaryDockNodes = composeRule
+                    .onAllNodesWithTag("launcher-home-dock", useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                check(secondaryDockNodes.isNotEmpty()) {
+                    "Persistent Dock semantics disappeared on secondary Home while placement and " +
+                        "LauncherApps inventory still contain ${candidate.workspaceKey()}."
+                }
                 waitForDisplayedTag("launcher-home-dock")
                 val secondaryDockBounds = composeRule
                     .onNodeWithTag("launcher-home-dock", useUnmergedTree = true)
@@ -373,7 +443,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
 
                 composeRule
-                    .onNodeWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
+                    .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
                     .performTouchInput {
                         swipeRight(
                             startX = left + 24f,
@@ -382,15 +452,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                         )
                     }
 
-                composeRule.waitUntil(timeoutMillis = 10_000) {
-                    composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-page-" + secondaryPageId,
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isEmpty()
-                }
+                waitForSelectedHomePage(pageNumber = 1)
                 waitForDisplayedLabel(candidate.label.toString())
                 waitForDisplayedTag("launcher-home-page-indicator")
 
@@ -431,8 +493,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
 
                 runShellCommand("input keyevent KEYCODE_HOME")
+                waitForSelectedHomePage(pageNumber = 1)
                 waitForDisplayedLabel(candidate.label.toString())
                 waitForDisplayedTag("launcher-home-page-indicator")
+                waitForDisplayedTag("launcher-home-empty-space-actions")
+                composeRule.waitForIdle()
 
                 composeRule
                     .onNodeWithTag(
@@ -440,7 +505,14 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .performTouchInput {
-                        down(center)
+                        // The primary page intentionally contains an app. Long-press a lower-right
+                        // empty grid region rather than the node center so child app content cannot
+                        // consume the gesture that opens Edit Home.
+                        val emptyPoint = center.copy(
+                            x = right - 32f,
+                            y = bottom - 32f,
+                        )
+                        down(emptyPoint)
                         advanceEventTime(700)
                         up()
                     }
@@ -532,20 +604,30 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .first { it.pageId !in pageIdsBeforeDirectAdd }
                     .pageId
 
-                composeRule.waitUntil(timeoutMillis = 10_000) {
+                // Adding a page changes the pager's page count, which intentionally returns the
+                // editor carousel to its selected initial page. Navigate to the appended page
+                // before asserting its preview instead of assuming an offscreen HorizontalPager
+                // page remains composed.
+                repeat((readyAfterDirectAdd.pages.size - 1).coerceAtLeast(0)) {
                     composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-editor-page-" + directlyAddedPageId,
+                        .onNodeWithTag(
+                            "launcher-home-editor-page-carousel",
                             useUnmergedTree = true,
                         )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
+                        .performTouchInput {
+                            swipeLeft(
+                                startX = right - 24f,
+                                endX = left + 24f,
+                                durationMillis = 420,
+                            )
+                        }
                 }
                 waitForDisplayedTag("launcher-home-editor-page-" + directlyAddedPageId)
                 waitForDisplayedTag("launcher-home-editor-fullscreen")
                 waitForDisplayedTag("launcher-home-editor-actions")
                 Unit
             } finally {
+                resetHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -611,13 +693,30 @@ class ActivatedHomeLifecycleRuntimeTest {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
+
+                // Keep direct Room test mutations behind the same settled startup boundary used by
+                // the paging acceptance test. Activity launch can still be finishing authoritative
+                // reconciliation after WorkspaceRepository has reported ROOM authority.
+                composeRule.waitUntil(timeoutMillis = 15_000) {
+                    composeRule
+                        .onAllNodesWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                composeRule.waitForIdle()
+                withTimeout(10_000) {
+                    runtime!!.observeHomePages().first { state ->
+                        state is WorkspacePagedHomeState.Ready
+                    }
+                }
+
                 runtime?.removeWidget(widgetItemId)
                 runtime?.deleteEmptyHomePage(secondaryPageId)
                 val created = runtime?.createHomePage(secondaryPageId)
                 check(
                     created is WorkspacePagedRoomMutationResult.CreatedPage ||
                         created is WorkspacePagedRoomMutationResult.PageAlreadyExists
-                )
+                ) { "Expected a usable secondary Home page; create result was $created." }
 
                 check(
                     runtime?.addBuiltInWidget(
@@ -680,6 +779,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
                 Unit
             } finally {
+                // This test intentionally selects a temporary secondary page. Return through the
+                // real HOME path before deleting that page so the persisted selected-page identity
+                // cannot leak into later ActivityScenario tests as a now-stale page selection.
+                resetHomeBeforeScenarioClose()
+                waitForSelectedHomePage(pageNumber = 1)
                 scenario.close()
             }
         } finally {
@@ -767,15 +871,25 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
 
-                composeRule
-                    .onNodeWithText(candidate.label.toString(), useUnmergedTree = true)
-                    .performTouchInput {
-                        swipeUp(
-                            startY = bottom - 1f,
-                            endY = top - 320f,
-                            durationMillis = 400,
-                        )
-                    }
+                // The Home gesture surface intentionally leaves composition when Apps opens.
+                // Inject at the Android input layer so Compose's touch injector is not attached to a
+                // node that disappears mid-gesture. Use empty right-side Home space, away from the
+                // seeded app tile and the bottom system-gesture edge.
+                val gestureBounds = composeRule
+                    .onNodeWithTag(
+                        "launcher-home-swipe-up-apps",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                val swipeX = (gestureBounds.right - 32f).toInt()
+                injectTouchSwipe(
+                    startX = swipeX,
+                    startY = (gestureBounds.bottom * 0.72f).toInt(),
+                    endX = swipeX,
+                    endY = (gestureBounds.top + gestureBounds.height * 0.28f).toInt(),
+                    durationMillis = 360L,
+                )
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule.onAllNodesWithTag("launcher-app-drawer", useUnmergedTree = true)
@@ -801,18 +915,21 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isEmpty(),
                 )
 
-                composeRule
-                    .onNodeWithTag(
-                        "launcher-app-drawer-gesture-surface",
-                        useUnmergedTree = true,
-                    )
-                    .performTouchInput {
-                        swipeDown(
-                            startY = top + 1f,
-                            endY = bottom - 1f,
-                            durationMillis = 400,
-                        )
-                    }
+                // The Drawer intentionally leaves composition as soon as its downward
+                // dismissal threshold is crossed. Inject this gesture at the Android input layer
+                // rather than keeping Compose's touch injector attached to a node that removes
+                // itself mid-gesture.
+                val drawerBounds = composeRule
+                    .onNodeWithTag("launcher-app-drawer", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                injectTouchSwipe(
+                    startX = (drawerBounds.right - 32f).toInt(),
+                    startY = (drawerBounds.top + drawerBounds.height * 0.24f).toInt(),
+                    endX = (drawerBounds.right - 32f).toInt(),
+                    endY = (drawerBounds.bottom * 0.84f).toInt(),
+                    durationMillis = 360L,
+                )
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
@@ -1202,12 +1319,16 @@ class ActivatedHomeLifecycleRuntimeTest {
                 composeRule
                     .onNodeWithTag(sourceAppTag, useUnmergedTree = true)
                     .performTouchInput {
+                        val dragDelta = targetBounds.center - sourceBounds.center
                         down(center)
                         advanceEventTime(
                             ViewConfiguration.getLongPressTimeout().toLong() + 180L,
                         )
-                        moveTo(center + delta)
-                        advanceEventTime(120)
+                        repeat(12) { index ->
+                            val fraction = (index + 1).toFloat() / 12f
+                            moveTo(center + dragDelta * fraction)
+                            advanceEventTime(30L)
+                        }
                         up()
                     }
 
@@ -1427,6 +1548,24 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .fetchSemanticsNodes()
                         .isEmpty(),
                 )
+
+                // Leave the full-screen editor through its supported UI path before closing the
+                // ActivityScenario. Immediate Activity destruction while the Dialog composition is
+                // still settling can race Compose SlotTable disposal and turn test teardown into a
+                // process crash that is unrelated to the behavior under assertion.
+                composeRule
+                    .onNodeWithText("Done", useUnmergedTree = true)
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-editor-fullscreen",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isEmpty()
+                }
+                composeRule.waitForIdle()
                 Unit
             } finally {
                 scenario.close()
@@ -1561,6 +1700,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
                 Unit
             } finally {
+                resetHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -1622,18 +1762,28 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .performTouchInput {
-                        down(center)
+                        // This test does not own the persisted workspace. Target a lower-right
+                        // empty grid region so an existing app tile cannot consume the long-press
+                        // that is intended to open Edit Home.
+                        val emptyPoint = center.copy(
+                            x = right - 32f,
+                            y = bottom - 32f,
+                        )
+                        down(emptyPoint)
                         advanceEventTime(700)
                         up()
                     }
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
-                composeRule.onNodeWithText("Widgets").performClick()
+                waitForDisplayedTag("launcher-home-editor-fullscreen")
+                waitForDisplayedTag("launcher-home-editor-actions")
+                waitForDisplayedTag("launcher-home-editor-action-widgets")
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-editor-action-widgets",
+                        useUnmergedTree = true,
+                    )
+                    .assertHasClickAction()
+                    .performClick()
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
@@ -1716,6 +1866,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 Unit
             } finally {
+                resetHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -1818,6 +1969,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 Unit
             } finally {
+                resetHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -1830,6 +1982,54 @@ class ActivatedHomeLifecycleRuntimeTest {
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
                 )
             }
+        }
+    }
+
+    private fun resetHomeBeforeScenarioClose() {
+        runShellCommand("input keyevent KEYCODE_HOME")
+        composeRule.waitUntil(timeoutMillis = 10_000) {
+            // HOME may replace the ActivityScenario-launched LAUNCHER activity with a new HOME
+            // intent instance. In that valid teardown path the test rule can briefly have no
+            // Compose hierarchy at all; that already proves the scenario-owned overlays are gone.
+            runCatching {
+                composeRule
+                    .onAllNodesWithTag(
+                        "launcher-home-editor-fullscreen",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNodes()
+                    .isEmpty() &&
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-widget-picker-sheet",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isEmpty() &&
+                    composeRule
+                        .onAllNodesWithText("Wallpapers", useUnmergedTree = true)
+                        .fetchSemanticsNodes()
+                        .isEmpty()
+            }.getOrDefault(true)
+        }
+        runCatching { composeRule.waitForIdle() }
+    }
+
+    private fun waitForSelectedHomePage(
+        pageNumber: Int,
+        timeoutMillis: Long = 10_000,
+    ) {
+        composeRule.waitUntil(timeoutMillis = timeoutMillis) {
+            runCatching {
+                val descriptions = composeRule
+                    .onNodeWithTag("launcher-home-page-indicator", useUnmergedTree = true)
+                    .fetchSemanticsNode()
+                    .config[SemanticsProperties.ContentDescription]
+                descriptions.any { description ->
+                    description.startsWith("Page $pageNumber,") &&
+                        description.endsWith(", selected")
+                }
+            }.getOrDefault(false)
         }
     }
 
@@ -1855,6 +2055,141 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
             }.isSuccess
         }
+    }
+
+    private fun injectLongPressDrag(
+        startX: Int,
+        startY: Int,
+        endX: Int,
+        endY: Int,
+    ) {
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downTime = SystemClock.uptimeMillis()
+        val holdMillis = ViewConfiguration.getLongPressTimeout().toLong() + 180L
+        val moveDurationMillis = 360L
+        val moveSteps = 12
+
+        fun inject(
+            action: Int,
+            x: Float,
+            y: Float,
+            eventTime: Long,
+        ) {
+            val event = MotionEvent.obtain(
+                downTime,
+                eventTime,
+                action,
+                x,
+                y,
+                0,
+            ).apply {
+                source = InputDevice.SOURCE_TOUCHSCREEN
+            }
+            try {
+                check(uiAutomation.injectInputEvent(event, true)) {
+                    "Android drag input injection failed for action=$action at ($x, $y)."
+                }
+            } finally {
+                event.recycle()
+            }
+        }
+
+        inject(
+            action = MotionEvent.ACTION_DOWN,
+            x = startX.toFloat(),
+            y = startY.toFloat(),
+            eventTime = downTime,
+        )
+        SystemClock.sleep(holdMillis)
+
+        repeat(moveSteps) { index ->
+            val fraction = (index + 1).toFloat() / moveSteps.toFloat()
+            val targetTime =
+                downTime + holdMillis + (moveDurationMillis * fraction).toLong()
+            val sleepMillis = (targetTime - SystemClock.uptimeMillis()).coerceAtLeast(0L)
+            if (sleepMillis > 0L) SystemClock.sleep(sleepMillis)
+            inject(
+                action = MotionEvent.ACTION_MOVE,
+                x = startX + (endX - startX) * fraction,
+                y = startY + (endY - startY) * fraction,
+                eventTime = SystemClock.uptimeMillis(),
+            )
+        }
+
+        inject(
+            action = MotionEvent.ACTION_UP,
+            x = endX.toFloat(),
+            y = endY.toFloat(),
+            eventTime = SystemClock.uptimeMillis(),
+        )
+    }
+
+    private fun injectTouchSwipe(
+        startX: Int,
+        startY: Int,
+        endX: Int,
+        endY: Int,
+        durationMillis: Long,
+    ) {
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        val downTime = SystemClock.uptimeMillis()
+        val steps = 12
+
+        fun inject(
+            action: Int,
+            x: Float,
+            y: Float,
+            eventTime: Long,
+        ) {
+            val event = MotionEvent.obtain(
+                downTime,
+                eventTime,
+                action,
+                x,
+                y,
+                0,
+            ).apply {
+                source = InputDevice.SOURCE_TOUCHSCREEN
+            }
+            try {
+                check(uiAutomation.injectInputEvent(event, true)) {
+                    "Android input injection failed for action=$action at ($x, $y)."
+                }
+            } finally {
+                event.recycle()
+            }
+        }
+
+        inject(
+            action = MotionEvent.ACTION_DOWN,
+            x = startX.toFloat(),
+            y = startY.toFloat(),
+            eventTime = downTime,
+        )
+        for (step in 1 until steps) {
+            val fraction = step.toFloat() / steps.toFloat()
+            val targetTime = downTime + (durationMillis * fraction).toLong()
+            val sleepMillis = (targetTime - SystemClock.uptimeMillis()).coerceAtLeast(0L)
+            if (sleepMillis > 0L) {
+                SystemClock.sleep(sleepMillis)
+            }
+            inject(
+                action = MotionEvent.ACTION_MOVE,
+                x = startX + (endX - startX) * fraction,
+                y = startY + (endY - startY) * fraction,
+                eventTime = SystemClock.uptimeMillis(),
+            )
+        }
+        val finalSleep = (downTime + durationMillis - SystemClock.uptimeMillis()).coerceAtLeast(0L)
+        if (finalSleep > 0L) {
+            SystemClock.sleep(finalSleep)
+        }
+        inject(
+            action = MotionEvent.ACTION_UP,
+            x = endX.toFloat(),
+            y = endY.toFloat(),
+            eventTime = SystemClock.uptimeMillis(),
+        )
     }
 
     private fun runShellCommand(command: String) {

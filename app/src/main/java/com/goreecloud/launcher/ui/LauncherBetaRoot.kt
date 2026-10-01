@@ -469,7 +469,10 @@ internal fun Modifier.launcherHomePagerBoundaryGestureNavigation(
             while (true) {
                 val event = awaitPointerEvent(PointerEventPass.Final)
                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                val delta = change.positionChange()
+                // The pager consumes horizontal position changes before the Final pass. Boundary
+                // actions still need the raw pointer travel so outward swipes on the first/last
+                // page remain observable without competing with ordinary pager navigation.
+                val delta = change.position - change.previousPosition
                 horizontalDistance += delta.x
                 verticalDistance += delta.y
 
@@ -1816,8 +1819,7 @@ private fun HomeSurface(
 
     val swipeThreshold = with(LocalDensity.current) { 56.dp.toPx() }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
-    var showHomeEditor by rememberSaveable { mutableStateOf(false) }
-    var showWidgetPicker by rememberSaveable { mutableStateOf(false) }
+    var homeOverlay by rememberSaveable { mutableStateOf(LauncherHomeOverlay.NONE) }
     var movableGlanceMigrationRequested by rememberSaveable { mutableStateOf(false) }
     val hasMovableGlance = remember(primaryHomePage) {
         primaryHomePage?.widgetPlacements?.any { placement ->
@@ -1838,12 +1840,15 @@ private fun HomeSurface(
 
     // HOME re-entry invalidates any editor/picker that was opened under an older reset
     // generation immediately, instead of waiting an extra composition for the cleanup effect.
-    val homeEditorResetGeneration = remember(showHomeEditor) { homeResetSequence }
-    val widgetPickerResetGeneration = remember(showWidgetPicker) { homeResetSequence }
-    val effectiveShowHomeEditor =
-        showHomeEditor && homeEditorResetGeneration == homeResetSequence
-    val effectiveShowWidgetPicker =
-        showWidgetPicker && widgetPickerResetGeneration == homeResetSequence
+    val homeOverlayResetGeneration = remember(homeOverlay) { homeResetSequence }
+    val effectiveHomeOverlay =
+        if (homeOverlayResetGeneration == homeResetSequence) {
+            homeOverlay
+        } else {
+            LauncherHomeOverlay.NONE
+        }
+    val effectiveShowHomeEditor = effectiveHomeOverlay == LauncherHomeOverlay.EDITOR
+    val effectiveShowWidgetPicker = effectiveHomeOverlay == LauncherHomeOverlay.WIDGET_PICKER
 
     LaunchedEffect(effectiveShowHomeEditor) {
         onHomeEditorVisibilityChanged(effectiveShowHomeEditor)
@@ -1851,8 +1856,7 @@ private fun HomeSurface(
 
     LaunchedEffect(homeResetSequence) {
         if (homeResetSequence > 0L) {
-            showHomeEditor = false
-            showWidgetPicker = false
+            homeOverlay = LauncherHomeOverlay.NONE
         }
     }
     DisposableEffect(Unit) {
@@ -1863,7 +1867,7 @@ private fun HomeSurface(
 
     LaunchedEffect(homeEditorRequestSequence) {
         if (homeEditorRequestSequence > 0L) {
-            showHomeEditor = true
+            homeOverlay = LauncherHomeOverlay.EDITOR
         }
     }
 
@@ -1873,7 +1877,7 @@ private fun HomeSurface(
             appsByKey = appsByKey,
             onOpenApps = onOpenDrawer,
             onOpenSearch = onOpenLauncherSearch,
-            onOpenHomeEditor = { showHomeEditor = true },
+            onOpenHomeEditor = { homeOverlay = LauncherHomeOverlay.EDITOR },
             onOpenWallpaperPicker = onOpenWallpaperPicker,
             onOpenThemeManager = onOpenThemeManager,
             onLaunchApp = onLaunchApp,
@@ -1980,7 +1984,7 @@ private fun HomeSurface(
                             )
                         },
                         onLongPress = {
-                            showHomeEditor = true
+                            homeOverlay = LauncherHomeOverlay.EDITOR
                         },
                     )
                 }
@@ -2200,7 +2204,7 @@ private fun HomeSurface(
                     onOpenFolder = onOpenFolder,
                     onOpenWidgetSearch = openSearch,
                     onOpenWidgetApps = onOpenDrawer,
-                    onOpenWidgetEditor = { showHomeEditor = true },
+                    onOpenWidgetEditor = { homeOverlay = LauncherHomeOverlay.EDITOR },
                     onOpenWidgetSettings = onOpenSettings,
                     onSwipeUp = {
                         executeGestureAction(experiencePreferences.swipeUpAction)
@@ -2285,9 +2289,19 @@ private fun HomeSurface(
             }
         }
 
-        if (effectiveShowHomeEditor) {
+        if (effectiveShowHomeEditor || effectiveShowWidgetPicker) {
+            // Keep editor -> widget-gallery navigation in one Compose dialog window. Replacing a
+            // Dialog with a Material bottom-sheet window in the same interaction proved racy on
+            // Android 16 and could leave the picker uncomposed. A single window also makes Back
+            // dismissal and accessibility focus transfer deterministic.
             Dialog(
-                onDismissRequest = { showHomeEditor = false },
+                onDismissRequest = {
+                    if (effectiveShowWidgetPicker) {
+                        homeOverlay = LauncherHomeOverlay.NONE
+                    } else {
+                        homeOverlay = LauncherHomeOverlay.NONE
+                    }
+                },
                 properties = DialogProperties(
                     usePlatformDefaultWidth = false,
                     decorFitsSystemWindows = false,
@@ -2296,66 +2310,65 @@ private fun HomeSurface(
                 Surface(
                     modifier = Modifier
                         .fillMaxSize()
-                        .testTag("launcher-home-editor-fullscreen"),
+                        .then(
+                            if (effectiveShowHomeEditor) {
+                                Modifier.testTag("launcher-home-editor-fullscreen")
+                            } else {
+                                Modifier.testTag("launcher-widget-picker-fullscreen")
+                            },
+                        ),
                     color = MaterialTheme.colorScheme.background,
                     tonalElevation = 0.dp,
                 ) {
-                    HomeEditorSurface(
-                        dockApps = dockApps,
-                        preferences = preferences,
-                        homePages = homePages,
-                        initialPageId = homeEditorInitialPageId,
-                        onSelectPage = onSelectHomePage,
-                        onCreatePage = onCreateHomePage,
-                        onDeletePage = onDeleteHomePage,
-                        onDone = { showHomeEditor = false },
-                        onWallpaper = {
-                            showHomeEditor = false
-                            onOpenWallpaperPicker()
-                        },
-                        onWidgets = {
-                            showHomeEditor = false
-                            showWidgetPicker = true
-                        },
-                        onFolders = {
-                            showHomeEditor = false
-                            onManageFolders()
-                        },
-                        onApps = {
-                            showHomeEditor = false
-                            onOpenDrawer()
-                        },
-                        onSettings = {
-                            showHomeEditor = false
-                            onOpenSettings()
-                        },
-                    )
+                    if (effectiveShowHomeEditor) {
+                        HomeEditorSurface(
+                            dockApps = dockApps,
+                            preferences = preferences,
+                            homePages = homePages,
+                            initialPageId = homeEditorInitialPageId,
+                            onSelectPage = onSelectHomePage,
+                            onCreatePage = onCreateHomePage,
+                            onDeletePage = onDeleteHomePage,
+                            onDone = { homeOverlay = LauncherHomeOverlay.NONE },
+                            onWallpaper = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onOpenWallpaperPicker()
+                            },
+                            onWidgets = {
+                                homeOverlay = LauncherHomeOverlay.WIDGET_PICKER
+                            },
+                            onFolders = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onManageFolders()
+                            },
+                            onApps = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onOpenDrawer()
+                            },
+                            onSettings = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onOpenSettings()
+                            },
+                        )
+                    } else {
+                        LauncherWidgetPickerSheet(
+                            apps = apps,
+                            availableAndroidWidgets = availableAndroidWidgets,
+                            onAddBuiltInWidget = { typeId ->
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onAddBuiltInWidget(typeId)
+                            },
+                            onPickInstalledAndroidWidget = { descriptor ->
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onPickInstalledAndroidWidget(descriptor)
+                            },
+                            onPickAndroidWidget = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                                onPickAndroidWidget()
+                            },
+                        )
+                    }
                 }
-            }
-        }
-
-        if (effectiveShowWidgetPicker) {
-            ModalBottomSheet(
-                onDismissRequest = { showWidgetPicker = false },
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
-                tonalElevation = 0.dp,
-            ) {
-                LauncherWidgetPickerSheet(
-                    apps = apps,
-                    availableAndroidWidgets = availableAndroidWidgets,
-                    onAddBuiltInWidget = { typeId ->
-                        showWidgetPicker = false
-                        onAddBuiltInWidget(typeId)
-                    },
-                    onPickInstalledAndroidWidget = { descriptor ->
-                        showWidgetPicker = false
-                        onPickInstalledAndroidWidget(descriptor)
-                    },
-                    onPickAndroidWidget = {
-                        showWidgetPicker = false
-                        onPickAndroidWidget()
-                    },
-                )
             }
         }
     }
@@ -3184,7 +3197,7 @@ private fun HomeEditorAction(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier,
+        modifier = modifier.testTag("launcher-home-editor-action-" + label.lowercase()),
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.56f),
@@ -4175,6 +4188,12 @@ internal fun HomeFolderTile(
             }
         }
     }
+}
+
+private enum class LauncherHomeOverlay {
+    NONE,
+    EDITOR,
+    WIDGET_PICKER,
 }
 
 private fun Modifier.observeLongPressWithoutConsuming(

@@ -143,7 +143,7 @@ class LauncherStartupWizardRuntimeTest {
             "Home apps: keep holding at a left or right page edge briefly to switch pages, then release over the exact target cell.",
         ).assertIsDisplayed()
         composeRule.onNodeWithText(
-            "Widgets: long-press and drag to a free Home cell or adjacent page edge; a stationary hold opens widget options, including Move to another Home page.",
+            "Widgets: long-press and drag to a free Home cell or adjacent page edge; movable Universal Search uses the same Home-grid behavior.",
         ).assertIsDisplayed()
         composeRule.onNodeWithText(
             "Folders: long-press a Home folder to move it to a free cell or adjacent page edge; use Add apps at the end of the grid and swipe larger opened folders between pages.",
