@@ -1,6 +1,6 @@
 # GoreeCloud Launcher — Implemented Features
 
-## October 1, 2026 — local Universal Search Quick answers candidate
+## October 1, 2026 — local Universal Search Quick answers
 
 - Added a Launcher-owned **Quick answers** provider for arithmetic using `+`, `-`, `×`/`*`, `÷`/`/`, unary signs, and parentheses.
 - Added allowlisted offline unit conversion for common length, mass, time, and Celsius/Fahrenheit/Kelvin values, including aliases such as `10 km to mi`, `5 lb in kg`, and `32 f to c`.
@@ -8,7 +8,7 @@
 - A selected answer copies the rendered result to the Android clipboard. Android 13+ uses the platform copy confirmation; older Android versions receive a short Launcher confirmation.
 - The source is registered through the existing Universal Search provider-control contract as **Local only · No query retention**, and focused JVM coverage exercises precedence, parentheses, invalid input, division by zero, cross-dimension rejection, temperature absolute-zero rejection, copy payloads, and provider metadata.
 
-**Acceptance boundary:** Development feature candidate restacked directly on merged Home/Search main `d667a65ca565ff1512f4065a3462e4b16ca76f49`. Fresh exact-head build/lint/JVM/runtime/promotion gates, review, and representative-device Search/clipboard/accessibility acceptance remain required.
+**Acceptance boundary:** merged PR #149 integrated the feature to authoritative `main` as `1f3758eb9ea5722e6557bae56ecc3be240d3c12e` from exact head `a52056f558ef028b844f7a4317500a8602d219ae`. Mandatory app migration provenance #390, Android Development Foundation #850, Launcher build/JVM/lint/schema, complete API 36 runtime instrumentation, transition-performance diagnostics, migrated-app required gate, and Protected promotion #357 all succeeded before guarded squash merge/readback. Representative-device Search/clipboard/accessibility/large-text/form-factor/performance acceptance remains open; Launcher remains Development.
 
 ## October 1, 2026 — Home and Universal Search Glaze polish
 

@@ -8,7 +8,7 @@ Quick answers participate through the existing built-in provider contract as loc
 
 Focused JVM coverage includes arithmetic precedence/parentheses, malformed expressions, division-by-zero rejection, common conversions, incompatible dimensions, below-absolute-zero rejection, bounded query length, copy payloads, and built-in provider metadata.
 
-**Acceptance boundary:** Development candidate restacked directly on authoritative main `d667a65ca565ff1512f4065a3462e4b16ca76f49` after merged Home/Search polish PR #147. Fresh exact-head build/JVM/lint/schema, complete API 36 runtime, transition-performance, protected-promotion, review, and representative-device Search/clipboard/accessibility acceptance remain required.
+**Acceptance boundary:** merged PR #149 integrated Quick answers to authoritative `main` as `1f3758eb9ea5722e6557bae56ecc3be240d3c12e` from exact head `a52056f558ef028b844f7a4317500a8602d219ae` after Mandatory app migration provenance #390, Android Development Foundation #850, Migrated Android apps CI #403 including Launcher build/JVM/lint/schema, complete API 36 runtime instrumentation, transition-performance diagnostics and the migrated-app required gate, plus Protected promotion #357 all succeeded. Representative-device Search/clipboard/accessibility/large-text/form-factor/performance acceptance remains open; Launcher remains Development.
 
 ## October 1, 2026 — polish Home and Universal Search Glaze composition
 
