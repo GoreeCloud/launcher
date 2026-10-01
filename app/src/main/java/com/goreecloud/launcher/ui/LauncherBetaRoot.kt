@@ -400,6 +400,47 @@ internal fun selectedSecondaryHomePage(
 }
 
 @Composable
+internal fun EditableHomeDock(
+    apps: List<LauncherActivityInfo>,
+    iconScale: Float,
+    style: LauncherDockStyle,
+    layoutLocked: Boolean,
+    editMode: Boolean,
+    activeDrag: LauncherAppDragData?,
+    dragPoint: Offset?,
+    onDockBoundsChanged: (Rect) -> Unit,
+    dockItemBounds: MutableMap<String, Rect>,
+    onBeginLocalDrag: (LauncherAppDragData, Offset) -> Unit,
+    onUpdateLocalDrag: (Offset) -> Unit,
+    onEndLocalDrag: (LauncherAppDragData, Offset) -> Unit,
+    onCancelLocalDrag: () -> Unit,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
+) {
+    GlazeDock(
+        apps = apps,
+        iconScale = iconScale,
+        style = style,
+        layoutLocked = layoutLocked,
+        editMode = editMode,
+        activeDrag = activeDrag,
+        dragPoint = dragPoint,
+        onDockBoundsChanged = onDockBoundsChanged,
+        dockItemBounds = dockItemBounds,
+        onBeginLocalDrag = onBeginLocalDrag,
+        onUpdateLocalDrag = onUpdateLocalDrag,
+        onEndLocalDrag = onEndLocalDrag,
+        onCancelLocalDrag = onCancelLocalDrag,
+        onLaunchApp = onLaunchApp,
+        onManageApp = onManageApp,
+        onSwipeUp = onSwipeUp,
+        onSwipeDown = onSwipeDown,
+    )
+}
+
+@Composable
 fun LauncherBetaRoot(
     apps: List<LauncherActivityInfo>,
     workspace: WorkspaceState,
@@ -1841,7 +1882,7 @@ private fun HomeSurface(
                     activeDrag = activeDrag != null,
                 )
             ) {
-                GlazeDock(
+                EditableHomeDock(
                     apps = dockApps,
                     iconScale = preferences.iconScale,
                     style = experiencePreferences.dockStyle,

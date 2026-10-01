@@ -1,5 +1,14 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 1, 2026 — extract the full editable Home Dock for future pager hosting
+
+The Primary Home Dock path is now factored through a reusable `EditableHomeDock` composable. It forwards the existing `GlazeDock` configuration unchanged: layout lock, edit mode, active-drag geometry, Dock bounds/item bounds, local drag lifecycle, launch/manage actions, reorder/drop behavior, and configured vertical gestures.
+
+This is a behavior-neutral architecture foundation for the eventual shared Home pager. It deliberately preserves the editable Primary Dock contract instead of promoting the simplified read-only secondary Dock.
+
+**Acceptance boundary:** Development refactor reconciled onto merged PR #115 / current main `3b84f0d9023a395abf7612c4d5e6d543ab2462d3`; fresh exact-head validation is required before integration. Final Primary↔secondary follow-finger paging and representative-device acceptance remain open.
+
+
 ## October 1, 2026 — keep Launcher Home root mounted across Primary and secondary selection
 
 `MainActivity` now supplies the existing secondary Home renderer to `LauncherBetaRoot` as a composable slot. The root resolves the authoritative selected Home-page identity and renders either Primary Home or that secondary slot internally, so crossing the Primary boundary no longer removes and later reconstructs the entire Launcher root.
