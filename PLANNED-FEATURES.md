@@ -8,15 +8,15 @@ Merged PR #108 separates secondary Home page content from optional persistent Do
 
 Merged PR #112 creates the Primary Home content-only path; #113 keeps one adjacent secondary page warm; #114 threads authoritative selected-page identity into the root; #115 keeps the Launcher root mounted across Primary↔secondary selection; #116 extracts the full editable Primary Dock contract; #117 hosts one editable Dock in the stable Home shell; and #118 unifies Primary plus secondary Home content under one follow-finger `HorizontalPager` while preserving the Room page model and drag-edge authority.
 
-The current Development candidate restores configured horizontal edge actions on the unified pager. It observes pager gestures without consuming them, snapshots the starting page, and dispatches only outward first-page/right or last-page/left actions after the same 56 dp horizontal-dominance threshold used by the prior Primary fallback.
+Merged PR #121 restores configured horizontal edge actions on the unified pager. It observes pager gestures without consuming them, snapshots the starting page, dispatches only outward first-page/right or last-page/left actions after the same 56 dp horizontal-dominance threshold used by the prior Primary fallback, and verifies the Primary outward-edge Search action in the Android 16/default-HOME runtime suite.
 
-Still open after the edge-action candidate: exact-head CI/protected integration; representative/default-HOME multi-page frame pacing, input latency, memory/power, drag/drop/widget and gesture acceptance; User/Work inventory churn acceptance; movable/fixed Search accessibility and large-text/form-factor acceptance; Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
+Still open after source integration: representative/default-HOME multi-page frame pacing, input latency, memory/power, drag/drop/widget and gesture acceptance; User/Work inventory churn acceptance; movable/fixed Search accessibility and large-text/form-factor acceptance; Weather/Calendar/Glance visual acceptance; connected-source acceptance; recovery/update continuity; and release qualification.
 
 **Record type:** Repository planned/open feature inventory  
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `e0c7bc787f8dab5a187127ea0819a5b7d80b5d19` after merged PR #118. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
+**Current authoritative main:** `23b3bc085ef2ae644a71bcea79667f2c3aade8f4` after merged PR #121. Historical candidate sections below remain dated provenance and do not override the September 30 current-state checkpoint.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

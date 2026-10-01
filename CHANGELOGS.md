@@ -8,7 +8,7 @@ The observer snapshots the starting page for the gesture, so a normal follow-fin
 
 Focused JVM coverage verifies first/right and last/left dispatch plus rejection of interior, inward, short, vertical, and single-page cases. Android 16 runtime coverage extends the existing real default-HOME multi-page flow by configuring Swipe right to Universal Search, swiping outward from Primary Home, requiring the real Search surface, and then returning HOME before continuing page/editor acceptance.
 
-**Acceptance boundary:** Development interaction-parity candidate based on authoritative main `e0c7bc787f8dab5a187127ea0819a5b7d80b5d19` (merged PR #118). Fresh exact-head migration provenance, Android validation/runtime CI, and protected-promotion evidence are required before integration. Representative-device gesture, frame-pacing, accessibility, large-text, and form-factor acceptance remain open.
+**Acceptance boundary:** PR #121 is merged after repaired exact-head Development validation as `23b3bc085ef2ae644a71bcea79667f2c3aade8f4`. Accepted head `18abf1673529c1125e31a12ceb55a433eb505f56` passed migration provenance `36802711649`, Migrated Android apps CI `36802711618` including Android 16/default-HOME runtime coverage, Android Development Foundation `36802711630`, and Protected promotion gate `36802711614`. Representative-device gesture, frame-pacing, accessibility, large-text, and form-factor acceptance remain open.
 
 
 ## October 1, 2026 — unify Primary and secondary Home follow-finger paging
