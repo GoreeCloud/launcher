@@ -224,6 +224,79 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun unifiedHomePagerResolvesKnownSelectionAndFailsClosed() {
+        val primary = WorkspaceRenderedHomePage(
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            rank = 0,
+            appKeys = emptyList(),
+            appPlacements = emptyList(),
+            folderPlacements = emptyList(),
+            widgetPlacements = emptyList(),
+            unsupportedItemCount = 0,
+        )
+        val secondary = primary.copy(pageId = "home:secondary", rank = 1)
+        val tertiary = primary.copy(pageId = "home:tertiary", rank = 2)
+        val pages = listOf(primary, secondary, tertiary)
+
+        assertEquals(2, launcherHomePagerSelectedIndex("home:tertiary", pages))
+        assertEquals(0, launcherHomePagerSelectedIndex("home:missing", pages))
+        assertEquals(0, launcherHomePagerSelectedIndex(null, pages))
+    }
+
+    @Test
+    fun unifiedHomePagerKeepsOnlyOneAdjacentPageWarm() {
+        assertEquals(0, launcherHomeBeyondViewportPageCount(0))
+        assertEquals(0, launcherHomeBeyondViewportPageCount(1))
+        assertEquals(1, launcherHomeBeyondViewportPageCount(2))
+        assertEquals(1, launcherHomeBeyondViewportPageCount(8))
+    }
+
+    @Test
+    fun unifiedPagerOwnsPrimaryHorizontalPagingWithoutReplayingEntryTransition() {
+        assertFalse(
+            primaryHomeShouldHandleHorizontalPaging(
+                contentOnly = false,
+                pagingHostedExternally = true,
+            ),
+        )
+        assertTrue(
+            primaryHomeShouldHandleHorizontalPaging(
+                contentOnly = false,
+                pagingHostedExternally = false,
+            ),
+        )
+
+        val primary = WorkspaceRenderedHomePage(
+            pageId = WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            rank = 0,
+            appKeys = emptyList(),
+            appPlacements = emptyList(),
+            folderPlacements = emptyList(),
+            widgetPlacements = emptyList(),
+            unsupportedItemCount = 0,
+        )
+        val secondary = primary.copy(pageId = "home:secondary", rank = 1)
+        val pages = listOf(primary, secondary)
+
+        assertEquals(
+            WorkspaceLegacyImportMapper.HOME_PAGE_ID,
+            primaryHomeTransitionKey(
+                selectedHomePageId = secondary.pageId,
+                pages = pages,
+                pagingHostedExternally = true,
+            ),
+        )
+        assertEquals(
+            secondary.pageId,
+            primaryHomeTransitionKey(
+                selectedHomePageId = secondary.pageId,
+                pages = pages,
+                pagingHostedExternally = false,
+            ),
+        )
+    }
+
+    @Test
     fun primaryContentOnlyModeSuppressesPersistentChrome() {
         assertFalse(primaryHomeShouldRenderFixedSearch(contentOnly = true, requested = true))
         assertFalse(

@@ -1015,22 +1015,6 @@ class MainActivity : ComponentActivity() {
                                 } == true
                             },
                             target = homeAppDragTarget,
-                        )
-                        .homePageSwipeNavigation(
-                            enabled = showingHome &&
-                                renderedPages.size > 1 &&
-                                !showHomePageManager &&
-                                activeHomeAppDrag == null,
-                            currentIndex = selectedHomePageIndex,
-                            pageCount = renderedPages.size,
-                            canSelectTarget = { targetIndex ->
-                                onPrimaryPage || targetIndex == 0
-                            },
-                            onPageSelected = { pageIndex ->
-                                renderedPages.getOrNull(pageIndex)?.let { page ->
-                                    selectedHomePageId = page.pageId
-                                }
-                            },
                         ),
                 ) {
                         LauncherBetaRoot(
@@ -1654,6 +1638,7 @@ class MainActivity : ComponentActivity() {
                                             currentHomeGridBounds = bounds
                                         }
                                     },
+                                    contentOnly = true,
                                     dockHostedExternally = true,
                                 )
 

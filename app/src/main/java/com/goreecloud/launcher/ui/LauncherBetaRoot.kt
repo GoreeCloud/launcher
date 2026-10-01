@@ -382,7 +382,8 @@ internal fun primaryHomeShouldOwnBottomInset(
 
 internal fun primaryHomeShouldHandleHorizontalPaging(
     contentOnly: Boolean,
-): Boolean = !contentOnly
+    pagingHostedExternally: Boolean = false,
+): Boolean = !contentOnly && !pagingHostedExternally
 
 internal fun resolvedHomePageId(
     selectedHomePageId: String?,
@@ -390,6 +391,41 @@ internal fun resolvedHomePageId(
 ): String =
     pages.firstOrNull { it.pageId == selectedHomePageId }?.pageId
         ?: WorkspaceLegacyImportMapper.HOME_PAGE_ID
+
+internal fun launcherHomePagerSelectedIndex(
+    selectedHomePageId: String?,
+    pages: List<WorkspaceRenderedHomePage>,
+): Int {
+    val resolvedPageId = resolvedHomePageId(
+        selectedHomePageId = selectedHomePageId,
+        pages = pages,
+    )
+    val resolvedIndex = pages.indexOfFirst { it.pageId == resolvedPageId }
+    if (resolvedIndex >= 0) return resolvedIndex
+
+    val primaryIndex = pages.indexOfFirst {
+        it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+    }
+    return primaryIndex.takeIf { it >= 0 } ?: 0
+}
+
+internal fun launcherHomeBeyondViewportPageCount(
+    pageCount: Int,
+): Int = if (pageCount > 1) 1 else 0
+
+internal fun primaryHomeTransitionKey(
+    selectedHomePageId: String?,
+    pages: List<WorkspaceRenderedHomePage>,
+    pagingHostedExternally: Boolean,
+): String =
+    if (pagingHostedExternally) {
+        WorkspaceLegacyImportMapper.HOME_PAGE_ID
+    } else {
+        resolvedHomePageId(
+            selectedHomePageId = selectedHomePageId,
+            pages = pages,
+        )
+    }
 
 internal fun selectedSecondaryHomePage(
     selectedHomePageId: String?,
@@ -897,20 +933,10 @@ fun LauncherBetaRoot(
                     selectedHomePageId = selectedHomePageId,
                     pages = homePages,
                 )
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .navigationBarsPadding(),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth(),
-                    ) {
-                    if (selectedSecondaryPage != null) {
-                        secondaryHomeContent(selectedSecondaryPage)
-                    } else {
-                        HomeSurface(
+                val pagerPages = homePages
+                val unifiedPagerEnabled = pagerPages.size > 1
+                val primaryHomeContent: @Composable (Boolean) -> Unit = { pagingHostedExternally ->
+                    HomeSurface(
                         apps = apps,
                         workspace = workspace,
                         preferences = preferences,
@@ -1006,8 +1032,65 @@ fun LauncherBetaRoot(
                         onHomeEditorVisibilityChanged = onHomeEditorVisibilityChanged,
                         contentOnly = homeContentOnly,
                         dockHostedExternally = true,
+                        horizontalPagingHostedExternally = pagingHostedExternally,
                     )
-                    }
+                }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .navigationBarsPadding(),
+                ) {
+                    if (unifiedPagerEnabled) {
+                        val pagerState = rememberPagerState(
+                            initialPage = launcherHomePagerSelectedIndex(
+                                selectedHomePageId = selectedHomePageId,
+                                pages = pagerPages,
+                            ),
+                            pageCount = { pagerPages.size },
+                        )
+
+                        LaunchedEffect(selectedHomePageId, pagerPages.map { it.pageId }) {
+                            val targetIndex = launcherHomePagerSelectedIndex(
+                                selectedHomePageId = selectedHomePageId,
+                                pages = pagerPages,
+                            )
+                            if (targetIndex != pagerState.currentPage) {
+                                pagerState.scrollToPage(targetIndex)
+                            }
+                        }
+                        LaunchedEffect(pagerState.currentPage, pagerPages, selectedHomePageId) {
+                            val targetPageId = pagerPages.getOrNull(pagerState.currentPage)?.pageId
+                            if (targetPageId != null && targetPageId != selectedHomePageId) {
+                                onSelectHomePage(targetPageId)
+                            }
+                        }
+
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .testTag("launcher-home-unified-pager"),
+                            userScrollEnabled = activeDrag == null,
+                            beyondViewportPageCount =
+                                launcherHomeBeyondViewportPageCount(pagerPages.size),
+                        ) { pageIndex ->
+                            val page = pagerPages[pageIndex]
+                            if (page.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID) {
+                                primaryHomeContent(true)
+                            } else {
+                                secondaryHomeContent(page)
+                            }
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                        ) {
+                            primaryHomeContent(false)
+                        }
                     }
 
                     if (rootDockApps.isNotEmpty() || activeDrag != null) {
@@ -1544,6 +1627,7 @@ private fun HomeSurface(
     onHomeEditorVisibilityChanged: (Boolean) -> Unit,
     contentOnly: Boolean = false,
     dockHostedExternally: Boolean = false,
+    horizontalPagingHostedExternally: Boolean = false,
 ) {
     val appsByKey = remember(apps) { apps.associateBy { it.workspaceKey() } }
     val personalApps = remember(apps) {
@@ -1769,7 +1853,12 @@ private fun HomeSurface(
                     )
                 }
                 .then(
-                    if (primaryHomeShouldHandleHorizontalPaging(contentOnly)) {
+                    if (
+                        primaryHomeShouldHandleHorizontalPaging(
+                            contentOnly = contentOnly,
+                            pagingHostedExternally = horizontalPagingHostedExternally,
+                        )
+                    ) {
                         Modifier.pointerInput(swipeThreshold) {
                             var drag = 0f
                             var triggered = false
@@ -1989,9 +2078,10 @@ private fun HomeSurface(
                     },
                     modifier = Modifier.launcherHomePageEntryTransition(
                         transition = homePageTransition,
-                        transitionKey = resolvedHomePageId(
+                        transitionKey = primaryHomeTransitionKey(
                             selectedHomePageId = selectedHomePageId,
                             pages = homePages,
+                            pagingHostedExternally = horizontalPagingHostedExternally,
                         ),
                     ),
                 )
