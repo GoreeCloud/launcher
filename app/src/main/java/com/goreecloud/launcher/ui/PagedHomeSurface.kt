@@ -89,6 +89,8 @@ import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.workspace.WorkspaceMoveDirection
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetCatalog
+import com.goreecloud.launcher.core.workspace.WorkspaceWidgetDescriptor
 import com.goreecloud.launcher.core.workspace.db.WorkspaceHomeSpatialDirection
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
@@ -807,7 +809,9 @@ internal fun HomePageMiniPreview(
     val columns = homeColumns.coerceIn(4, 6)
     val rows = homeRows.coerceIn(4, 7)
     val appColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.76f)
-    val widgetColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+    val widgetColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.84f)
+    val widgetAccent = MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+    val widgetInk = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
     val folderColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.62f)
     val gridColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
 
@@ -857,12 +861,135 @@ internal fun HomePageMiniPreview(
                     val top = widget.cellY.coerceIn(0, rows - 1) * cellHeight + 3f
                     val width = widget.spanX.coerceAtLeast(1).coerceAtMost(columns) * cellWidth - 6f
                     val height = widget.spanY.coerceAtLeast(1).coerceAtMost(rows) * cellHeight - 6f
+                    val safeWidth = width.coerceAtLeast(6f)
+                    val safeHeight = height.coerceAtLeast(6f)
+                    val cardRadius = minOf(safeWidth, safeHeight) * 0.12f
+                    val stroke = (minOf(safeWidth, safeHeight) * 0.035f).coerceAtLeast(1f)
+                    val typeId =
+                        (widget.descriptor as? WorkspaceWidgetDescriptor.BuiltIn)?.typeId
+
                     drawRoundRect(
                         color = widgetColor,
                         topLeft = Offset(left, top),
-                        size = Size(width.coerceAtLeast(6f), height.coerceAtLeast(6f)),
-                        cornerRadius = CornerRadius(10f, 10f),
+                        size = Size(safeWidth, safeHeight),
+                        cornerRadius = CornerRadius(cardRadius, cardRadius),
                     )
+                    drawRoundRect(
+                        color = widgetInk.copy(alpha = 0.18f),
+                        topLeft = Offset(left, top),
+                        size = Size(safeWidth, safeHeight),
+                        cornerRadius = CornerRadius(cardRadius, cardRadius),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke),
+                    )
+
+                    when (typeId) {
+                        WorkspaceWidgetCatalog.CALENDAR -> {
+                            drawCircle(
+                                color = widgetAccent,
+                                radius = minOf(safeWidth, safeHeight) * 0.14f,
+                                center = Offset(
+                                    left + safeWidth * 0.28f,
+                                    top + safeHeight * 0.56f,
+                                ),
+                            )
+                            drawLine(
+                                widgetInk,
+                                Offset(left + safeWidth * 0.52f, top + safeHeight * 0.45f),
+                                Offset(left + safeWidth * 0.83f, top + safeHeight * 0.45f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                            drawLine(
+                                widgetInk.copy(alpha = 0.55f),
+                                Offset(left + safeWidth * 0.52f, top + safeHeight * 0.64f),
+                                Offset(left + safeWidth * 0.72f, top + safeHeight * 0.64f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                        }
+                        WorkspaceWidgetCatalog.WEATHER -> {
+                            drawCircle(
+                                color = widgetAccent,
+                                radius = minOf(safeWidth, safeHeight) * 0.12f,
+                                center = Offset(
+                                    left + safeWidth * 0.28f,
+                                    top + safeHeight * 0.46f,
+                                ),
+                            )
+                            drawLine(
+                                widgetInk,
+                                Offset(left + safeWidth * 0.50f, top + safeHeight * 0.42f),
+                                Offset(left + safeWidth * 0.83f, top + safeHeight * 0.42f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                            drawLine(
+                                widgetInk.copy(alpha = 0.55f),
+                                Offset(left + safeWidth * 0.50f, top + safeHeight * 0.61f),
+                                Offset(left + safeWidth * 0.72f, top + safeHeight * 0.61f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                        }
+                        WorkspaceWidgetCatalog.QUICK_ACTIONS -> {
+                            val pad = minOf(safeWidth, safeHeight) * 0.12f
+                            val gap = pad * 0.45f
+                            val pillWidth = (safeWidth - pad * 2f - gap) / 2f
+                            val pillHeight = (safeHeight - pad * 2f - gap) / 2f
+                            repeat(2) { rowIndex ->
+                                repeat(2) { columnIndex ->
+                                    drawRoundRect(
+                                        color = widgetAccent.copy(alpha = 0.18f),
+                                        topLeft = Offset(
+                                            left + pad + columnIndex * (pillWidth + gap),
+                                            top + pad + rowIndex * (pillHeight + gap),
+                                        ),
+                                        size = Size(pillWidth, pillHeight),
+                                        cornerRadius = CornerRadius(
+                                            pillHeight * 0.28f,
+                                            pillHeight * 0.28f,
+                                        ),
+                                        style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                            width = stroke,
+                                        ),
+                                    )
+                                }
+                            }
+                        }
+                        WorkspaceWidgetCatalog.SEARCH -> {
+                            drawRoundRect(
+                                color = widgetAccent.copy(alpha = 0.12f),
+                                topLeft = Offset(
+                                    left + safeWidth * 0.12f,
+                                    top + safeHeight * 0.30f,
+                                ),
+                                size = Size(safeWidth * 0.76f, safeHeight * 0.40f),
+                                cornerRadius = CornerRadius(
+                                    safeHeight * 0.20f,
+                                    safeHeight * 0.20f,
+                                ),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = stroke,
+                                ),
+                            )
+                        }
+                        else -> {
+                            drawLine(
+                                widgetAccent,
+                                Offset(left + safeWidth * 0.14f, top + safeHeight * 0.38f),
+                                Offset(left + safeWidth * 0.68f, top + safeHeight * 0.38f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                            drawLine(
+                                widgetInk.copy(alpha = 0.55f),
+                                Offset(left + safeWidth * 0.14f, top + safeHeight * 0.62f),
+                                Offset(left + safeWidth * 0.52f, top + safeHeight * 0.62f),
+                                stroke,
+                                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                            )
+                        }
+                    }
                 }
 
                 page.folderPlacements.forEach { folder ->

@@ -3165,11 +3165,36 @@ private fun HomeEditorSurface(
                 modifier = Modifier.padding(GlazeMetrics.space1),
                 horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
             ) {
-                HomeEditorAction("Wallpaper", "◫", onWallpaper, Modifier.weight(1f))
-                HomeEditorAction("Widgets", "▤", onWidgets, Modifier.weight(1f))
-                HomeEditorAction("Apps", "▦", onApps, Modifier.weight(1f))
-                HomeEditorAction("Folders", "▦", onFolders, Modifier.weight(1f))
-                HomeEditorAction("Settings", "⚙", onSettings, Modifier.weight(1f))
+                HomeEditorAction(
+                    "Wallpaper",
+                    GlazePopupActionSymbol.WALLPAPER,
+                    onWallpaper,
+                    Modifier.weight(1f),
+                )
+                HomeEditorAction(
+                    "Widgets",
+                    GlazePopupActionSymbol.WIDGET,
+                    onWidgets,
+                    Modifier.weight(1f),
+                )
+                HomeEditorAction(
+                    "Apps",
+                    GlazePopupActionSymbol.APPS,
+                    onApps,
+                    Modifier.weight(1f),
+                )
+                HomeEditorAction(
+                    "Folders",
+                    GlazePopupActionSymbol.FOLDER,
+                    onFolders,
+                    Modifier.weight(1f),
+                )
+                HomeEditorAction(
+                    "Settings",
+                    GlazePopupActionSymbol.SETTINGS,
+                    onSettings,
+                    Modifier.weight(1f),
+                )
             }
         }
     }
@@ -3458,7 +3483,7 @@ private fun HomeEditorPreviewIcon(app: LauncherActivityInfo) {
 @Composable
 private fun HomeEditorAction(
     label: String,
-    glyph: String,
+    symbol: GlazePopupActionSymbol,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -3474,7 +3499,10 @@ private fun HomeEditorAction(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Text(glyph, style = MaterialTheme.typography.titleMedium)
+            GlazePopupActionGlyph(
+                symbol = symbol,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             Text(
                 label,
                 style = MaterialTheme.typography.labelSmall,
@@ -4760,7 +4788,7 @@ private fun LauncherBuiltInWidget(
     } else when (resolvedPresentation.materialRole) {
         GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
         GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-        else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.34f)
+        else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.76f)
     }
     val outline = if (isOpenGlance) {
         Color.Transparent
@@ -4771,19 +4799,19 @@ private fun LauncherBuiltInWidget(
         listOf(Color.Transparent, Color.Transparent)
     } else if (usesWallpaperGlass) {
         listOf(
-            GlazeAtmosphere.deepTeal.copy(alpha = 0.88f),
-            GlazeAtmosphere.slateGraphite.copy(alpha = 0.90f),
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.78f),
         )
     } else {
         listOf(background, background)
     }
     val insetFill = if (usesWallpaperGlass) {
-        Color.White.copy(alpha = 0.12f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.09f)
     } else {
         foreground.copy(alpha = 0.08f)
     }
     val insetOutline = if (usesWallpaperGlass) {
-        Color.White.copy(alpha = 0.13f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
     } else {
         MaterialTheme.colorScheme.outlineVariant
     }
@@ -5596,11 +5624,7 @@ private fun GlazeActionChip(
         GlazeV16MaterialRole.SOLID,
         GlazeV16MaterialRole.RAISED,
     )
-    val foreground = if (solidResolved) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        Color.White
-    }
+    val foreground = MaterialTheme.colorScheme.onSurface
 
     Surface(
         modifier = modifier.heightIn(min = resolvedPresentation.minimumInteractionTarget),
@@ -5609,14 +5633,14 @@ private fun GlazeActionChip(
         color = when (resolvedPresentation.materialRole) {
             GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
             GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-            else -> GlazeAtmosphere.canvasBlack.copy(alpha = 0.24f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.68f)
         },
         border = BorderStroke(
             1.dp,
             if (solidResolved) {
                 MaterialTheme.colorScheme.outlineVariant
             } else {
-                Color.White.copy(alpha = 0.10f)
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
             },
         ),
         shadowElevation = if (solidResolved) 1.dp else 2.dp,
@@ -6421,6 +6445,14 @@ private fun AppDrawerSurface(
                             DropdownMenu(
                                 expanded = showDrawerSortMenu,
                                 onDismissRequest = { showDrawerSortMenu = false },
+                                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+                                containerColor = if (glass) {
+                                    GlazeAtmosphere.slateGraphite.copy(alpha = 0.98f)
+                                } else {
+                                    MaterialTheme.colorScheme.surface
+                                },
+                                tonalElevation = 0.dp,
+                                shadowElevation = 8.dp,
                             ) {
                                 LauncherDrawerSortOrder.entries.forEach { order ->
                                     DropdownMenuItem(
@@ -6430,6 +6462,11 @@ private fun AppDrawerSurface(
                                                     "✓ " + order.displayName
                                                 } else {
                                                     order.displayName
+                                                },
+                                                color = if (glass) {
+                                                    Color.White.copy(alpha = 0.94f)
+                                                } else {
+                                                    MaterialTheme.colorScheme.onSurface
                                                 },
                                             )
                                         },
@@ -9931,7 +9968,7 @@ private fun LauncherAppTile(
                 },
                 color = if (labelOnWallpaper) Color.White else Color.Unspecified,
                 textAlign = TextAlign.Center,
-                maxLines = if (compact) 1 else 2,
+                maxLines = if (compact || fixedGridGeometry) 1 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
         }
@@ -10102,9 +10139,8 @@ private fun LauncherFolderManagerSheet(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "▦",
-                            style = MaterialTheme.typography.titleLarge,
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.FOLDER,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
                         )
                     }
@@ -10143,7 +10179,12 @@ private fun LauncherFolderManagerSheet(
                         singleLine = true,
                         label = { Text("Folder name") },
                         placeholder = { Text("e.g. Banking, Work or Media") },
-                        leadingIcon = { Text("▦") },
+                        leadingIcon = {
+                            GlazePopupActionGlyph(
+                                symbol = GlazePopupActionSymbol.FOLDER,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
                     )
                     if (allowHomePlacement) {
                         Row(
@@ -10227,10 +10268,9 @@ private fun LauncherFolderManagerSheet(
                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            "▦",
+                                        GlazePopupActionGlyph(
+                                            symbol = GlazePopupActionSymbol.FOLDER,
                                             color = MaterialTheme.colorScheme.primary,
-                                            style = MaterialTheme.typography.titleMedium,
                                         )
                                     }
                                 }
@@ -11639,6 +11679,9 @@ private enum class GlazePopupActionSymbol {
     SHORTCUT,
     PIN,
     FOLDER,
+    WALLPAPER,
+    APPS,
+    SETTINGS,
     INFO,
     UNINSTALL,
 }
@@ -11705,6 +11748,67 @@ private fun GlazePopupActionGlyph(symbol: GlazePopupActionSymbol, color: Color) 
                 segment(.89f, .36f, .89f, .80f)
                 segment(.89f, .80f, .10f, .80f)
                 segment(.10f, .80f, .10f, .25f)
+            }
+            GlazePopupActionSymbol.WALLPAPER -> {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(u * .14f, u * .18f),
+                    size = androidx.compose.ui.geometry.Size(u * .72f, u * .64f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .10f),
+                    style = Stroke(w),
+                )
+                drawCircle(
+                    color = color,
+                    radius = u * .08f,
+                    center = Offset(u * .34f, u * .38f),
+                    style = Stroke(w),
+                )
+                segment(.20f, .72f, .42f, .52f)
+                segment(.42f, .52f, .55f, .63f)
+                segment(.55f, .63f, .70f, .46f)
+                segment(.70f, .46f, .82f, .58f)
+            }
+            GlazePopupActionSymbol.APPS -> {
+                listOf(
+                    .23f to .23f,
+                    .61f to .23f,
+                    .23f to .61f,
+                    .61f to .61f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(u * x, u * y),
+                        size = androidx.compose.ui.geometry.Size(u * .18f, u * .18f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * .04f),
+                        style = Stroke(w),
+                    )
+                }
+            }
+            GlazePopupActionSymbol.SETTINGS -> {
+                drawCircle(
+                    color = color,
+                    radius = u * .24f,
+                    center = Offset(u * .50f, u * .50f),
+                    style = Stroke(w),
+                )
+                drawCircle(
+                    color = color,
+                    radius = u * .07f,
+                    center = Offset(u * .50f, u * .50f),
+                    style = Stroke(w),
+                )
+                listOf(
+                    .50f to .12f,
+                    .50f to .88f,
+                    .12f to .50f,
+                    .88f to .50f,
+                    .23f to .23f,
+                    .77f to .77f,
+                    .77f to .23f,
+                    .23f to .77f,
+                ).forEach { (x, y) ->
+                    segment(.50f, .50f, x, y)
+                }
             }
             GlazePopupActionSymbol.INFO -> {
                 drawCircle(color, radius = u * .36f, center = Offset(u * .5f, u * .5f), style = Stroke(w))

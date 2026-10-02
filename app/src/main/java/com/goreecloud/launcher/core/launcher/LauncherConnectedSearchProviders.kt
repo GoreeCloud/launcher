@@ -262,7 +262,7 @@ object LauncherConnectedSearchProviderRegistry {
         context: Context,
         fileRoots: List<Uri> = emptyList(),
     ): List<LauncherSearchProviderRegistration> =
-        availableDefinitions(context).map { definition ->
+        definitions().map { definition ->
             val provider: LauncherSearchProvider =
                 if (definition.providerId == GOOGLE_DRIVE_PROVIDER_ID) {
                     LauncherGoogleDriveSearchProvider()
@@ -290,18 +290,21 @@ object LauncherConnectedSearchProviderRegistry {
     ): Intent? {
         val query = rawQuery.trim()
         if (query.isBlank()) return null
-        val definition = availableDefinitions(context)
+        val definition = definitions()
             .firstOrNull { it.providerId == providerId }
             ?: return null
         val intent = definition.buildIntent(query)
         return if (!definition.requiresResolution || resolves(context, intent)) intent else null
     }
 
-    private fun availableDefinitions(context: Context): List<LauncherConnectedSearchDefinition> =
-        definitions().filter { definition ->
-            !definition.requiresResolution ||
-                resolves(context, definition.buildIntent("goreecloud"))
-        }
+    fun isExplicitHandoffAvailable(
+        context: Context,
+        providerId: String,
+    ): Boolean {
+        val definition = definitions().firstOrNull { it.providerId == providerId } ?: return false
+        return !definition.requiresResolution ||
+            resolves(context, definition.buildIntent("goreecloud"))
+    }
 
     private fun definitions(): List<LauncherConnectedSearchDefinition> = listOf(
         LauncherConnectedSearchDefinition(

@@ -44,6 +44,40 @@ class LauncherConnectedSearchPrivacyRuntimeTest {
     }
 
     @Test
+    fun connectedSourceCatalogKeepsKnownSourcesVisibleWhenOptionalAppsAreUnavailable() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val registrations = LauncherConnectedSearchProviderRegistry.registrations(context)
+        val providerIds = registrations.map { it.metadata.providerId }.toSet()
+
+        assertTrue(
+            providerIds.contains(
+                LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID,
+            ),
+        )
+        assertTrue(
+            providerIds.contains(
+                LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID,
+            ),
+        )
+        assertTrue(
+            providerIds.contains(
+                LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,
+            ),
+        )
+
+        val dropboxId = LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID
+        if (!LauncherConnectedSearchProviderRegistry.isExplicitHandoffAvailable(context, dropboxId)) {
+            assertNull(
+                LauncherConnectedSearchProviderRegistry.buildExplicitHandoffIntent(
+                    context,
+                    dropboxId,
+                    "project notes",
+                ),
+            )
+        }
+    }
+
+    @Test
     fun explicitDriveHandoffEncodesQueryButRejectsBlankInput() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val driveId = LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID

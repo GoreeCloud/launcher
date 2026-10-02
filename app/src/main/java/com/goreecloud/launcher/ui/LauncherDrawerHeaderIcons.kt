@@ -1,16 +1,23 @@
 package com.goreecloud.launcher.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.size
 
+/**
+ * Compact Launcher-owned line icons for the App Drawer header.
+ *
+ * These stay vector-drawn instead of relying on font glyphs so stroke weight, optical size, and
+ * baseline remain stable across OEM fonts.
+ */
 @Composable
 internal fun LauncherDrawerSortIcon(
     ascending: Boolean,
@@ -18,48 +25,45 @@ internal fun LauncherDrawerSortIcon(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.size(24.dp)) {
-        val stroke = 2.dp.toPx()
-        val left = size.width * 0.25f
-        val right = size.width * 0.75f
-        val top = size.height * 0.22f
-        val bottom = size.height * 0.78f
+        val stroke = 1.9.dp.toPx()
+        val cap = StrokeCap.Round
+
+        // Sort direction at left.
+        val x = size.width * 0.27f
+        val top = size.height * 0.20f
+        val bottom = size.height * 0.80f
+        drawLine(color, Offset(x, top), Offset(x, bottom), stroke, cap = cap)
+        val arrowTipY = if (ascending) top else bottom
+        val armY = if (ascending) top + size.height * 0.13f else bottom - size.height * 0.13f
         drawLine(
-            color = color,
-            start = Offset(left, top),
-            end = Offset(left, bottom),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
-        )
-        val arrowY = if (ascending) top else bottom
-        val direction = if (ascending) 1f else -1f
-        drawLine(
-            color = color,
-            start = Offset(left, arrowY),
-            end = Offset(left - size.width * 0.12f, arrowY + direction * size.height * 0.12f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
+            color,
+            Offset(x, arrowTipY),
+            Offset(x - size.width * 0.11f, armY),
+            stroke,
+            cap = cap,
         )
         drawLine(
-            color = color,
-            start = Offset(left, arrowY),
-            end = Offset(left + size.width * 0.12f, arrowY + direction * size.height * 0.12f),
-            strokeWidth = stroke,
-            cap = StrokeCap.Round,
+            color,
+            Offset(x, arrowTipY),
+            Offset(x + size.width * 0.11f, armY),
+            stroke,
+            cap = cap,
         )
-        listOf(0.30f to 0.56f, 0.50f to 0.66f, 0.70f to 0.76f).forEach { (y, x) ->
+
+        // Three descending text/order lines at right.
+        listOf(
+            0.31f to 0.80f,
+            0.50f to 0.70f,
+            0.69f to 0.59f,
+        ).forEach { (y, endX) ->
             drawLine(
-                color = color,
-                start = Offset(size.width * 0.46f, size.height * y),
-                end = Offset(size.width * x, size.height * y),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
+                color,
+                Offset(size.width * 0.50f, size.height * y),
+                Offset(size.width * endX, size.height * y),
+                stroke,
+                cap = cap,
             )
         }
-        drawCircle(
-            color = color,
-            radius = size.minDimension * 0.055f,
-            center = Offset(right, size.height * 0.18f),
-        )
     }
 }
 
@@ -69,29 +73,43 @@ internal fun LauncherDrawerNewFolderIcon(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.size(24.dp)) {
-        val stroke = 2.dp.toPx()
-        val path = Path().apply {
-            moveTo(size.width * 0.14f, size.height * 0.32f)
-            lineTo(size.width * 0.40f, size.height * 0.32f)
-            lineTo(size.width * 0.49f, size.height * 0.22f)
-            lineTo(size.width * 0.86f, size.height * 0.22f)
-            lineTo(size.width * 0.86f, size.height * 0.78f)
-            lineTo(size.width * 0.14f, size.height * 0.78f)
+        val stroke = 1.9.dp.toPx()
+        val folder = Path().apply {
+            moveTo(size.width * 0.12f, size.height * 0.31f)
+            lineTo(size.width * 0.39f, size.height * 0.31f)
+            lineTo(size.width * 0.47f, size.height * 0.22f)
+            lineTo(size.width * 0.62f, size.height * 0.22f)
+            lineTo(size.width * 0.68f, size.height * 0.31f)
+            lineTo(size.width * 0.88f, size.height * 0.31f)
+            lineTo(size.width * 0.88f, size.height * 0.79f)
+            lineTo(size.width * 0.12f, size.height * 0.79f)
             close()
         }
-        drawPath(path = path, color = color, style = Stroke(width = stroke))
-        drawLine(
+        drawPath(
+            path = folder,
             color = color,
-            start = Offset(size.width * 0.50f, size.height * 0.50f),
-            end = Offset(size.width * 0.74f, size.height * 0.50f),
-            strokeWidth = stroke,
+            style = Stroke(
+                width = stroke,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            ),
+        )
+
+        val cx = size.width * 0.64f
+        val cy = size.height * 0.55f
+        val arm = size.minDimension * 0.105f
+        drawLine(
+            color,
+            Offset(cx - arm, cy),
+            Offset(cx + arm, cy),
+            stroke,
             cap = StrokeCap.Round,
         )
         drawLine(
-            color = color,
-            start = Offset(size.width * 0.62f, size.height * 0.38f),
-            end = Offset(size.width * 0.62f, size.height * 0.62f),
-            strokeWidth = stroke,
+            color,
+            Offset(cx, cy - arm),
+            Offset(cx, cy + arm),
+            stroke,
             cap = StrokeCap.Round,
         )
     }
@@ -103,11 +121,11 @@ internal fun LauncherDrawerSettingsIcon(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.size(24.dp)) {
-        val stroke = 2.dp.toPx()
+        val stroke = 1.9.dp.toPx()
         val center = Offset(size.width / 2f, size.height / 2f)
         drawCircle(
             color = color,
-            radius = size.minDimension * 0.26f,
+            radius = size.minDimension * 0.25f,
             center = center,
             style = Stroke(width = stroke),
         )
@@ -120,7 +138,7 @@ internal fun LauncherDrawerSettingsIcon(
         repeat(8) { index ->
             val angle = Math.toRadians(index * 45.0)
             val inner = size.minDimension * 0.34f
-            val outer = size.minDimension * 0.44f
+            val outer = size.minDimension * 0.43f
             drawLine(
                 color = color,
                 start = Offset(

@@ -383,6 +383,7 @@ internal fun LauncherProviderControlledSearchSurface(
                 onSelect = searchAppearancePreferences::setPresentation,
             )
             LauncherSearchSourceManager(
+                apps = apps,
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
@@ -624,7 +625,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                                 bottom = GlazeMetrics.space1,
                                             ),
                                         style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
                                         fontWeight = FontWeight.SemiBold,
                                     )
                                 }
@@ -722,7 +723,7 @@ internal fun LauncherProviderControlledSearchSurface(
                                 top = GlazeMetrics.space1,
                             ),
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold,
                         )
                         explicitHandoffs.forEach { provider ->
@@ -739,7 +740,7 @@ internal fun LauncherProviderControlledSearchSurface(
                             "Connected queries are sent only after you tap a result.",
                             modifier = Modifier.padding(horizontal = GlazeMetrics.space2),
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
                         )
                     }
                 }
@@ -1926,6 +1927,50 @@ private fun LauncherPrivacyShieldGlyph(
 }
 
 @Composable
+private fun LauncherSourceDisclosureGlyph(
+    expanded: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(18.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.095f
+        val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        if (expanded) {
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.24f, u * 0.62f),
+                androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.36f),
+                stroke,
+                cap = cap,
+            )
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.36f),
+                androidx.compose.ui.geometry.Offset(u * 0.76f, u * 0.62f),
+                stroke,
+                cap = cap,
+            )
+        } else {
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.38f, u * 0.24f),
+                androidx.compose.ui.geometry.Offset(u * 0.64f, u * 0.50f),
+                stroke,
+                cap = cap,
+            )
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.64f, u * 0.50f),
+                androidx.compose.ui.geometry.Offset(u * 0.38f, u * 0.76f),
+                stroke,
+                cap = cap,
+            )
+        }
+    }
+}
+
+@Composable
 private fun LauncherSearchSectionGlyph(
     section: LauncherSearchSourceSection,
     tint: Color,
@@ -2002,6 +2047,7 @@ private fun LauncherSearchSourceBadge(
     option: LauncherSearchProviderControlOption,
     section: LauncherSearchSourceSection,
     accent: Color,
+    apps: List<LauncherActivityInfo>,
 ) {
     Surface(
         modifier = Modifier.size(44.dp),
@@ -2010,10 +2056,30 @@ private fun LauncherSearchSourceBadge(
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (section == LauncherSearchSourceSection.CONNECTED) {
-                LauncherConnectedProviderFallbackGlyph(
-                    providerId = option.providerId,
-                    modifier = Modifier.size(24.dp),
-                )
+                val packageName = remember(option.providerId) {
+                    LauncherConnectedSearchProviderRegistry.iconPackageNameFor(option.providerId)
+                }
+                val sourceApp = remember(apps, packageName) {
+                    packageName?.let { targetPackage ->
+                        apps.firstOrNull { app ->
+                            app.componentName.packageName == targetPackage
+                        }
+                    }
+                }
+                val icon = sourceApp?.let { rememberLauncherAppIcon(it) }
+                if (icon != null) {
+                    Image(
+                        bitmap = icon,
+                        contentDescription = null,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.size(28.dp).launcherIconMask(),
+                    )
+                } else {
+                    LauncherConnectedProviderFallbackGlyph(
+                        providerId = option.providerId,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
             } else {
                 LauncherLocalSearchSourceGlyph(
                     providerId = option.providerId,
@@ -2209,6 +2275,7 @@ private fun LauncherLocalSearchSourceGlyph(
 
 @Composable
 private fun LauncherSearchSourceManager(
+    apps: List<LauncherActivityInfo>,
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
     fileSearchRoots: List<Uri>,
@@ -2303,7 +2370,7 @@ private fun LauncherSearchSourceManager(
                         enabled = ready && controls.orderedOptions.size > 1,
                         modifier = Modifier.heightIn(min = 44.dp),
                     ) {
-                        Text(if (reorderMode) "✓  Done" else "≡  Order")
+                        Text(if (reorderMode) "Done" else "Order")
                     }
                 }
             }
@@ -2404,7 +2471,17 @@ private fun LauncherSearchSourceManager(
                                             debugBuild = BuildConfig.DEBUG,
                                             alreadyConnected = driveConnected,
                                         )
-                                    val providerReady = !driveSource || driveConnected
+                                    val connectedHandoffAvailable =
+                                        !option.providerId.startsWith("connected.") ||
+                                            LauncherConnectedSearchProviderRegistry
+                                                .isExplicitHandoffAvailable(
+                                                    context,
+                                                    option.providerId,
+                                                )
+                                    val providerReady = when {
+                                        driveSource -> driveConnected
+                                        else -> connectedHandoffAvailable
+                                    }
                                     val issue = issues[option.providerId]
                                     val isMessages =
                                         option.providerId ==
@@ -2439,6 +2516,13 @@ private fun LauncherSearchSourceManager(
                                             "Choose a folder to enable"
                                         driveSource && !driveConnectionAvailable ->
                                             "Signed Development build required"
+                                        !connectedHandoffAvailable &&
+                                            option.providerId ==
+                                                LauncherConnectedSearchProviderRegistry
+                                                    .DROPBOX_PROVIDER_ID ->
+                                            "Dropbox app required for handoff"
+                                        !connectedHandoffAvailable ->
+                                            "Provider app required for handoff"
                                         else -> null
                                     }
 
@@ -2474,6 +2558,7 @@ private fun LauncherSearchSourceManager(
                                                 option = option,
                                                 section = section,
                                                 accent = accent,
+                                                apps = apps,
                                             )
 
                                             Column(Modifier.weight(1f)) {
@@ -2524,18 +2609,19 @@ private fun LauncherSearchSourceManager(
                                                         it,
                                                     )
                                                 },
-                                                enabled = ready && driveConnectionAvailable,
+                                                enabled =
+                                                    ready &&
+                                                        driveConnectionAvailable &&
+                                                        connectedHandoffAvailable,
                                                 modifier = Modifier.testTag(
                                                     "launcher-search-source-" +
                                                         option.providerId,
                                                 ),
                                             )
-                                            Text(
-                                                if (expanded) "⌃" else "›",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            LauncherSourceDisclosureGlyph(
+                                                expanded = expanded,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     .copy(alpha = 0.72f),
-                                                fontWeight = FontWeight.SemiBold,
                                             )
                                         }
 
@@ -2553,7 +2639,19 @@ private fun LauncherSearchSourceManager(
                                                     enabled = ready,
                                                     modifier = Modifier.heightIn(min = 44.dp),
                                                 ) {
-                                                    Text("▣  Choose folder")
+                                                    Row(
+                                                        horizontalArrangement =
+                                                            Arrangement.spacedBy(6.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                    ) {
+                                                        LauncherLocalSearchSourceGlyph(
+                                                            providerId =
+                                                                LauncherFilesSearchProvider.PROVIDER_ID,
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(18.dp),
+                                                        )
+                                                        Text("Choose folder")
+                                                    }
                                                 }
                                             }
                                         }
