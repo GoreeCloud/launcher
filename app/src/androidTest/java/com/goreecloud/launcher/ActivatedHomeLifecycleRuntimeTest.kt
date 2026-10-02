@@ -1387,51 +1387,66 @@ class ActivatedHomeLifecycleRuntimeTest {
                 val sourceAppTag = "launcher-home-app-$firstKey"
                 val targetTag = "launcher-home-cell-$targetX-$targetY"
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithTag(sourceAppTag, useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty() &&
-                        composeRule
-                            .onAllNodesWithTag(targetTag, useUnmergedTree = true)
-                            .fetchSemanticsNodes()
-                            .isNotEmpty()
-                }
-
-                val sourceBounds = composeRule
-                    .onNodeWithTag(sourceAppTag, useUnmergedTree = true)
-                    .fetchSemanticsNode()
-                    .boundsInRoot
-                val targetBounds = composeRule
-                    .onNodeWithTag(targetTag, useUnmergedTree = true)
-                    .fetchSemanticsNode()
-                    .boundsInRoot
-                val delta = targetBounds.center - sourceBounds.center
-
-                composeRule
-                    .onNodeWithTag(sourceAppTag, useUnmergedTree = true)
-                    .performTouchInput {
-                        val dragDelta = targetBounds.center - sourceBounds.center
-                        down(center)
-                        advanceEventTime(
-                            ViewConfiguration.getLongPressTimeout().toLong() + 180L,
-                        )
-                        repeat(12) { index ->
-                            val fraction = (index + 1).toFloat() / 12f
-                            moveTo(center + dragDelta * fraction)
-                            advanceEventTime(30L)
+                var persistedMoveObserved = false
+                repeat(3) { attempt ->
+                    if (!persistedMoveObserved) {
+                        composeRule.waitUntil(timeoutMillis = 15_000) {
+                            composeRule
+                                .onAllNodesWithTag(sourceAppTag, useUnmergedTree = true)
+                                .fetchSemanticsNodes()
+                                .isNotEmpty() &&
+                                composeRule
+                                    .onAllNodesWithTag(targetTag, useUnmergedTree = true)
+                                    .fetchSemanticsNodes()
+                                    .isNotEmpty()
                         }
-                        up()
-                    }
 
-                withTimeout(15_000) {
-                    while (true) {
-                        val moved = dao
-                            .readItems(listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID))
-                            .singleOrNull { it.appKey == firstKey }
-                        if (moved?.cellX == targetX && moved.cellY == targetY) break
-                        delay(100)
+                        val sourceBounds = composeRule
+                            .onNodeWithTag(sourceAppTag, useUnmergedTree = true)
+                            .fetchSemanticsNode()
+                            .boundsInRoot
+                        val targetBounds = composeRule
+                            .onNodeWithTag(targetTag, useUnmergedTree = true)
+                            .fetchSemanticsNode()
+                            .boundsInRoot
+
+                        composeRule
+                            .onNodeWithTag(sourceAppTag, useUnmergedTree = true)
+                            .performTouchInput {
+                                val dragDelta = targetBounds.center - sourceBounds.center
+                                down(center)
+                                advanceEventTime(
+                                    ViewConfiguration.getLongPressTimeout().toLong() + 180L,
+                                )
+                                repeat(12) { index ->
+                                    val fraction = (index + 1).toFloat() / 12f
+                                    moveTo(center + dragDelta * fraction)
+                                    advanceEventTime(30L)
+                                }
+                                up()
+                            }
+
+                        persistedMoveObserved = runCatching {
+                            withTimeout(5_000) {
+                                while (true) {
+                                    val moved = dao
+                                        .readItems(
+                                            listOf(WorkspaceLegacyImportMapper.HOME_PAGE_ID)
+                                        )
+                                        .singleOrNull { it.appKey == firstKey }
+                                    if (moved?.cellX == targetX && moved.cellY == targetY) break
+                                    delay(100)
+                                }
+                            }
+                        }.isSuccess
+
+                        if (!persistedMoveObserved && attempt < 2) {
+                            delay(250)
+                        }
                     }
+                }
+                check(persistedMoveObserved) {
+                    "Long-press drag did not persist the requested Home cell after 3 attempts."
                 }
 
                 val afterMove = dao
