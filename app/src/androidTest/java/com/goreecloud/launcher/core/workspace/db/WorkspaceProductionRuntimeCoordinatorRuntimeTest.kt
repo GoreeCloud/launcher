@@ -29,23 +29,28 @@ import java.io.File
 class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
     private lateinit var context: Context
     private lateinit var database: LauncherDatabase
+    private lateinit var databaseName: String
     private lateinit var workspaceDataStoreFile: File
     private var workspaceDataStoreScope: CoroutineScope? = null
 
     @Before
     fun setUp() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        context.deleteDatabase(DATABASE_NAME)
+        val nonce = System.nanoTime()
+        databaseName = "$DATABASE_NAME_PREFIX-$nonce.db"
+        context.deleteDatabase(databaseName)
         database = openDatabase()
-        workspaceDataStoreFile = File(context.cacheDir, WORKSPACE_DATASTORE_FILE)
-        workspaceDataStoreFile.delete()
+        workspaceDataStoreFile = File(
+            context.cacheDir,
+            "$WORKSPACE_DATASTORE_FILE_PREFIX-$nonce.preferences_pb",
+        )
     }
 
     @After
     fun tearDown() {
         runBlocking { closeWorkspaceDataStore() }
         database.close()
-        context.deleteDatabase(DATABASE_NAME)
+        context.deleteDatabase(databaseName)
         workspaceDataStoreFile.delete()
     }
 
@@ -298,7 +303,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
         Room.databaseBuilder(
             context.applicationContext,
             LauncherDatabase::class.java,
-            DATABASE_NAME,
+            databaseName,
         )
             .setDriver(AndroidSQLiteDriver())
             .setQueryCoroutineContext(Dispatchers.IO)
@@ -321,8 +326,8 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
     }
 
     private companion object {
-        const val DATABASE_NAME = "launcher-production-runtime-test.db"
-        const val WORKSPACE_DATASTORE_FILE = "launcher-production-runtime.preferences_pb"
+        const val DATABASE_NAME_PREFIX = "launcher-production-runtime-test"
+        const val WORKSPACE_DATASTORE_FILE_PREFIX = "launcher-production-runtime"
         const val ROOM_ADDED = "10:com.example.room-added/.MainActivity"
         const val DOCK_ADDED = "10:com.example.dock-added/.MainActivity"
         const val UNAVAILABLE_ATTEMPT = "10:com.example.unavailable/.MainActivity"
