@@ -754,6 +754,7 @@ fun LauncherBetaRoot(
     onSetHomeSuggestionHidden: (String, Boolean) -> Unit,
     onSetDrawerAppPinned: (String, Boolean) -> Unit,
     onMoveDrawerPinnedApp: (String, Int) -> Unit,
+    onSetDrawerPinnedAppOrder: (List<String>) -> Unit,
     onSetDrawerSortOrderName: (String?) -> Unit,
     onRequestUninstall: (LauncherActivityInfo) -> Unit,
     themeMode: GlazeThemeMode,
@@ -1579,6 +1580,9 @@ fun LauncherBetaRoot(
                     selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
                         pinnedIndex >= 0 &&
                         pinnedIndex < drawerPinnedAppOrder.lastIndex,
+                canResetDrawerPinnedOrder =
+                    selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
+                        drawerPinnedAppKeys.size > 1,
                 availableAndroidWidgets = availableAndroidWidgets,
                 onHomeAction = {
                     if (
@@ -1622,6 +1626,23 @@ fun LauncherBetaRoot(
                 },
                 onMoveDrawerPinnedLater = {
                     onMoveDrawerPinnedApp(appKey, 1)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onResetDrawerPinnedOrder = {
+                    val alphabeticalOrder = drawerPinnedAppKeys
+                        .mapNotNull { key ->
+                            rootAppsByKey[key]?.let { pinnedApp ->
+                                key to pinnedApp.label.toString()
+                            }
+                        }
+                        .sortedWith(
+                            compareBy<Pair<String, String>> {
+                                it.second.lowercase(java.util.Locale.ROOT)
+                            }.thenBy { it.first },
+                        )
+                        .map { it.first }
+                    onSetDrawerPinnedAppOrder(alphabeticalOrder)
                     selectedApp = null
                     selectedAppAnchor = null
                 },
@@ -11345,6 +11366,7 @@ private fun AppContextPopup(
     drawerPinned: Boolean,
     canMoveDrawerPinnedEarlier: Boolean,
     canMoveDrawerPinnedLater: Boolean,
+    canResetDrawerPinnedOrder: Boolean,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onHomeAction: () -> Unit,
     onToggleDock: () -> Unit,
@@ -11353,6 +11375,7 @@ private fun AppContextPopup(
     onToggleDrawerPinned: () -> Unit,
     onMoveDrawerPinnedEarlier: () -> Unit,
     onMoveDrawerPinnedLater: () -> Unit,
+    onResetDrawerPinnedOrder: () -> Unit,
     onAddToFolder: () -> Unit,
     onOpenWidgets: (List<LauncherWidgetProviderDescriptor>) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
@@ -11541,6 +11564,12 @@ private fun AppContextPopup(
                             symbol = GlazePopupActionSymbol.PIN,
                             onClick = onMoveDrawerPinnedLater,
                             enabled = canMoveDrawerPinnedLater,
+                        )
+                        GlazeLauncherPopupAction(
+                            label = "Reset pinned order A–Z",
+                            symbol = GlazePopupActionSymbol.PIN,
+                            onClick = onResetDrawerPinnedOrder,
+                            enabled = canResetDrawerPinnedOrder,
                         )
                     }
                 }

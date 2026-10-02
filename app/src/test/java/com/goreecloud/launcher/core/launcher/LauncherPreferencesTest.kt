@@ -136,8 +136,11 @@ class LauncherPreferencesTest {
             repository.moveDrawerPinnedApp(third, -2).join()
             assertEquals(listOf(third, first, second), repository.drawerPinnedAppOrder.first())
 
+            repository.setDrawerPinnedAppOrder(listOf(second, first, third)).join()
+            assertEquals(listOf(second, first, third), repository.drawerPinnedAppOrder.first())
+
             repository.setDrawerAppPinned(first, false).join()
-            assertEquals(listOf(third, second), repository.drawerPinnedAppOrder.first())
+            assertEquals(listOf(second, third), repository.drawerPinnedAppOrder.first())
             assertEquals(setOf(third, second), repository.drawerPinnedAppKeys.first())
         } finally {
             dataStoreScope.cancel()

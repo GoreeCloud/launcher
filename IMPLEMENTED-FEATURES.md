@@ -1,5 +1,11 @@
 # GoreeCloud Launcher — Implemented Features
 
+## October 2, 2026 — manual App Drawer pinned ordering
+
+Protected PR #185 integrated device-local, profile-qualified manual ordering for pinned App Drawer applications. **Pinned first** honors the persisted manual rank, and pinned Drawer app menus expose **Move pinned earlier / Move pinned later**. Pin membership remains the existing profile-qualified key set; order is presentation metadata only, stays outside portable preference v1, and does not mutate Home, Dock, folders, package state, or cross-profile authority.
+
+The accepted candidate `69a65412f24271ecb627b2eb5aaf96b55de9e570` passed the complete protected exact-head matrix, including Launcher source/JVM/lint/build, full Android 16 lifecycle runtime, transition-performance diagnostics, the migrated-app required gate, Android Development required gate, provenance, and protected promotion before squash merge as monorepo main `7902e7bd58a510591e6c8f8778a3872df4c77642`. Representative-device accessibility, large-text/form-factor, performance/power, protected signing/update continuity, recovery, and release qualification remain open.
+
 ## October 1, 2026 — local Universal Search Quick answers
 
 - Added a Launcher-owned **Quick answers** provider for arithmetic using `+`, `-`, `×`/`*`, `÷`/`/`, unary signs, and parentheses.

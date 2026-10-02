@@ -964,6 +964,24 @@ class LauncherPreferencesRepository(
         }
     }
 
+    fun setDrawerPinnedAppOrder(order: List<String>): Job = scope.launch {
+        dataStore.edit { values ->
+            val pinnedKeys = values[Keys.drawerPinnedAppKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+            if (pinnedKeys.isEmpty()) {
+                values.remove(Keys.drawerPinnedAppOrder)
+                return@edit
+            }
+            val reconciled = LauncherDrawerPinnedOrder.reconcile(
+                order = order,
+                pinnedKeys = pinnedKeys,
+            )
+            values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(reconciled)
+        }
+    }
+
     fun setAddNewAppsToHome(enabled: Boolean) {
         scope.launch {
             dataStore.edit { values ->

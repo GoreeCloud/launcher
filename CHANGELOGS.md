@@ -1,5 +1,9 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 2, 2026 — integrate manual App Drawer pinned ordering
+
+Protected PR #185 integrated profile-qualified App Drawer manual pin ordering from exact candidate `69a65412f24271ecb627b2eb5aaf96b55de9e570` as monorepo main `7902e7bd58a510591e6c8f8778a3872df4c77642`. Pinned-first sorting now honors device-local manual ranks, and pinned app context menus expose Move earlier/later controls. The final candidate passed full Launcher Android 16 lifecycle runtime and transition-performance diagnostics plus the complete protected matrix. This is Development integration only; representative-device and release gates remain open.
+
 
 ## October 1, 2026 — correct Search top chrome and starter Home defaults from device feedback
 

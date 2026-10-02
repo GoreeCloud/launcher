@@ -1551,6 +1551,7 @@ class MainActivity : ComponentActivity() {
                             onSetHomeSuggestionHidden = launcherPreferencesRepository::setHomeSuggestionHidden,
                             onSetDrawerAppPinned = launcherPreferencesRepository::setDrawerAppPinned,
                             onMoveDrawerPinnedApp = launcherPreferencesRepository::moveDrawerPinnedApp,
+                            onSetDrawerPinnedAppOrder = launcherPreferencesRepository::setDrawerPinnedAppOrder,
                             onSetDrawerSortOrderName = launcherPreferencesRepository::setDrawerSortOrderName,
                             onRequestUninstall = ::requestUninstall,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
