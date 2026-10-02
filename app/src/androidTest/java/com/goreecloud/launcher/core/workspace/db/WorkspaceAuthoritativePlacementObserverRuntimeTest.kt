@@ -223,7 +223,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
 
     private companion object {
         const val DATABASE_NAME = "launcher-authoritative-observer-test.db"
-        const val WORKSPACE_DATASTORE_FILE = "launcher-authoritative-observer.preferences_pb"
+        const val WORKSPACE_DATASTORE_FILE_PREFIX = "launcher-authoritative-observer"
         const val DATASTORE_ADDED = "10:com.example.datastore-added/.MainActivity"
         const val ROOM_ADDED = "10:com.example.room-added/.MainActivity"
         const val DIVERGENT_FAVORITE = "10:com.example.divergent/.MainActivity"
