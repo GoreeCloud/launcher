@@ -27,6 +27,7 @@ internal object LauncherDrawerSortingPolicy {
         recentRank: (T) -> Int? = { null },
         frequency: (T) -> Long? = { null },
         pinned: (T) -> Boolean = { false },
+        pinnedRank: (T) -> Int? = { null },
     ): List<T> = entries.sortedWith { left, right ->
         val leftLabel = normalizedLabel(label(left))
         val rightLabel = normalizedLabel(label(right))
@@ -63,8 +64,16 @@ internal object LauncherDrawerSortingPolicy {
             LauncherDrawerSortOrder.PINNED_FIRST -> {
                 val leftPinned = pinned(left)
                 val rightPinned = pinned(right)
+                val leftRank = pinnedRank(left)
+                val rightRank = pinnedRank(right)
                 when {
                     leftPinned != rightPinned -> if (leftPinned) -1 else 1
+                    leftPinned && rightPinned &&
+                        leftRank != null &&
+                        rightRank != null &&
+                        leftRank != rightRank -> leftRank.compareTo(rightRank)
+                    leftPinned && rightPinned && leftRank != null && rightRank == null -> -1
+                    leftPinned && rightPinned && leftRank == null && rightRank != null -> 1
                     labelOrder != 0 -> labelOrder
                     else -> keyOrder
                 }

@@ -692,6 +692,7 @@ fun LauncherBetaRoot(
     localLaunchCounts: Map<String, Long>,
     hiddenHomeSuggestionKeys: Set<String>,
     drawerPinnedAppKeys: Set<String>,
+    drawerPinnedAppOrder: List<String>,
     drawerSortOrderName: String?,
     searchProviderPreferences: com.goreecloud.launcher.core.launcher.LauncherSearchProviderPreferenceDecodeResult?,
     fileSearchRoots: List<Uri>,
@@ -752,6 +753,7 @@ fun LauncherBetaRoot(
     onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
     onSetHomeSuggestionHidden: (String, Boolean) -> Unit,
     onSetDrawerAppPinned: (String, Boolean) -> Unit,
+    onMoveDrawerPinnedApp: (String, Int) -> Unit,
     onSetDrawerSortOrderName: (String?) -> Unit,
     onRequestUninstall: (LauncherActivityInfo) -> Unit,
     themeMode: GlazeThemeMode,
@@ -1465,6 +1467,7 @@ fun LauncherBetaRoot(
                 recentAppKeys = recentAppKeys,
                 localLaunchCounts = localLaunchCounts,
                 pinnedAppKeys = drawerPinnedAppKeys,
+                pinnedAppOrder = drawerPinnedAppOrder,
                 sortOrderName = drawerSortOrderName,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
@@ -1562,6 +1565,7 @@ fun LauncherBetaRoot(
     if (activeDrag == null) selectedApp?.let { app ->
         selectedAppAnchor?.let { anchor ->
             val appKey = app.workspaceKey()
+            val pinnedIndex = drawerPinnedAppOrder.indexOf(appKey)
             AppContextPopup(
                 app = app,
                 anchor = anchor,
@@ -1569,6 +1573,12 @@ fun LauncherBetaRoot(
                 workspace = workspace,
                 layoutLocked = preferences.layoutLocked,
                 drawerPinned = appKey in drawerPinnedAppKeys,
+                canMoveDrawerPinnedEarlier =
+                    selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER && pinnedIndex > 0,
+                canMoveDrawerPinnedLater =
+                    selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
+                        pinnedIndex >= 0 &&
+                        pinnedIndex < drawerPinnedAppOrder.lastIndex,
                 availableAndroidWidgets = availableAndroidWidgets,
                 onHomeAction = {
                     if (
@@ -1602,6 +1612,16 @@ fun LauncherBetaRoot(
                         appKey,
                         appKey !in drawerPinnedAppKeys,
                     )
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onMoveDrawerPinnedEarlier = {
+                    onMoveDrawerPinnedApp(appKey, -1)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onMoveDrawerPinnedLater = {
+                    onMoveDrawerPinnedApp(appKey, 1)
                     selectedApp = null
                     selectedAppAnchor = null
                 },
@@ -5870,8 +5890,10 @@ private fun orderedDrawerVisualEntries(
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
     pinnedAppKeys: Set<String>,
+    pinnedAppOrder: List<String>,
 ): List<LauncherDrawerVisualEntry> {
     val recentRanks = recentAppKeys.withIndex().associate { (index, key) -> key to index }
+    val pinnedRanks = pinnedAppOrder.withIndex().associate { (index, key) -> key to index }
     return buildList {
         apps.forEach { app ->
             add(
@@ -5902,6 +5924,12 @@ private fun orderedDrawerVisualEntries(
             },
             pinned = { entry ->
                 (entry as? LauncherDrawerVisualEntry.Application)?.pinned ?: false
+            },
+            pinnedRank = { entry ->
+                (entry as? LauncherDrawerVisualEntry.Application)
+                    ?.app
+                    ?.workspaceKey()
+                    ?.let(pinnedRanks::get)
             },
         )
     }
@@ -6070,6 +6098,7 @@ private fun AppDrawerSurface(
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
     pinnedAppKeys: Set<String>,
+    pinnedAppOrder: List<String>,
     sortOrderName: String?,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -6563,6 +6592,7 @@ private fun AppDrawerSurface(
                             recentAppKeys = recentAppKeys,
                             localLaunchCounts = localLaunchCounts,
                             pinnedAppKeys = pinnedAppKeys,
+                            pinnedAppOrder = pinnedAppOrder,
                             query = drawerQuery,
                             preferences = preferences,
                             drawerLayoutMode = drawerLayoutMode,
@@ -6710,6 +6740,7 @@ private fun DrawerAppsContent(
     recentAppKeys: List<String>,
     localLaunchCounts: Map<String, Long>,
     pinnedAppKeys: Set<String>,
+    pinnedAppOrder: List<String>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -6729,6 +6760,7 @@ private fun DrawerAppsContent(
         recentAppKeys,
         localLaunchCounts,
         pinnedAppKeys,
+        pinnedAppOrder,
         sortOrder,
     ) {
         orderedDrawerVisualEntries(
@@ -6738,6 +6770,7 @@ private fun DrawerAppsContent(
             recentAppKeys = recentAppKeys,
             localLaunchCounts = localLaunchCounts,
             pinnedAppKeys = pinnedAppKeys,
+            pinnedAppOrder = pinnedAppOrder,
         )
     }
     if (entries.isEmpty() && query.isNotBlank()) {
@@ -11310,12 +11343,16 @@ private fun AppContextPopup(
     workspace: WorkspaceState,
     layoutLocked: Boolean,
     drawerPinned: Boolean,
+    canMoveDrawerPinnedEarlier: Boolean,
+    canMoveDrawerPinnedLater: Boolean,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onHomeAction: () -> Unit,
     onToggleDock: () -> Unit,
     onOpenAppInfo: () -> Unit,
     onRequestUninstall: () -> Unit,
     onToggleDrawerPinned: () -> Unit,
+    onMoveDrawerPinnedEarlier: () -> Unit,
+    onMoveDrawerPinnedLater: () -> Unit,
     onAddToFolder: () -> Unit,
     onOpenWidgets: (List<LauncherWidgetProviderDescriptor>) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
@@ -11492,6 +11529,20 @@ private fun AppContextPopup(
                         symbol = GlazePopupActionSymbol.PIN,
                         onClick = onToggleDrawerPinned,
                     )
+                    if (drawerPinned) {
+                        GlazeLauncherPopupAction(
+                            label = "Move pinned earlier",
+                            symbol = GlazePopupActionSymbol.PIN,
+                            onClick = onMoveDrawerPinnedEarlier,
+                            enabled = canMoveDrawerPinnedEarlier,
+                        )
+                        GlazeLauncherPopupAction(
+                            label = "Move pinned later",
+                            symbol = GlazePopupActionSymbol.PIN,
+                            onClick = onMoveDrawerPinnedLater,
+                            enabled = canMoveDrawerPinnedLater,
+                        )
+                    }
                 }
                 GlazeLauncherPopupAction(
                     label = "Add to folder",

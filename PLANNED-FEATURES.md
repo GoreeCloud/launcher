@@ -1,5 +1,9 @@
 # GoreeCloud Launcher — Planned Features
 
+## October 2, 2026 — manual pinned ordering candidate
+
+The current capability-expansion candidate advances App Drawer organization beyond pin membership by preserving a device-local, profile-qualified manual order for pinned apps. Pinned-first sorting now honors that order, and a pinned app's Drawer context menu exposes bounded **Move pinned earlier / Move pinned later** actions. Membership remains the existing profile-qualified pin set; ordering is presentation metadata only, remains outside portable preference v1, and does not mutate Home, Dock, folders, package state, or cross-profile authority. Focused JVM coverage verifies ordered persistence, pin/unpin reconciliation, malformed-metadata fail-closed behavior, and explicit pinned-rank sorting. This remains Development candidate work until exact-head protected validation and integration complete.
+
 ## September 30, 2026 interaction-stabilization continuation
 
 Merged PRs #103–#107 now cover the current mainline drawer/Home/profile/Search/performance stabilization tranche: explicit A–Z/Z–A/Most recent/Most frequent sorting, warm User/Work profile paging, stationary drawer long-press actions, threshold-responsive Home paging, secondary-page vertical gestures, exact-profile Work folders with persistence-level isolation, bounded confirmation before publishing suspicious inventory loss from a still-active Android profile, genuine **Movable** Universal Search backed by the existing Room 4 × 1 Search widget, and removal of the redundant first-composition 180–220 ms page-entry animation.

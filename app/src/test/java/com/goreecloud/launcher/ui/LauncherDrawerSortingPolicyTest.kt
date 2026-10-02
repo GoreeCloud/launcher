@@ -163,6 +163,36 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun pinnedFirstUsesExplicitPinnedRankBeforeAlphabeticalFallback() {
+        val entries = listOf(
+            Entry("Alpha", "app:alpha"),
+            Entry("Bravo", "app:bravo"),
+            Entry("Charlie", "app:charlie"),
+            Entry("Folder", "folder:folder"),
+        )
+        val pinned = setOf("app:alpha", "app:bravo", "app:charlie")
+        val ranks = mapOf(
+            "app:charlie" to 0,
+            "app:alpha" to 1,
+            "app:bravo" to 2,
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.PINNED_FIRST,
+            pinned = { it.stableKey in pinned },
+            pinnedRank = { ranks[it.stableKey] },
+        )
+
+        assertEquals(
+            listOf("app:charlie", "app:alpha", "app:bravo", "folder:folder"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
     fun gridGeometryKeepsIconAndLabelSlotsFixedAcrossSpacingModes() {
         val grid = LauncherDrawerSpacing.entries.map { spacing ->
             LauncherDrawerGridPolicy.geometry(compact = false, spacing = spacing)

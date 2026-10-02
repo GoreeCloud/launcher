@@ -464,9 +464,14 @@ class MainActivity : ComponentActivity() {
             val hiddenHomeSuggestionKeys by launcherPreferencesRepository.hiddenHomeSuggestionKeys.collectAsStateWithLifecycle(
                 initialValue = emptySet(),
             )
-            val drawerPinnedAppKeys by launcherPreferencesRepository.drawerPinnedAppKeys.collectAsStateWithLifecycle(
-                initialValue = emptySet(),
+            val drawerPinnedState by launcherPreferencesRepository.drawerPinnedState.collectAsStateWithLifecycle(
+                initialValue = com.goreecloud.launcher.core.launcher.LauncherDrawerPinnedState(
+                    keys = emptySet(),
+                    order = emptyList(),
+                ),
             )
+            val drawerPinnedAppKeys = drawerPinnedState.keys
+            val drawerPinnedAppOrder = drawerPinnedState.order
             val drawerSortOrderName by launcherPreferencesRepository.drawerSortOrderName.collectAsStateWithLifecycle(
                 initialValue = null,
             )
@@ -1143,6 +1148,7 @@ class MainActivity : ComponentActivity() {
                             localLaunchCounts = localLaunchCounts,
                             hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
                             drawerPinnedAppKeys = drawerPinnedAppKeys,
+                            drawerPinnedAppOrder = drawerPinnedAppOrder,
                             drawerSortOrderName = drawerSortOrderName,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
@@ -1544,6 +1550,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onSetHomeSuggestionHidden = launcherPreferencesRepository::setHomeSuggestionHidden,
                             onSetDrawerAppPinned = launcherPreferencesRepository::setDrawerAppPinned,
+                            onMoveDrawerPinnedApp = launcherPreferencesRepository::moveDrawerPinnedApp,
                             onSetDrawerSortOrderName = launcherPreferencesRepository::setDrawerSortOrderName,
                             onRequestUninstall = ::requestUninstall,
                             onOpenWallpaperPicker = ::openWallpaperPicker,

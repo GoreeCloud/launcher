@@ -115,6 +115,55 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun drawerPinnedOrderFollowsPinningAndExplicitMovement() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-pin-order.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            val first = "0:com.example/.First"
+            val second = "10:com.example/.Second"
+            val third = "0:com.example/.Third"
+
+            repository.setDrawerAppPinned(first, true).join()
+            repository.setDrawerAppPinned(second, true).join()
+            repository.setDrawerAppPinned(third, true).join()
+            assertEquals(listOf(first, second, third), repository.drawerPinnedAppOrder.first())
+
+            repository.moveDrawerPinnedApp(third, -2).join()
+            assertEquals(listOf(third, first, second), repository.drawerPinnedAppOrder.first())
+
+            repository.setDrawerAppPinned(first, false).join()
+            assertEquals(listOf(third, second), repository.drawerPinnedAppOrder.first())
+            assertEquals(setOf(third, second), repository.drawerPinnedAppKeys.first())
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
+    fun pinnedOrderCodecFailsClosedAndReconcilesMissingKeysDeterministically() {
+        val encoded = LauncherDrawerPinnedOrder.encode(
+            listOf("0:com.example/.One", "10:com.example/.Two"),
+        )
+        assertEquals(
+            listOf("0:com.example/.One", "10:com.example/.Two"),
+            LauncherDrawerPinnedOrder.decode(encoded),
+        )
+        assertEquals(emptyList<String>(), LauncherDrawerPinnedOrder.decode("bad:payload"))
+        assertEquals(
+            listOf("0:a", "0:b", "10:c"),
+            LauncherDrawerPinnedOrder.reconcile(
+                order = listOf("0:a", "stale", "0:b"),
+                pinnedKeys = setOf("0:b", "10:c", "0:a"),
+            ),
+        )
+    }
+
+    @Test
     fun drawerSortSelectionPersistsAndCanResetToDefault() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(
