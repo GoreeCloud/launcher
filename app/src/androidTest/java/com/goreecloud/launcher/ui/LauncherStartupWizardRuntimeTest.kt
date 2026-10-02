@@ -45,24 +45,27 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText("Welcome to GoreeCloud Launcher")
             .performScrollTo()
             .assertIsDisplayed()
+        composeRule.onNodeWithText("Step 1 of 3")
+            .performScrollTo()
+            .assertIsDisplayed()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Set up your Home")
+        composeRule.onNodeWithText("Build your Home")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("No automatic apps")
+        composeRule.onNodeWithText("None")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("10 most recent apps")
+        composeRule.onNodeWithText("Recent")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("10 most used apps")
+        composeRule.onNodeWithText("Most used")
             .performScrollTo()
             .assertIsDisplayed()
             .performClick()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
-        composeRule.onNodeWithText("Search, folders, and hints")
+        composeRule.onNodeWithText("Search and gestures")
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Finish setup").performScrollTo().performClick()
@@ -76,12 +79,12 @@ class LauncherStartupWizardRuntimeTest {
         assertEquals(LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY, result?.universalSearchHomeMode)
     }
     @Test
-    fun wizardExplainsCurrentPlacementFolderAndConnectedSearchBoundaries() {
+    fun wizardKeepsAdvancedDetailsBehindLearnMore() {
         composeRule.setContent {
             MaterialTheme {
                 LauncherStartupWizard(
                     isDefaultHome = true,
-                    initialHomeAppMode = LauncherHomeAppMode.RECENT,
+                    initialHomeAppMode = LauncherHomeAppMode.NONE,
                     initialHomeColumns = 5,
                     initialHomeRows = 6,
                     initialShowHomeLabels = true,
@@ -96,34 +99,28 @@ class LauncherStartupWizardRuntimeTest {
             }
         }
 
-        composeRule.onNodeWithText("Search, folders, and hints")
+        composeRule.onNodeWithText("Search and gestures")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Place apps exactly")
+        composeRule.onNodeWithText("Apps")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Long-press an app in Apps, keep holding, and drag it to the exact primary Home cell or Dock position you want. On Home, keep holding a saved app at a left or right page edge briefly to switch pages, then release over the exact target cell. Long-press empty Home space for Edit Home; Launcher Settings is available there and from the gear in Apps.",
-        )
+        composeRule.onNodeWithText("Widgets")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Move widgets directly")
+        composeRule.onNodeWithText("Folders")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Long-press a Home widget and drag it to a free cell, or release it at a valid page edge to move it to the adjacent Home page. A stationary hold opens widget options, including Move to another Home page. Fresh starter layouts use movable Glance.",
-        )
+        composeRule.onNodeWithText("Private Search")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Manage folders in place")
+        composeRule.onNodeWithText("Learn more")
+            .performScrollTo()
+            .performClick()
+        composeRule.onNodeWithText("Exact placement")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Open a folder and use Add apps at the end of its grid or from the folder menu. On Home, long-press a folder to move it to a free cell or release it at a page edge to move it to the adjacent Home page. Larger opened folders swipe across compact pages.",
-        )
-            .performScrollTo()
-            .assertIsDisplayed()
-        composeRule.onNodeWithText("Connected Search is opt-in")
+        composeRule.onNodeWithText("Connected Search")
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -136,18 +133,18 @@ class LauncherStartupWizardRuntimeTest {
             }
         }
 
+        composeRule.onNodeWithText("↑  Apps").assertIsDisplayed()
+        composeRule.onNodeWithText("↓  Search").assertIsDisplayed()
+        composeRule.onNodeWithText("Hold  Edit").assertIsDisplayed()
+        composeRule.onNodeWithText("Place precisely").assertIsDisplayed()
         composeRule.onNodeWithText(
-            "Long-press an app in Apps to drag it to Home/Dock or Pin in Apps; use Pinned first or the ★ filter to keep favorites easy to reach.",
+            "Hold an app, widget, or folder and drag it to a Home cell or Dock position.",
         ).assertIsDisplayed()
+        composeRule.onNodeWithText("Move across pages").assertIsDisplayed()
         composeRule.onNodeWithText(
-            "Home apps: keep holding at a left or right page edge briefly to switch pages, then release over the exact target cell.",
+            "Keep holding at a page edge to switch pages, then release on the target.",
         ).assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Widgets: long-press and drag to a free Home cell or adjacent page edge; movable Universal Search uses the same Home-grid behavior.",
-        ).assertIsDisplayed()
-        composeRule.onNodeWithText(
-            "Folders: long-press a Home folder to move it to a free cell or adjacent page edge; use Add apps at the end of the grid and swipe larger opened folders between pages.",
-        ).assertIsDisplayed()
+        composeRule.onNodeWithText("Keep Apps tidy").assertIsDisplayed()
     }
 
     @Test
@@ -174,13 +171,16 @@ class LauncherStartupWizardRuntimeTest {
             }
         }
 
-        composeRule.onNodeWithText("Set up your Home")
+        composeRule.onNodeWithText("Build your Home")
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("Step 2 of 3")
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
         assertEquals(2, reportedStep)
-        composeRule.onNodeWithText("Search, folders, and hints")
+        composeRule.onNodeWithText("Search and gestures")
             .performScrollTo()
             .assertIsDisplayed()
     }

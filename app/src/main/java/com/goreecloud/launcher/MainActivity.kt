@@ -648,20 +648,10 @@ class MainActivity : ComponentActivity() {
                     LauncherStarterHomeDefaultsPolicy.DEFAULT_SECONDARY_PAGE_ID,
                 )
 
+                // Keep a fresh Home intentionally clean. Built-in widgets remain available from
+                // Edit Home → Widgets, but starter provisioning no longer places them automatically.
                 launcherPreferencesRepository.setHomeCardStyle(
-                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
-                )
-                workspaceRuntimeCoordinator.addBuiltInWidget(
-                    itemId = STARTER_CALENDAR_WIDGET_ID,
-                    typeId = WorkspaceWidgetCatalog.CALENDAR,
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
-                )
-                workspaceRuntimeCoordinator.addBuiltInWidget(
-                    itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
-                    typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
+                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.OFF,
                 )
 
                 launcherPreferencesRepository.markStarterLayoutApplied()
@@ -701,11 +691,28 @@ class MainActivity : ComponentActivity() {
                         (placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn)?.typeId ==
                             WorkspaceWidgetCatalog.GLANCE
                 }
+                val reservedStarterWidgetIds = setOf(
+                    STARTER_CALENDAR_WIDGET_ID,
+                    STARTER_QUICK_ACTIONS_WIDGET_ID,
+                )
+                val hasSeededStarterWidgets = pagesSnapshot.any { page ->
+                    page.widgetPlacements.any { placement ->
+                        placement.itemId in reservedStarterWidgetIds
+                    }
+                }
                 val allPagesEmpty = pagesSnapshot.all { page ->
                     page.appKeys.isEmpty() &&
                         page.widgetPlacements.isEmpty() &&
                         page.folderPlacements.isEmpty() &&
                         page.unsupportedItemCount == 0
+                }
+                val allPagesContainOnlyReservedStarterContent = pagesSnapshot.all { page ->
+                    page.appKeys.isEmpty() &&
+                        page.folderPlacements.isEmpty() &&
+                        page.unsupportedItemCount == 0 &&
+                        page.widgetPlacements.all { placement ->
+                            placement.itemId in reservedStarterWidgetIds
+                        }
                 }
                 val repairEmptyStarter = LauncherStarterHomeDefaultsPolicy.shouldRepairEmptyStarter(
                     roomAuthoritative = true,
@@ -718,13 +725,30 @@ class MainActivity : ComponentActivity() {
                     pageIds = pagesSnapshot.map { it.pageId },
                     allPagesEmpty = allPagesEmpty,
                 )
+                val repairSeededStarter =
+                    hasSeededStarterWidgets &&
+                        LauncherStarterHomeDefaultsPolicy.shouldRepairEmptyStarter(
+                            roomAuthoritative = true,
+                            starterLayoutApplied = experiencePreferences.starterLayoutApplied,
+                            startupWizardCompleted = experiencePreferences.startupWizardCompleted,
+                            hasApps = true,
+                            hasFavorites = workspace.favoriteKeys.isNotEmpty(),
+                            dockItemCount = workspace.dockKeys.size,
+                            expectedStarterDockSize = visualPreferences.starterDockSize,
+                            pageIds = pagesSnapshot.map { it.pageId },
+                            allPagesEmpty = allPagesContainOnlyReservedStarterContent,
+                        )
 
-                if (!hasLegacyStarterGlance && !repairEmptyStarter) {
+                if (!hasLegacyStarterGlance && !repairSeededStarter && !repairEmptyStarter) {
                     return@LaunchedEffect
                 }
 
                 if (hasLegacyStarterGlance) {
                     workspaceRuntimeCoordinator.removeWidget(STARTER_GLANCE_WIDGET_ID)
+                }
+                if (repairSeededStarter) {
+                    workspaceRuntimeCoordinator.removeWidget(STARTER_CALENDAR_WIDGET_ID)
+                    workspaceRuntimeCoordinator.removeWidget(STARTER_QUICK_ACTIONS_WIDGET_ID)
                 }
 
                 val secondaryPages = pagesSnapshot.filterNot {
@@ -745,28 +769,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 launcherPreferencesRepository.setHomeCardStyle(
-                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
+                    com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.OFF,
                 )
-                if (primaryPage.widgetPlacements.none { it.itemId == STARTER_CALENDAR_WIDGET_ID }) {
-                    workspaceRuntimeCoordinator.addBuiltInWidget(
-                        itemId = STARTER_CALENDAR_WIDGET_ID,
-                        typeId = WorkspaceWidgetCatalog.CALENDAR,
-                        columns = launcherPreferences.homeColumns,
-                        rows = launcherPreferences.homeRows,
-                    )
-                }
-                if (
-                    primaryPage.widgetPlacements.none {
-                        it.itemId == STARTER_QUICK_ACTIONS_WIDGET_ID
-                    }
-                ) {
-                    workspaceRuntimeCoordinator.addBuiltInWidget(
-                        itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
-                        typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
-                        columns = launcherPreferences.homeColumns,
-                        rows = launcherPreferences.homeRows,
-                    )
-                }
             }
 
             LaunchedEffect(

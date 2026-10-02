@@ -14,6 +14,23 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 class LauncherPreferencesTest {
+    @Test
+    fun repositoryFallbackKeepsEstablishedHomeCardClock() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("home-card-fallback.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            val experience = repository.experiencePreferences.first()
+            assertEquals(LauncherHomeCardStyle.CLOCK, experience.homeCardStyle)
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
     @get:Rule
     val temporaryFolder = TemporaryFolder()
 

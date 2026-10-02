@@ -20,6 +20,14 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeGesture
 import com.goreecloud.launcher.core.launcher.LauncherPreferencesRepository
+import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
+import com.goreecloud.launcher.core.workspace.WorkspaceRepository
+import com.goreecloud.launcher.core.workspace.db.LauncherDatabaseProvider
+import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
+import com.goreecloud.launcher.core.workspace.db.WorkspacePagedHomeState
+import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoordinator
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
 import kotlin.math.roundToInt
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertTrue
@@ -44,6 +52,36 @@ class LauncherTransitionPerformanceRuntimeTest {
         ).join()
         preferences.setHomeHintsDismissed(true).join()
         preferences.markStartupWizardCompleted().join()
+
+        // Frame-timing cases measure established Home/Drawer/Search transitions, not first-run
+        // provisioning. Establish the real Room-backed primary Home before Activity launch so
+        // startup migration cannot consume or delay the first measured vertical gesture.
+        val workspaceRepository = WorkspaceRepository(context)
+        workspaceRepository.ensureDefaults(
+            favoriteKeys = emptyList(),
+            dockKeys = emptyList(),
+        )
+        val runtime = WorkspaceProductionRuntimeCoordinator(
+            authorityRepository = workspaceRepository,
+            workspaceDaoProvider = {
+                LauncherDatabaseProvider.get(context).workspaceDao()
+            },
+        )
+        runtime.reconcileAndActivate()
+        withTimeout(10_000) {
+            workspaceRepository.state.first {
+                it.initialized && it.authority == WorkspaceAuthority.ROOM
+            }
+        }
+        withTimeout(10_000) {
+            runtime.observeHomePages().first { state ->
+                state is WorkspacePagedHomeState.Ready &&
+                    state.pages.any { page ->
+                        page.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                    }
+            }
+        }
+        preferences.markStarterLayoutApplied()
     }
 
     @Test

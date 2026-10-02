@@ -77,22 +77,61 @@ class ActivatedHomeLifecycleRuntimeTest {
     private var previousHomeAppMode = LauncherHomeAppMode.NONE
 
     @Before
-    fun isolatePersistedWorkspaceTestsFromAutomaticHomeApps() = runBlocking {
+    fun prepareEstablishedRuntimeState() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lifecyclePreferencesRepository = LauncherPreferencesRepository(context)
         previousHomeAppMode =
             lifecyclePreferencesRepository.experiencePreferences.first().homeAppMode
+
         lifecyclePreferencesRepository.setHomeAppMode(LauncherHomeAppMode.NONE).join()
+        lifecyclePreferencesRepository.setHomeHintsDismissed(true).join()
+        lifecyclePreferencesRepository.markStartupWizardCompleted().join()
+
+        // These cases validate an established Launcher runtime. Bootstrap the authoritative
+        // workspace through the same production coordinator used by MainActivity before marking
+        // starter provisioning complete, so first-run initialization cannot race gestures,
+        // lifecycle recreation, spatial drag/drop, or page assertions.
+        val workspaceRepository = WorkspaceRepository(context)
+        workspaceRepository.ensureDefaults(
+            favoriteKeys = emptyList(),
+            dockKeys = emptyList(),
+        )
+        val runtime = WorkspaceProductionRuntimeCoordinator(
+            authorityRepository = workspaceRepository,
+            workspaceDaoProvider = {
+                LauncherDatabaseProvider.get(context).workspaceDao()
+            },
+        )
+        runtime.reconcileAndActivate()
+        withTimeout(10_000) {
+            workspaceRepository.state.first {
+                it.initialized && it.authority == WorkspaceAuthority.ROOM
+            }
+        }
+        withTimeout(10_000) {
+            runtime.observeHomePages().first { state ->
+                state is WorkspacePagedHomeState.Ready &&
+                    state.pages.any { page ->
+                        page.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                    }
+            }
+        }
+
+        lifecyclePreferencesRepository.markStarterLayoutApplied()
         withTimeout(5_000) {
             lifecyclePreferencesRepository.experiencePreferences.first {
-                it.homeAppMode == LauncherHomeAppMode.NONE
+                it.homeAppMode == LauncherHomeAppMode.NONE &&
+                    it.startupWizardCompleted &&
+                    it.starterLayoutApplied
             }
         }
         LauncherLocalUsageRepository(context).clear().join()
+        Unit
     }
 
     @After
     fun restoreAutomaticHomeAppMode() = runBlocking {
+        if (!::lifecyclePreferencesRepository.isInitialized) return@runBlocking
         lifecyclePreferencesRepository.setHomeAppMode(previousHomeAppMode).join()
         withTimeout(5_000) {
             lifecyclePreferencesRepository.experiencePreferences.first {
@@ -100,14 +139,6 @@ class ActivatedHomeLifecycleRuntimeTest {
             }
         }
         Unit
-    }
-
-    @Before
-    fun completeStartupForEstablishedRuntimeTests() = runBlocking {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val preferences = LauncherPreferencesRepository(context)
-        preferences.setHomeHintsDismissed(true).join()
-        preferences.markStartupWizardCompleted().join()
     }
 
     @Test
