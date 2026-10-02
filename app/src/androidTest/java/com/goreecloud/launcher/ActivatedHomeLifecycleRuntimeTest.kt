@@ -1991,6 +1991,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherHomeGesture.SWIPE_UP,
                 configuredAction,
             ).join()
+            withTimeout(10_000) {
+                preferencesRepository.experiencePreferences.first { preferences ->
+                    preferences.swipeUpAction == configuredAction
+                }
+            }
 
             val scenario = ActivityScenario.launch(MainActivity::class.java)
             try {
@@ -2011,13 +2016,15 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .fetchSemanticsNode()
                     .boundsInRoot
-                val gestureX = gestureBounds.center.x.toInt()
+                // Match the proven Apps gesture fixture: use empty right-side Home space and
+                // stay clear of bottom system gestures so the input is routed deterministically.
+                val gestureX = (gestureBounds.right - 32f).toInt()
                 injectTouchSwipe(
                     startX = gestureX,
-                    startY = (gestureBounds.top + gestureBounds.height * 0.68f).toInt(),
+                    startY = (gestureBounds.bottom * 0.72f).toInt(),
                     endX = gestureX,
-                    endY = (gestureBounds.top + gestureBounds.height * 0.32f).toInt(),
-                    durationMillis = 400L,
+                    endY = (gestureBounds.top + gestureBounds.height * 0.28f).toInt(),
+                    durationMillis = 360L,
                 )
 
                 waitForDisplayedTag("launcher-home-editor-fullscreen")
