@@ -38,7 +38,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
         database = openDatabase()
         workspaceDataStoreFile = File(
             context.cacheDir,
-            "$WORKSPACE_DATASTORE_FILE-${System.nanoTime()}",
+            "launcher-authoritative-observer-${System.nanoTime()}.preferences_pb",
         )
     }
 
