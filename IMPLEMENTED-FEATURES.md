@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Implemented Features
 
+## October 2, 2026 — canonical Universal Search Sources Glaze presentation
+
+Protected PR #190 rebuilt the Universal Search **Search Sources** manager around the owner-supplied canonical mockup while preserving the existing provider-control model. The integrated presentation now uses a rounded icon back control, stronger title/subtitle hierarchy, a three-way **Icons / Words / Both** segmented selector, a compact **Private by default** strip, grouped **On-device / Your content / Connected** cards, source-specific badges, denser row hierarchy, inline permission/readiness emphasis, disclosure chevrons, and a clearer Files folder action.
+
+The visual change does not alter provider execution, Android permission authority, consent, source ordering, selected file roots, connected-provider authorization, query retention, profile identity, workspace persistence, or network policy. Registered providers remain authoritative even when an individual reference crop does not show every provider.
+
+Exact PR head `e670a9662780c8d257fec4869d639cf252447650` passed Mandatory app migration provenance #621, Android Development Foundation #1113, Migrated Android apps CI #647, and Protected promotion #601 before squash merge as `080e004843ea9119e96cd1446353191e06144228`. The migrated-app matrix included Launcher validation/JVM/lint/build, Room schema verification, Development APK staging, full Android 16 runtime instrumentation, and transition-performance diagnostics.
+
+**Acceptance boundary:** Development integration only. Representative physical-device mockup comparison, accessibility/large-text/form-factor acceptance, protected Development signing/update continuity, release qualification, Production, Stable, Seal, and Anchor remain open.
+
 ## October 2, 2026 — manual App Drawer pinned ordering
 
 Protected PR #185 integrated device-local, profile-qualified manual ordering for pinned App Drawer applications. **Pinned first** honors the persisted manual rank, and pinned Drawer app menus expose **Move pinned earlier / Move pinned later**. Pin membership remains the existing profile-qualified key set; order is presentation metadata only, stays outside portable preference v1, and does not mutate Home, Dock, folders, package state, or cross-profile authority.
