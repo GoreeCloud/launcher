@@ -1317,13 +1317,19 @@ class ActivatedHomeLifecycleRuntimeTest {
                 favoriteKeys = listOf(firstKey, secondKey),
                 dockKeys = emptyList(),
             )
+            val runtime = WorkspaceProductionRuntimeCoordinator(
+                authorityRepository = repository,
+                workspaceDaoProvider = {
+                    LauncherDatabaseProvider.get(context).workspaceDao()
+                },
+            )
+            check(runtime.reconcileAndActivate() == WorkspaceProductionRuntimeResult.RoomReady)
+            withTimeout(10_000) {
+                repository.state.first { it.authority == WorkspaceAuthority.ROOM }
+            }
 
             val scenario = ActivityScenario.launch(MainActivity::class.java)
             try {
-                withTimeout(15_000) {
-                    repository.state.first { it.authority == WorkspaceAuthority.ROOM }
-                }
-
                 val dao = LauncherDatabaseProvider.get(context).workspaceDao()
                 val preferences = LauncherPreferencesRepository(context).preferences.first()
                 val roomPlacement = WorkspaceRoomPlacementRepository(
@@ -1340,12 +1346,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 check(baseline is WorkspaceRoomWriteResult.Written)
 
-                val runtime = WorkspaceProductionRuntimeCoordinator(
-                    authorityRepository = repository,
-                    workspaceDaoProvider = {
-                        LauncherDatabaseProvider.get(context).workspaceDao()
-                    },
-                )
                 val spatialReady = runtime.ensurePrimaryHomeSpatialGrid(
                     columns = preferences.homeColumns,
                     rows = preferences.homeRows,
