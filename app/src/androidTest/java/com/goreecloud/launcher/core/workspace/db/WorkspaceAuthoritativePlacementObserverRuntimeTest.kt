@@ -36,8 +36,10 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         context.deleteDatabase(DATABASE_NAME)
         database = openDatabase()
-        workspaceDataStoreFile = File(context.cacheDir, WORKSPACE_DATASTORE_FILE)
-        workspaceDataStoreFile.delete()
+        workspaceDataStoreFile = File(
+            context.cacheDir,
+            "$WORKSPACE_DATASTORE_FILE-${System.nanoTime()}",
+        )
     }
 
     @After
@@ -56,7 +58,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
 
         assertEquals(
             WorkspaceAuthoritativePlacementState.WaitingForInitialization,
-            observer.observe().first(),
+            withTimeout(5_000) { observer.observe().first() },
         )
 
         repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
