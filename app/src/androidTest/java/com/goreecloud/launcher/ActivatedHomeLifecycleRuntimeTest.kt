@@ -886,6 +886,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherHomeGesture.SWIPE_UP,
                 appsAction,
             ).join()
+            withTimeout(10_000) {
+                preferencesRepository.experiencePreferences.first { preferences ->
+                    preferences.swipeUpAction == appsAction
+                }
+            }
 
             val apps = withTimeout(10_000) {
                 LauncherAppsRepository(context).apps.first { candidates ->
@@ -917,15 +922,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 // reconciliation. Wait for the real Home surface plus both authoritative Room
                 // projections before performing this test-owned setup mutation; otherwise a healthy
                 // guarded write can legitimately lose a snapshot race and contaminate later tests.
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-swipe-up-apps",
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
+                waitForDisplayedTag("launcher-home-swipe-surface")
                 composeRule.waitForIdle()
                 withTimeout(10_000) {
                     runtime.observeHomePages().first { state ->
