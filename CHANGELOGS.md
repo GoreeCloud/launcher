@@ -1,6 +1,25 @@
 # GoreeCloud Launcher — Changelogs
 
 
+## October 1, 2026 — correct Search top chrome and starter Home defaults from device feedback
+
+Representative-device screenshots from the CI #507 mockup-alignment build exposed three Development defects that automation had not caught. Universal Search still rendered a product title/scope row and privacy chip above the search field, an already-initialized empty starter Home could bypass the Calendar/Quick actions seeding path, and the starter workspace did not explicitly establish the intended second Home page.
+
+This follow-up makes the **Search with GoreeCloud…** field the first and only top chrome on the ordinary Universal Search surface; source management remains available through the settings control inside that field. Fresh starter initialization now creates a deterministic second Home page while retaining `home:0` as the sole protected rank-zero page. The empty-starter repair path is narrowly limited to a Room-authoritative, startup-complete Development workspace with no Favorites, a Dock count that exactly matches the configured starter Dock size, no runtime/test fixture pages, and no Home apps/widgets/folders/unsupported items. In that signature it keeps the protected primary plus one secondary page, removes only excess empty secondary pages, and seeds the real Calendar and Quick actions widgets. User-created Home content prevents this repair path from running.
+
+The migration effect intentionally keys on stable readiness predicates rather than the full rendered-page object, preventing its own page/widget writes from cancelling the coroutine mid-repair.
+
+The API 36 acceptance harness is also updated for the two-page/default-widget contract: editor checks target the editor surface/action tags instead of assuming **Edit Home** is a unique text label (Quick actions legitimately exposes the same label on Home), and paging cases discover/navigate the actual secondary-page index instead of assuming a temporary page is always Page 2.
+
+The Home background now also exposes an explicit accessibility long-click semantic action labeled **Edit Home** in addition to the existing pointer long-press. This keeps the gesture available to assistive/semantic clients and gives runtime acceptance a deterministic editor action even when default widgets visually occupy much of the grid. The API 36 editor/wallpaper cases invoke that semantic action directly, while the legacy swipe-up compatibility case injects its swipe through the center of the Home surface instead of the bottom edge so the externally hosted Dock cannot intercept the gesture in the two-page layout. The unified two-page pager now observes configured vertical Home gestures during the Initial pointer-event pass without consuming them, so Android 16 pager/child arbitration cannot hide swipe-up/down actions before Launcher classifies them.
+
+With more than one Home page active, the unified horizontal pager observes vertically dominant swipes and dispatches the configured Home swipe-up/down actions without consuming the pager's horizontal stream. Single-page Home now uses the same Initial-pass, non-consuming vertical observer instead of `detectVerticalDragGestures`, so seeded widgets, app tiles, Search, or other child content cannot win gesture arbitration before Launcher sees the configured global Home swipe. The externally hosted pager remains the sole vertical observer on multi-page Home, preventing duplicate dispatch.
+
+The full-screen widget gallery now exposes an explicit **Close** action in its own header instead of relying only on Android Back to exit. This gives touch, keyboard, accessibility, and runtime clients a first-party dismissal target and lets lifecycle tests close the dialog through supported Launcher UI before destroying the scenario.
+
+**Acceptance boundary:** source changes require fresh exact-head build/JVM/lint/schema, Android 16 runtime, transition-performance, provenance, required-gate, and protected-promotion validation before integration. Physical-device visual comparison remains required after a new APK is produced. Launcher remains Development.
+
+
 ## October 1, 2026 — realign Home and Universal Search to the owner mockups
 
 This Development candidate treats the two owner-supplied references in `GoreeCloud/Mockups/GoreeCloud Launcher/` — **Launcher Home — Current Mockup** and **Universal Search — Current Mockup** — as the product-specific visual source of truth for the current Launcher redesign.

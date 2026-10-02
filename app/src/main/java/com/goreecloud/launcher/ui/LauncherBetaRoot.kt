@@ -89,6 +89,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -494,6 +495,85 @@ internal fun Modifier.launcherHomePagerBoundaryGestureNavigation(
                         LauncherHomePagerBoundarySwipe.RIGHT -> {
                             triggered = true
                             onSwipeRight()
+                        }
+                        null -> Unit
+                    }
+                }
+
+                if (!change.pressed) break
+            }
+        }
+    }
+}
+
+internal enum class LauncherHomePagerVerticalSwipe {
+    UP,
+    DOWN,
+}
+
+internal fun launcherHomePagerVerticalSwipe(
+    horizontalDistancePx: Float,
+    verticalDistancePx: Float,
+    minimumDistancePx: Float,
+): LauncherHomePagerVerticalSwipe? {
+    if (
+        abs(verticalDistancePx) < minimumDistancePx ||
+        abs(verticalDistancePx) <= abs(horizontalDistancePx) * 1.20f
+    ) {
+        return null
+    }
+
+    return if (verticalDistancePx < 0f) {
+        LauncherHomePagerVerticalSwipe.UP
+    } else {
+        LauncherHomePagerVerticalSwipe.DOWN
+    }
+}
+
+internal fun Modifier.launcherHomePagerVerticalGestureNavigation(
+    enabled: Boolean,
+    onSwipeUp: () -> Unit,
+    onSwipeDown: () -> Unit,
+): Modifier {
+    if (!enabled) return this
+
+    return pointerInput(enabled, onSwipeUp, onSwipeDown) {
+        val minimumDistancePx = 56.dp.toPx()
+
+        // Observe before the HorizontalPager/child gesture stack arbitrates the stream.
+        // This observer never consumes changes; it only dispatches a configured Home action
+        // once vertical travel is dominant and above threshold.
+        awaitEachGesture {
+            val down = awaitFirstDown(
+                requireUnconsumed = false,
+                pass = PointerEventPass.Initial,
+            )
+            var horizontalDistance = 0f
+            var verticalDistance = 0f
+            var triggered = false
+
+            while (true) {
+                val event = awaitPointerEvent(PointerEventPass.Initial)
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                val delta = change.position - change.previousPosition
+                horizontalDistance += delta.x
+                verticalDistance += delta.y
+
+                if (!triggered) {
+                    when (
+                        launcherHomePagerVerticalSwipe(
+                            horizontalDistancePx = horizontalDistance,
+                            verticalDistancePx = verticalDistance,
+                            minimumDistancePx = minimumDistancePx,
+                        )
+                    ) {
+                        LauncherHomePagerVerticalSwipe.UP -> {
+                            triggered = true
+                            onSwipeUp()
+                        }
+                        LauncherHomePagerVerticalSwipe.DOWN -> {
+                            triggered = true
+                            onSwipeDown()
                         }
                         null -> Unit
                     }
@@ -1209,6 +1289,19 @@ fun LauncherBetaRoot(
                                     onSwipeRight = {
                                         dispatchPagerBoundaryGesture(
                                             experiencePreferences.swipeRightAction,
+                                        )
+                                    },
+                                )
+                                .launcherHomePagerVerticalGestureNavigation(
+                                    enabled = activeDrag == null,
+                                    onSwipeUp = {
+                                        dispatchPagerBoundaryGesture(
+                                            experiencePreferences.swipeUpAction,
+                                        )
+                                    },
+                                    onSwipeDown = {
+                                        dispatchPagerBoundaryGesture(
+                                            experiencePreferences.swipeDownAction,
                                         )
                                     },
                                 ),
@@ -1950,49 +2043,30 @@ private fun HomeSurface(
                 "launcher-home-swipe-up-" +
                     experiencePreferences.swipeUpAction.storageValue,
             )
-            .pointerInput(swipeThreshold) {
-                var drag = 0f
-                var triggered = false
-                detectVerticalDragGestures(
-                    onDragStart = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragCancel = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onDragEnd = {
-                        drag = 0f
-                        triggered = false
-                    },
-                    onVerticalDrag = { change, amount ->
-                        change.consume()
-                        if (!triggered) {
-                            drag += amount
-                            when {
-                                drag >= swipeThreshold -> {
-                                    triggered = true
-                                    currentExecuteGestureAction(
-                                        currentGesturePreferences.swipeDownAction,
-                                    )
-                                }
-                                drag <= -swipeThreshold -> {
-                                    triggered = true
-                                    currentExecuteGestureAction(
-                                        currentGesturePreferences.swipeUpAction,
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
-            },
+            .launcherHomePagerVerticalGestureNavigation(
+                enabled = !horizontalPagingHostedExternally,
+                onSwipeUp = {
+                    currentExecuteGestureAction(
+                        currentGesturePreferences.swipeUpAction,
+                    )
+                },
+                onSwipeDown = {
+                    currentExecuteGestureAction(
+                        currentGesturePreferences.swipeDownAction,
+                    )
+                },
+            ),
     ) {
         Box(
             modifier = Modifier
                 .matchParentSize()
                 .testTag("launcher-home-empty-space-actions")
+                .semantics {
+                    onLongClick(label = "Edit Home") {
+                        homeOverlay = LauncherHomeOverlay.EDITOR
+                        true
+                    }
+                }
                 .pointerInput(swipeThreshold) {
                     detectTapGestures(
                         onDoubleTap = {
@@ -2371,6 +2445,9 @@ private fun HomeSurface(
                         LauncherWidgetPickerSheet(
                             apps = apps,
                             availableAndroidWidgets = availableAndroidWidgets,
+                            onDismiss = {
+                                homeOverlay = LauncherHomeOverlay.NONE
+                            },
                             onAddBuiltInWidget = { typeId ->
                                 homeOverlay = LauncherHomeOverlay.NONE
                                 onAddBuiltInWidget(typeId)
@@ -2395,6 +2472,7 @@ private fun HomeSurface(
 private fun LauncherWidgetPickerSheet(
     apps: List<LauncherActivityInfo>,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
+    onDismiss: () -> Unit,
     onAddBuiltInWidget: (String) -> Unit,
     onPickInstalledAndroidWidget: (LauncherWidgetProviderDescriptor) -> Unit,
     onPickAndroidWidget: () -> Unit,
@@ -2426,12 +2504,24 @@ private fun LauncherWidgetPickerSheet(
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                "Choose widget",
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Choose widget",
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                TextButton(
+                    modifier = Modifier.testTag("launcher-widget-picker-close"),
+                    onClick = onDismiss,
+                ) {
+                    Text("Close")
+                }
+            }
             Text(
                 "GoreeCloud widgets and installed Android widgets in one Launcher gallery.",
                 style = MaterialTheme.typography.bodySmall,

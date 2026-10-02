@@ -293,8 +293,12 @@ class LauncherTransitionPerformanceRuntimeTest {
         }
 
         val target = checkNotNull(bounds)
-        val startY = target.top + target.height * if (upward) 0.78f else 0.28f
-        val endY = target.top + target.height * if (upward) 0.28f else 0.78f
+        // Keep the synthetic transition probe inside the central Home content band. The unified
+        // Home frame now hosts persistent bottom chrome outside the pager, so a near-bottom start
+        // can legitimately target Dock/navigation content instead of the configured Home gesture
+        // surface. This still exercises a large vertical travel well above the production threshold.
+        val startY = target.top + target.height * if (upward) 0.65f else 0.35f
+        val endY = target.top + target.height * if (upward) 0.35f else 0.65f
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         val downTime = SystemClock.uptimeMillis()
 

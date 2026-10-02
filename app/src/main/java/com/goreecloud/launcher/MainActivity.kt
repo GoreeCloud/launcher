@@ -108,6 +108,7 @@ import com.goreecloud.launcher.core.launcher.LauncherVisualPreferencesRepository
 import com.goreecloud.launcher.core.launcher.LauncherWidgetProviderDescriptor
 import com.goreecloud.launcher.core.launcher.StarterWorkspaceCandidate
 import com.goreecloud.launcher.core.launcher.StarterWorkspacePolicy
+import com.goreecloud.launcher.core.launcher.LauncherStarterHomeDefaultsPolicy
 import com.goreecloud.launcher.core.workspace.MAX_DOCK_ITEMS
 import com.goreecloud.launcher.core.workspace.WorkspaceAuthority
 import com.goreecloud.launcher.core.workspace.WorkspaceRepository
@@ -638,6 +639,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 workspaceRuntimeCoordinator.reconcileAndActivate()
+                workspaceRuntimeCoordinator.createHomePage(
+                    LauncherStarterHomeDefaultsPolicy.DEFAULT_SECONDARY_PAGE_ID,
+                )
 
                 launcherPreferencesRepository.setHomeCardStyle(
                     com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
@@ -658,54 +662,106 @@ class MainActivity : ComponentActivity() {
                 launcherPreferencesRepository.markStarterLayoutApplied()
             }
 
-            // Migrate only the untouched v1 Development starter signature. A user-created
-            // layout does not contain the reserved starter Glance id and is left alone.
+            // Repair only known Development starter signatures. The effect keys intentionally
+            // stay stable while pages/widgets are mutated so its own successful writes cannot
+            // cancel the remainder of the migration.
             LaunchedEffect(
-                apps,
-                renderedPages,
+                apps.isNotEmpty(),
+                renderedPages.isNotEmpty(),
                 workspace.authority,
-                workspace.favoriteKeys,
-                workspace.dockKeys,
+                workspace.favoriteKeys.isEmpty(),
+                workspace.dockKeys.size,
+                visualPreferences.starterDockSize,
                 experiencePreferences.starterLayoutApplied,
                 experiencePreferences.startupWizardCompleted,
                 launcherPreferences.homeColumns,
                 launcherPreferences.homeRows,
             ) {
-                val primaryPage = renderedPages.firstOrNull {
-                    it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
-                }
-                val hasLegacyStarterGlance = primaryPage?.widgetPlacements?.any { placement ->
-                    placement.itemId == STARTER_GLANCE_WIDGET_ID &&
-                        (placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn)?.typeId ==
-                            WorkspaceWidgetCatalog.GLANCE
-                } == true
                 if (
                     apps.isEmpty() ||
+                    renderedPages.isEmpty() ||
                     workspace.authority != WorkspaceAuthority.ROOM ||
                     !experiencePreferences.starterLayoutApplied ||
-                    !experiencePreferences.startupWizardCompleted ||
-                    workspace.favoriteKeys.isNotEmpty() ||
-                    !hasLegacyStarterGlance
+                    !experiencePreferences.startupWizardCompleted
                 ) {
                     return@LaunchedEffect
                 }
 
-                workspaceRuntimeCoordinator.removeWidget(STARTER_GLANCE_WIDGET_ID)
+                val pagesSnapshot = renderedPages
+                val primaryPage = pagesSnapshot.firstOrNull {
+                    it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                } ?: return@LaunchedEffect
+                val hasLegacyStarterGlance = primaryPage.widgetPlacements.any { placement ->
+                    placement.itemId == STARTER_GLANCE_WIDGET_ID &&
+                        (placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn)?.typeId ==
+                            WorkspaceWidgetCatalog.GLANCE
+                }
+                val allPagesEmpty = pagesSnapshot.all { page ->
+                    page.appKeys.isEmpty() &&
+                        page.widgetPlacements.isEmpty() &&
+                        page.folderPlacements.isEmpty() &&
+                        page.unsupportedItemCount == 0
+                }
+                val repairEmptyStarter = LauncherStarterHomeDefaultsPolicy.shouldRepairEmptyStarter(
+                    roomAuthoritative = true,
+                    starterLayoutApplied = experiencePreferences.starterLayoutApplied,
+                    startupWizardCompleted = experiencePreferences.startupWizardCompleted,
+                    hasApps = true,
+                    hasFavorites = workspace.favoriteKeys.isNotEmpty(),
+                    dockItemCount = workspace.dockKeys.size,
+                    expectedStarterDockSize = visualPreferences.starterDockSize,
+                    pageIds = pagesSnapshot.map { it.pageId },
+                    allPagesEmpty = allPagesEmpty,
+                )
+
+                if (!hasLegacyStarterGlance && !repairEmptyStarter) {
+                    return@LaunchedEffect
+                }
+
+                if (hasLegacyStarterGlance) {
+                    workspaceRuntimeCoordinator.removeWidget(STARTER_GLANCE_WIDGET_ID)
+                }
+
+                val secondaryPages = pagesSnapshot.filterNot {
+                    it.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                }
+                if (secondaryPages.isEmpty()) {
+                    workspaceRuntimeCoordinator.createHomePage(
+                        LauncherStarterHomeDefaultsPolicy.DEFAULT_SECONDARY_PAGE_ID,
+                    )
+                } else if (repairEmptyStarter) {
+                    for (
+                        pageId in LauncherStarterHomeDefaultsPolicy.excessEmptySecondaryPageIds(
+                            pagesSnapshot.map { it.pageId },
+                        )
+                    ) {
+                        workspaceRuntimeCoordinator.deleteEmptyHomePage(pageId)
+                    }
+                }
+
                 launcherPreferencesRepository.setHomeCardStyle(
                     com.goreecloud.launcher.core.launcher.LauncherHomeCardStyle.CLOCK,
                 )
-                workspaceRuntimeCoordinator.addBuiltInWidget(
-                    itemId = STARTER_CALENDAR_WIDGET_ID,
-                    typeId = WorkspaceWidgetCatalog.CALENDAR,
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
-                )
-                workspaceRuntimeCoordinator.addBuiltInWidget(
-                    itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
-                    typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
-                    columns = launcherPreferences.homeColumns,
-                    rows = launcherPreferences.homeRows,
-                )
+                if (primaryPage.widgetPlacements.none { it.itemId == STARTER_CALENDAR_WIDGET_ID }) {
+                    workspaceRuntimeCoordinator.addBuiltInWidget(
+                        itemId = STARTER_CALENDAR_WIDGET_ID,
+                        typeId = WorkspaceWidgetCatalog.CALENDAR,
+                        columns = launcherPreferences.homeColumns,
+                        rows = launcherPreferences.homeRows,
+                    )
+                }
+                if (
+                    primaryPage.widgetPlacements.none {
+                        it.itemId == STARTER_QUICK_ACTIONS_WIDGET_ID
+                    }
+                ) {
+                    workspaceRuntimeCoordinator.addBuiltInWidget(
+                        itemId = STARTER_QUICK_ACTIONS_WIDGET_ID,
+                        typeId = WorkspaceWidgetCatalog.QUICK_ACTIONS,
+                        columns = launcherPreferences.homeColumns,
+                        rows = launcherPreferences.homeRows,
+                    )
+                }
             }
 
             LaunchedEffect(

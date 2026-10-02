@@ -20,7 +20,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
@@ -152,21 +154,68 @@ class ActivatedHomeLifecycleRuntimeTest {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
                 val preferences = LauncherPreferencesRepository(context).preferences.first()
-                val roomPlacement = WorkspaceRoomPlacementRepository(
+                waitForDisplayedTag("launcher-home-swipe-surface")
+                composeRule.waitForIdle()
+
+                val runtime = WorkspaceProductionRuntimeCoordinator(
                     authorityRepository = repository,
                     workspaceDaoProvider = {
                         LauncherDatabaseProvider.get(context).workspaceDao()
                     },
                 )
-                val baseline = roomPlacement.replace(
-                    favoriteKeys = listOf(firstKey),
-                    dockKeys = emptyList(),
-                    homeGrid = WorkspaceGridPlacement.Grid(
-                        columns = preferences.homeColumns,
-                        rows = preferences.homeRows,
-                    ),
-                )
-                check(baseline is WorkspaceRoomWriteResult.Written)
+                val baselinePlacement = withTimeout(10_000) {
+                    runtime.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+
+                // This suite shares the installed Development workspace across cases. Normalize
+                // only app placement through the same production coordinator that Home uses so
+                // this lifecycle test starts from one known favorite and an empty Dock without
+                // bypassing Room authority or deleting widget/folder state.
+                baselinePlacement.snapshot.favoriteKeys
+                    .filterNot { it == firstKey }
+                    .forEach { existingKey ->
+                        val removal = runtime.toggleFavorite(
+                            key = existingKey,
+                            homeColumns = preferences.homeColumns,
+                            homeRows = preferences.homeRows,
+                        )
+                        check(removal is WorkspaceAuthoritativeWriteResult.Written) {
+                            "Expected production favorite removal; result was $removal."
+                        }
+                    }
+                baselinePlacement.snapshot.dockKeys.forEach { existingKey ->
+                    val removal = runtime.toggleDock(existingKey)
+                    check(removal is WorkspaceAuthoritativeWriteResult.Written) {
+                        "Expected production Dock removal; result was $removal."
+                    }
+                }
+
+                val normalizedPlacement = withTimeout(10_000) {
+                    runtime.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready &&
+                            state.snapshot.favoriteKeys.all { it == firstKey } &&
+                            state.snapshot.dockKeys.isEmpty()
+                    }
+                } as WorkspaceAuthoritativePlacementState.Ready
+                if (firstKey !in normalizedPlacement.snapshot.favoriteKeys) {
+                    val baseline = runtime.toggleFavorite(
+                        key = firstKey,
+                        homeColumns = preferences.homeColumns,
+                        homeRows = preferences.homeRows,
+                    )
+                    check(baseline is WorkspaceAuthoritativeWriteResult.Written) {
+                        "Expected production Room favorite write; result was $baseline."
+                    }
+                }
+                withTimeout(10_000) {
+                    runtime.observePlacement().first { state ->
+                        state is WorkspaceAuthoritativePlacementState.Ready &&
+                            state.snapshot.favoriteKeys == listOf(firstKey) &&
+                            state.snapshot.dockKeys.isEmpty()
+                    }
+                }
                 waitForDisplayedLabel(firstApp.label.toString())
 
                 scenario.recreate()
@@ -175,13 +224,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                     repository.state.first { it.authority == WorkspaceAuthority.ROOM }
                 }
                 waitForDisplayedLabel(firstApp.label.toString())
-
-                val runtime = WorkspaceProductionRuntimeCoordinator(
-                    authorityRepository = repository,
-                    workspaceDaoProvider = {
-                        LauncherDatabaseProvider.get(context).workspaceDao()
-                    },
-                )
                 val write = runtime.toggleFavorite(
                     key = secondKey,
                     homeColumns = preferences.homeColumns,
@@ -223,7 +265,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             }
         }
 
-        val secondaryPageId = "home:test:horizontal-swipe"
+        val fallbackSecondaryPageId = "home:test:horizontal-swipe"
         val repository = WorkspaceRepository(context)
         val preferencesRepository = LauncherPreferencesRepository(context)
         val previousSwipeRight =
@@ -232,6 +274,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
         var runtime: WorkspaceProductionRuntimeCoordinator? = null
         var directlyAddedPageId: String? = null
+        var createdSecondaryPageId: String? = null
 
         try {
             val apps = withTimeout(10_000) {
@@ -298,14 +341,42 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
                 waitForDisplayedTag("launcher-home-dock")
 
-                // Remove any residue from an interrupted prior emulator attempt, then create one
-                // empty secondary page so the test exercises the exact primary -> secondary path.
-                runtime?.deleteEmptyHomePage(secondaryPageId)
-                val created = runtime?.createHomePage(secondaryPageId)
-                check(
-                    created is WorkspacePagedRoomMutationResult.CreatedPage ||
-                        created is WorkspacePagedRoomMutationResult.PageAlreadyExists
-                ) { "Expected a usable secondary Home page; create result was $created." }
+                // Prefer the product's default empty secondary page. If prior runtime fixtures
+                // have populated every secondary page, create one temporary empty page instead.
+                runtime?.deleteEmptyHomePage(fallbackSecondaryPageId)
+                var readyPages = withTimeout(10_000) {
+                    runtime!!.observeHomePages().first { state ->
+                        state is WorkspacePagedHomeState.Ready
+                    }
+                } as WorkspacePagedHomeState.Ready
+                var secondaryPage = readyPages.pages.firstOrNull { page ->
+                    page.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+                        page.appKeys.isEmpty() &&
+                        page.widgetPlacements.isEmpty() &&
+                        page.folderPlacements.isEmpty() &&
+                        page.unsupportedItemCount == 0
+                }
+                if (secondaryPage == null) {
+                    val created = runtime!!.createHomePage(fallbackSecondaryPageId)
+                    check(
+                        created is WorkspacePagedRoomMutationResult.CreatedPage ||
+                            created is WorkspacePagedRoomMutationResult.PageAlreadyExists
+                    ) { "Expected a usable secondary Home page; create result was $created." }
+                    createdSecondaryPageId = fallbackSecondaryPageId
+                    readyPages = withTimeout(10_000) {
+                        runtime!!.observeHomePages().first { state ->
+                            state is WorkspacePagedHomeState.Ready &&
+                                state.pages.any { it.pageId == fallbackSecondaryPageId }
+                        }
+                    } as WorkspacePagedHomeState.Ready
+                    secondaryPage = readyPages.pages.first {
+                        it.pageId == fallbackSecondaryPageId
+                    }
+                }
+                val secondaryPageId = checkNotNull(secondaryPage).pageId
+                val secondaryPageNumber =
+                    readyPages.pages.indexOfFirst { it.pageId == secondaryPageId } + 1
+                check(secondaryPageNumber > 1)
 
                 val placementAfterPageCreate = withTimeout(10_000) {
                     runtime!!.observePlacement().first { state ->
@@ -342,25 +413,20 @@ class ActivatedHomeLifecycleRuntimeTest {
                     "Home indicator must not consume a full touch-target row."
                 }
 
-                composeRule
-                    .onNodeWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
-                    .performTouchInput {
-                        swipeLeft(
-                            startX = right - 24f,
-                            endX = left + 24f,
-                            durationMillis = 420,
-                        )
-                    }
-
-                composeRule.waitUntil(timeoutMillis = 10_000) {
+                repeat(secondaryPageNumber - 1) { index ->
                     composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-page-" + secondaryPageId,
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
+                        .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
+                        .performTouchInput {
+                            swipeLeft(
+                                startX = right - 24f,
+                                endX = left + 24f,
+                                durationMillis = 420,
+                            )
+                        }
+                    waitForSelectedHomePage(pageNumber = index + 2)
                 }
+
+                waitForDisplayedTag("launcher-home-page-" + secondaryPageId)
                 check(
                     composeRule
                         .onAllNodesWithTag("launcher-home-empty-page", useUnmergedTree = true)
@@ -424,13 +490,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                         advanceEventTime(700)
                         up()
                     }
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
-                waitForDisplayedText("Edit Home")
+                waitForDisplayedTag("launcher-home-editor-fullscreen")
                 composeRule.onNodeWithText("Done", useUnmergedTree = true).performClick()
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
@@ -442,16 +502,20 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
 
-                composeRule
-                    .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
-                    .performTouchInput {
-                        swipeRight(
-                            startX = left + 24f,
-                            endX = right - 24f,
-                            durationMillis = 420,
-                        )
-                    }
-
+                repeat(secondaryPageNumber - 1) { index ->
+                    composeRule
+                        .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
+                        .performTouchInput {
+                            swipeRight(
+                                startX = left + 24f,
+                                endX = right - 24f,
+                                durationMillis = 420,
+                            )
+                        }
+                    waitForSelectedHomePage(
+                        pageNumber = secondaryPageNumber - index - 1,
+                    )
+                }
                 waitForSelectedHomePage(pageNumber = 1)
                 waitForDisplayedLabel(candidate.label.toString())
                 waitForDisplayedTag("launcher-home-page-indicator")
@@ -627,7 +691,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 waitForDisplayedTag("launcher-home-editor-actions")
                 Unit
             } finally {
-                resetHomeBeforeScenarioClose()
+                returnToPrimaryHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -636,7 +700,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 previousSwipeRight,
             ).join()
             directlyAddedPageId?.let { runtime?.deleteEmptyHomePage(it) }
-            runtime?.deleteEmptyHomePage(secondaryPageId)
+            createdSecondaryPageId?.let { runtime?.deleteEmptyHomePage(it) }
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
@@ -664,10 +728,11 @@ class ActivatedHomeLifecycleRuntimeTest {
             }
         }
 
-        val secondaryPageId = "home:test:secondary-widget"
+        val fallbackSecondaryPageId = "home:test:secondary-widget"
         val widgetItemId = "widget:builtin:secondary-render"
         val repository = WorkspaceRepository(context)
         var runtime: WorkspaceProductionRuntimeCoordinator? = null
+        var createdSecondaryPageId: String? = null
 
         try {
             val apps = withTimeout(10_000) {
@@ -694,29 +759,43 @@ class ActivatedHomeLifecycleRuntimeTest {
                     },
                 )
 
-                // Keep direct Room test mutations behind the same settled startup boundary used by
-                // the paging acceptance test. Activity launch can still be finishing authoritative
-                // reconciliation after WorkspaceRepository has reported ROOM authority.
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
+                waitForDisplayedTag("launcher-home-swipe-surface")
                 composeRule.waitForIdle()
-                withTimeout(10_000) {
+
+                runtime?.removeWidget(widgetItemId)
+                runtime?.deleteEmptyHomePage(fallbackSecondaryPageId)
+
+                var ready = withTimeout(10_000) {
                     runtime!!.observeHomePages().first { state ->
                         state is WorkspacePagedHomeState.Ready
                     }
+                } as WorkspacePagedHomeState.Ready
+                var targetPage = ready.pages.firstOrNull { page ->
+                    page.pageId != WorkspaceLegacyImportMapper.HOME_PAGE_ID &&
+                        page.appKeys.isEmpty() &&
+                        page.widgetPlacements.isEmpty() &&
+                        page.folderPlacements.isEmpty() &&
+                        page.unsupportedItemCount == 0
+                }
+                if (targetPage == null) {
+                    val created = runtime!!.createHomePage(fallbackSecondaryPageId)
+                    check(
+                        created is WorkspacePagedRoomMutationResult.CreatedPage ||
+                            created is WorkspacePagedRoomMutationResult.PageAlreadyExists
+                    ) { "Expected a usable secondary Home page; create result was $created." }
+                    createdSecondaryPageId = fallbackSecondaryPageId
+                    ready = withTimeout(10_000) {
+                        runtime!!.observeHomePages().first { state ->
+                            state is WorkspacePagedHomeState.Ready &&
+                                state.pages.any { it.pageId == fallbackSecondaryPageId }
+                        }
+                    } as WorkspacePagedHomeState.Ready
+                    targetPage = ready.pages.first { it.pageId == fallbackSecondaryPageId }
                 }
 
-                runtime?.removeWidget(widgetItemId)
-                runtime?.deleteEmptyHomePage(secondaryPageId)
-                val created = runtime?.createHomePage(secondaryPageId)
-                check(
-                    created is WorkspacePagedRoomMutationResult.CreatedPage ||
-                        created is WorkspacePagedRoomMutationResult.PageAlreadyExists
-                ) { "Expected a usable secondary Home page; create result was $created." }
+                val targetPageId = checkNotNull(targetPage).pageId
+                val targetPageNumber = ready.pages.indexOfFirst { it.pageId == targetPageId } + 1
+                check(targetPageNumber > 1)
 
                 check(
                     runtime?.addBuiltInWidget(
@@ -729,7 +808,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 check(
                     runtime?.moveWidgetToPage(
                         itemId = widgetItemId,
-                        targetPageId = secondaryPageId,
+                        targetPageId = targetPageId,
                         columns = preferences.homeColumns,
                         rows = preferences.homeRows,
                         targetCellX = 0,
@@ -737,34 +816,21 @@ class ActivatedHomeLifecycleRuntimeTest {
                     ) is WorkspaceWidgetMutationResult.MovedToPage,
                 )
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
+                waitForDisplayedTag("launcher-home-page-indicator")
+                repeat(targetPageNumber - 1) { index ->
                     composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-page-indicator",
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
+                        .onNodeWithTag("launcher-home-unified-pager", useUnmergedTree = true)
+                        .performTouchInput {
+                            swipeLeft(
+                                startX = right - 24f,
+                                endX = left + 24f,
+                                durationMillis = 420,
+                            )
+                        }
+                    waitForSelectedHomePage(pageNumber = index + 2)
                 }
-                composeRule
-                    .onNodeWithTag("launcher-home-swipe-surface", useUnmergedTree = true)
-                    .performTouchInput {
-                        swipeLeft(
-                            startX = right - 24f,
-                            endX = left + 24f,
-                            durationMillis = 420,
-                        )
-                    }
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithTag(
-                            "launcher-home-widget-" + widgetItemId,
-                            useUnmergedTree = true,
-                        )
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
+                waitForDisplayedTag("launcher-home-widget-" + widgetItemId)
                 composeRule
                     .onNodeWithTag(
                         "launcher-home-widget-" + widgetItemId,
@@ -773,27 +839,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                     .assertIsDisplayed()
                 composeRule
                     .onNodeWithTag(
-                        "launcher-home-page-" + secondaryPageId,
+                        "launcher-home-page-" + targetPageId,
                         useUnmergedTree = true,
                     )
                     .assertIsDisplayed()
                 Unit
             } finally {
-                // This test intentionally selects a temporary secondary page. Return through the
-                // real HOME path before deleting that page so the selected page cannot leak into
-                // later ActivityScenario tests as a now-stale page selection.
-                //
-                // HOME may either reset the currently observed root or replace the scenario-owned
-                // LAUNCHER Activity with a fresh HOME Activity. In the replacement path the Compose
-                // test rule legitimately loses the old hierarchy, while the fresh Activity starts
-                // from primary Home. Do not require post-HOME page-indicator semantics from the
-                // scenario-owned hierarchy during teardown.
-                resetHomeBeforeScenarioClose()
+                returnToPrimaryHomeBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
             runtime?.removeWidget(widgetItemId)
-            runtime?.deleteEmptyHomePage(secondaryPageId)
+            createdSecondaryPageId?.let { runtime?.deleteEmptyHomePage(it) }
             if (!alreadyDefaultHome) {
                 runShellCommand(
                     "cmd role remove-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
@@ -1123,18 +1180,22 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .assertIsSelected()
                 assertEquals(
-                    1,
+                    0,
                     composeRule
                         .onAllNodesWithText("Universal Search", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .size,
                 )
-                composeRule
-                    .onNodeWithText(
-                        "Search apps, files, contacts, settings, and the web",
-                        useUnmergedTree = true,
-                    )
-                    .assertIsDisplayed()
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithText(
+                            "Search apps, files, contacts, settings, and the web",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .size,
+                )
                 assertEquals(
                     0,
                     composeRule
@@ -1531,20 +1592,11 @@ class ActivatedHomeLifecycleRuntimeTest {
                         "launcher-home-empty-space-actions",
                         useUnmergedTree = true,
                     )
-                    .performTouchInput {
-                        down(center)
-                        advanceEventTime(700)
-                        up()
-                    }
+                    .performSemanticsAction(SemanticsActions.OnLongClick)
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
+                waitForDisplayedTag("launcher-home-editor-fullscreen")
                 composeRule
-                    .onNodeWithText("Edit Home", useUnmergedTree = true)
+                    .onNodeWithTag("launcher-home-editor-fullscreen", useUnmergedTree = true)
                     .assertIsDisplayed()
                 composeRule
                     .onNodeWithTag("launcher-home-editor-fullscreen", useUnmergedTree = true)
@@ -1662,19 +1714,16 @@ class ActivatedHomeLifecycleRuntimeTest {
                         "launcher-home-empty-space-actions",
                         useUnmergedTree = true,
                     )
-                    .performTouchInput {
-                        down(center)
-                        advanceEventTime(700)
-                        up()
-                    }
+                    .performSemanticsAction(SemanticsActions.OnLongClick)
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
-                composeRule.onNodeWithText("Wallpaper").performClick()
+                waitForDisplayedTag("launcher-home-editor-fullscreen")
+                waitForDisplayedTag("launcher-home-editor-action-wallpaper")
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-editor-action-wallpaper",
+                        useUnmergedTree = true,
+                    )
+                    .performClick()
 
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
@@ -1734,7 +1783,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
                 Unit
             } finally {
-                resetHomeBeforeScenarioClose()
+                dismissHomeOverlaysBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -1900,7 +1949,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 Unit
             } finally {
-                resetHomeBeforeScenarioClose()
+                dismissHomeOverlaysBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -1958,27 +2007,25 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
 
-                composeRule
+                val gestureBounds = composeRule
                     .onNodeWithTag(
                         renderedGestureTag,
                         useUnmergedTree = true,
                     )
-                    .performTouchInput {
-                        swipeUp(
-                            startY = bottom - 1f,
-                            endY = top + 1f,
-                            durationMillis = 400,
-                        )
-                    }
+                    .fetchSemanticsNode()
+                    .boundsInRoot
+                val gestureX = gestureBounds.center.x.toInt()
+                injectTouchSwipe(
+                    startX = gestureX,
+                    startY = (gestureBounds.top + gestureBounds.height * 0.68f).toInt(),
+                    endX = gestureX,
+                    endY = (gestureBounds.top + gestureBounds.height * 0.32f).toInt(),
+                    durationMillis = 400L,
+                )
 
-                composeRule.waitUntil(timeoutMillis = 15_000) {
-                    composeRule
-                        .onAllNodesWithText("Edit Home", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isNotEmpty()
-                }
+                waitForDisplayedTag("launcher-home-editor-fullscreen")
                 composeRule
-                    .onNodeWithText("Edit Home", useUnmergedTree = true)
+                    .onNodeWithTag("launcher-home-editor-fullscreen", useUnmergedTree = true)
                     .assertIsDisplayed()
                 composeRule
                     .onNodeWithTag("launcher-home-editor-fullscreen", useUnmergedTree = true)
@@ -2003,7 +2050,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                 )
                 Unit
             } finally {
-                resetHomeBeforeScenarioClose()
+                dismissHomeOverlaysBeforeScenarioClose()
                 scenario.close()
             }
         } finally {
@@ -2019,33 +2066,126 @@ class ActivatedHomeLifecycleRuntimeTest {
         }
     }
 
-    private fun resetHomeBeforeScenarioClose() {
-        runShellCommand("input keyevent KEYCODE_HOME")
-        composeRule.waitUntil(timeoutMillis = 10_000) {
-            // HOME may replace the ActivityScenario-launched LAUNCHER activity with a new HOME
-            // intent instance. In that valid teardown path the test rule can briefly have no
-            // Compose hierarchy at all; that already proves the scenario-owned overlays are gone.
-            runCatching {
-                composeRule
-                    .onAllNodesWithTag(
-                        "launcher-home-editor-fullscreen",
-                        useUnmergedTree = true,
-                    )
-                    .fetchSemanticsNodes()
-                    .isEmpty() &&
+    private fun dismissHomeOverlaysBeforeScenarioClose() {
+        val widgetPickerVisible = runCatching {
+            composeRule
+                .onAllNodesWithTag(
+                    "launcher-widget-picker-sheet",
+                    useUnmergedTree = true,
+                )
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }.getOrDefault(false)
+
+        if (widgetPickerVisible) {
+            composeRule
+                .onNodeWithTag(
+                    "launcher-widget-picker-close",
+                    useUnmergedTree = true,
+                )
+                .performClick()
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                runCatching {
                     composeRule
                         .onAllNodesWithTag(
                             "launcher-widget-picker-sheet",
                             useUnmergedTree = true,
                         )
                         .fetchSemanticsNodes()
-                        .isEmpty() &&
+                        .isEmpty()
+                }.getOrDefault(true)
+            }
+        }
+
+        val wallpaperVisible = runCatching {
+            composeRule
+                .onAllNodesWithText("Wallpapers", useUnmergedTree = true)
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }.getOrDefault(false)
+
+        if (wallpaperVisible) {
+            runShellCommand("input keyevent KEYCODE_BACK")
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                runCatching {
                     composeRule
                         .onAllNodesWithText("Wallpapers", useUnmergedTree = true)
                         .fetchSemanticsNodes()
                         .isEmpty()
-            }.getOrDefault(true)
+                }.getOrDefault(true)
+            }
         }
+
+        val editorVisible = runCatching {
+            composeRule
+                .onAllNodesWithTag(
+                    "launcher-home-editor-fullscreen",
+                    useUnmergedTree = true,
+                )
+                .fetchSemanticsNodes()
+                .isNotEmpty()
+        }.getOrDefault(false)
+
+        if (editorVisible) {
+            runCatching {
+                composeRule
+                    .onNodeWithText("Done", useUnmergedTree = true)
+                    .performClick()
+            }
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                runCatching {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-home-editor-fullscreen",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isEmpty()
+                }.getOrDefault(true)
+            }
+        }
+
+        runCatching { composeRule.waitForIdle() }
+    }
+
+    private fun returnToPrimaryHomeBeforeScenarioClose() {
+        dismissHomeOverlaysBeforeScenarioClose()
+
+        val selectedPage = runCatching {
+            val descriptions = composeRule
+                .onNodeWithTag(
+                    "launcher-home-page-indicator",
+                    useUnmergedTree = true,
+                )
+                .fetchSemanticsNode()
+                .config[SemanticsProperties.ContentDescription]
+            descriptions
+                .firstOrNull { description -> description.endsWith(", selected") }
+                ?.substringAfter("Page ")
+                ?.substringBefore(",")
+                ?.toIntOrNull()
+        }.getOrNull()
+
+        if (selectedPage != null && selectedPage > 1) {
+            repeat(selectedPage - 1) { index ->
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-home-unified-pager",
+                        useUnmergedTree = true,
+                    )
+                    .performTouchInput {
+                        swipeRight(
+                            startX = left + 24f,
+                            endX = right - 24f,
+                            durationMillis = 420,
+                        )
+                    }
+                waitForSelectedHomePage(
+                    pageNumber = selectedPage - index - 1,
+                )
+            }
+        }
+
         runCatching { composeRule.waitForIdle() }
     }
 

@@ -317,6 +317,40 @@ class HomePageManagerPolicyTest {
     }
 
     @Test
+    fun unifiedHomePagerVerticalGesturesRequireVerticalDominance() {
+        assertEquals(
+            LauncherHomePagerVerticalSwipe.UP,
+            launcherHomePagerVerticalSwipe(
+                horizontalDistancePx = 8f,
+                verticalDistancePx = -80f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertEquals(
+            LauncherHomePagerVerticalSwipe.DOWN,
+            launcherHomePagerVerticalSwipe(
+                horizontalDistancePx = -6f,
+                verticalDistancePx = 82f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerVerticalSwipe(
+                horizontalDistancePx = 72f,
+                verticalDistancePx = -70f,
+                minimumDistancePx = 56f,
+            ),
+        )
+        assertNull(
+            launcherHomePagerVerticalSwipe(
+                horizontalDistancePx = 4f,
+                verticalDistancePx = 40f,
+                minimumDistancePx = 56f,
+            ),
+        )
+    }
+
+    @Test
     fun unifiedHomePagerKeepsOnlyOneAdjacentPageWarm() {
         assertEquals(0, launcherHomeBeyondViewportPageCount(0))
         assertEquals(0, launcherHomeBeyondViewportPageCount(1))
