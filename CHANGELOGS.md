@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 2, 2026 — rebuild Universal Search Sources around the canonical mockup
+
+The owner-supplied **Universal Search — Current Mockup** is now the direct visual target for the Search Sources manager and has been synchronized in place in the canonical `GoreeCloud/Mockups/GoreeCloud Launcher/` Drive folder without changing its file identity.
+
+This Development candidate preserves the existing Universal Search provider, permission, consent, file-root, ordering, and connected-provider contracts while rebuilding the presentation layer around the supplied Glaze composition: a dedicated rounded back control, stronger title/subtitle hierarchy, a three-way segmented **Icons / Words / Both** selector, a compact **Private by default** control strip, grouped **On-device / Your content / Connected** cards, per-source badges, denser row hierarchy, inline permission/status emphasis, explicit disclosure chevrons, a clearer Files folder action, and less flat translucent card layering. Existing Dropbox support remains available when present even though it is not shown in the reference crop; the UI change does not remove a registered provider merely to reproduce sample content.
+
+No Search provider gains new permission, account, network, retention, workspace, profile, or persistence authority from this polish. The reference remains presentation authority only; live Android permission state, selected folders, provider readiness, and connection state remain authoritative.
+
+**Acceptance boundary:** this is an unmerged Development candidate. Fresh exact-head Launcher build/JVM/lint/schema, Android 16 runtime, transition-performance, migration provenance, Android Development, and protected-promotion gates are required before integration. Representative physical-device visual comparison against the canonical mockup, accessibility/large-text/form-factor review, protected Development signing/update continuity, Release Candidate, Production, and Stable qualification remain open.
+
 ## October 2, 2026 — integrate manual App Drawer pinned ordering
 
 Protected PR #185 integrated profile-qualified App Drawer manual pin ordering from exact candidate `69a65412f24271ecb627b2eb5aaf96b55de9e570` as monorepo main `7902e7bd58a510591e6c8f8778a3872df4c77642`. Pinned-first sorting now honors device-local manual ranks, and pinned app context menus expose Move earlier/later controls. The final candidate passed full Launcher Android 16 lifecycle runtime and transition-performance diagnostics plus the complete protected matrix. This is Development integration only; representative-device and release gates remain open.

@@ -90,6 +90,10 @@ import com.goreecloud.launcher.core.launcher.LauncherLocalSearchIssue
 import com.goreecloud.launcher.core.launcher.LauncherMessagesSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherOpenUriSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherRuntimeSearchProviderRegistry
+import com.goreecloud.launcher.core.launcher.LauncherQuickAnswersSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherInstalledAppsSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherCoreActionsSearchProvider
+import com.goreecloud.launcher.core.launcher.LauncherShortcutsSearchProvider
 import com.goreecloud.launcher.core.launcher.LauncherNavigateSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherSearchCategory
 import com.goreecloud.launcher.core.launcher.LauncherSearchDestination
@@ -318,32 +322,60 @@ internal fun LauncherProviderControlledSearchSurface(
         if (showSources) {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.84f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.09f),
+                ),
+                shadowElevation = 5.dp,
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(GlazeMetrics.space3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(GlazeMetrics.space2),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Surface(
+                        onClick = { showSources = false },
+                        modifier = Modifier
+                            .size(52.dp)
+                            .semantics {
+                                contentDescription = "Back to Universal Search"
+                            },
+                        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.11f),
+                        border = BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        ),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "‹",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                            )
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
+                    ) {
                         Text(
                             "Search sources",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             "Choose where Universal Search looks",
-                            style = MaterialTheme.typography.bodySmall,
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    TextButton(
-                        onClick = { showSources = false },
-                        modifier = Modifier.heightIn(min = 48.dp),
-                    ) { Text("Back") }
                 }
             }
             LauncherSearchSuggestionPresentationControl(
@@ -761,69 +793,109 @@ private fun LauncherSearchSuggestionPresentationControl(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.86f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
+        shadowElevation = 3.dp,
     ) {
         Column(
-            modifier = Modifier.padding(GlazeMetrics.space2),
+            modifier = Modifier.padding(GlazeMetrics.space3),
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
         ) {
             Text(
                 "Suggestion tabs",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
                 "Choose icons, words, or both.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Row(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.44f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                ),
             ) {
-                LauncherSearchSuggestionPresentation.entries.forEach { option ->
-                    val active = option == selected
-                    Surface(
-                        onClick = { onSelect(option) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .heightIn(min = 48.dp)
-                            .semantics {
-                                contentDescription =
-                                    "Search suggestion tabs: " + option.displayName
-                            },
-                        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-                        color = if (active) {
-                            MaterialTheme.colorScheme.primaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
-                        },
-                        border = BorderStroke(
-                            1.dp,
-                            if (active) {
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.46f)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    LauncherSearchSuggestionPresentation.entries.forEach { option ->
+                        val active = option == selected
+                        val glyph = when (option) {
+                            LauncherSearchSuggestionPresentation.ICONS -> "▦"
+                            LauncherSearchSuggestionPresentation.WORDS -> "≡"
+                            LauncherSearchSuggestionPresentation.BOTH -> "▦≡"
+                        }
+                        Surface(
+                            onClick = { onSelect(option) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 52.dp)
+                                .semantics {
+                                    contentDescription =
+                                        "Search suggestion tabs: " + option.displayName
+                                },
+                            shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                            color = if (active) {
+                                MaterialTheme.colorScheme.primary
                             } else {
-                                MaterialTheme.colorScheme.outlineVariant
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.62f)
                             },
-                        ),
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                option.displayName,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (active) {
-                                    MaterialTheme.colorScheme.onPrimaryContainer
+                            border = BorderStroke(
+                                1.dp,
+                                if (active) {
+                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.74f)
                                 } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
                                 },
-                                fontWeight = if (active) {
-                                    FontWeight.Bold
-                                } else {
-                                    FontWeight.Medium
-                                },
-                            )
+                            ),
+                            shadowElevation = if (active) 2.dp else 0.dp,
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                Text(
+                                    glyph,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = if (active) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(Modifier.size(6.dp))
+                                Text(
+                                    option.displayName,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = if (active) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                    fontWeight = if (active) {
+                                        FontWeight.Bold
+                                    } else {
+                                        FontWeight.SemiBold
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -1833,6 +1905,309 @@ private fun LauncherSearchResultCategoryGlyph(
 }
 
 @Composable
+private fun LauncherPrivacyShieldGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(24.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.075f
+        val shield = androidx.compose.ui.graphics.Path().apply {
+            moveTo(u * 0.50f, u * 0.08f)
+            lineTo(u * 0.80f, u * 0.20f)
+            lineTo(u * 0.76f, u * 0.58f)
+            lineTo(u * 0.50f, u * 0.90f)
+            lineTo(u * 0.24f, u * 0.58f)
+            lineTo(u * 0.20f, u * 0.20f)
+            close()
+        }
+        drawPath(shield, color = tint, style = Stroke(width = stroke))
+    }
+}
+
+@Composable
+private fun LauncherSearchSectionGlyph(
+    section: LauncherSearchSourceSection,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(24.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.075f
+        when (section) {
+            LauncherSearchSourceSection.DEVICE -> {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = androidx.compose.ui.geometry.Offset(u * 0.27f, u * 0.10f),
+                    size = androidx.compose.ui.geometry.Size(u * 0.46f, u * 0.80f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                        u * 0.09f,
+                        u * 0.09f,
+                    ),
+                    style = Stroke(width = stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.025f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.80f),
+                )
+            }
+            LauncherSearchSourceSection.PERSONAL -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.15f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.34f),
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.25f, u * 0.78f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.75f, u * 0.78f),
+                    strokeWidth = stroke * 1.45f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+            }
+            LauncherSearchSourceSection.CONNECTED -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.16f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.40f, u * 0.50f),
+                    style = Stroke(width = stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.20f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.56f, u * 0.42f),
+                    style = Stroke(width = stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.14f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.70f, u * 0.54f),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.28f, u * 0.66f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.78f, u * 0.66f),
+                    strokeWidth = stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSearchSourceBadge(
+    option: LauncherSearchProviderControlOption,
+    section: LauncherSearchSourceSection,
+    accent: Color,
+) {
+    Surface(
+        modifier = Modifier.size(44.dp),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+        color = accent.copy(alpha = 0.10f),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            if (section == LauncherSearchSourceSection.CONNECTED) {
+                LauncherConnectedProviderFallbackGlyph(
+                    providerId = option.providerId,
+                    modifier = Modifier.size(24.dp),
+                )
+            } else {
+                LauncherLocalSearchSourceGlyph(
+                    providerId = option.providerId,
+                    tint = accent,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherLocalSearchSourceGlyph(
+    providerId: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(24.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.075f
+        val round = androidx.compose.ui.graphics.StrokeCap.Round
+        when (providerId) {
+            LauncherQuickAnswersSearchProvider.PROVIDER_ID -> {
+                drawLine(
+                    tint,
+                    androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.12f),
+                    androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.88f),
+                    stroke,
+                    cap = round,
+                )
+                drawLine(
+                    tint,
+                    androidx.compose.ui.geometry.Offset(u * 0.12f, u * 0.50f),
+                    androidx.compose.ui.geometry.Offset(u * 0.88f, u * 0.50f),
+                    stroke,
+                    cap = round,
+                )
+                drawLine(
+                    tint,
+                    androidx.compose.ui.geometry.Offset(u * 0.25f, u * 0.25f),
+                    androidx.compose.ui.geometry.Offset(u * 0.75f, u * 0.75f),
+                    stroke * 0.70f,
+                    cap = round,
+                )
+                drawLine(
+                    tint,
+                    androidx.compose.ui.geometry.Offset(u * 0.75f, u * 0.25f),
+                    androidx.compose.ui.geometry.Offset(u * 0.25f, u * 0.75f),
+                    stroke * 0.70f,
+                    cap = round,
+                )
+            }
+            LauncherCoreActionsSearchProvider.PROVIDER_ID -> {
+                val rocket = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(u * 0.26f, u * 0.70f)
+                    lineTo(u * 0.42f, u * 0.30f)
+                    lineTo(u * 0.78f, u * 0.16f)
+                    lineTo(u * 0.68f, u * 0.54f)
+                    lineTo(u * 0.30f, u * 0.76f)
+                    close()
+                }
+                drawPath(rocket, color = tint, style = Stroke(width = stroke))
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.055f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.59f, u * 0.37f),
+                )
+            }
+            LauncherInstalledAppsSearchProvider.PROVIDER_ID -> {
+                listOf(
+                    0.18f to 0.18f,
+                    0.56f to 0.18f,
+                    0.18f to 0.56f,
+                    0.56f to 0.56f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = tint,
+                        topLeft = androidx.compose.ui.geometry.Offset(u * x, u * y),
+                        size = androidx.compose.ui.geometry.Size(u * 0.26f, u * 0.26f),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                            u * 0.06f,
+                            u * 0.06f,
+                        ),
+                    )
+                }
+            }
+            LauncherShortcutsSearchProvider.PROVIDER_ID -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.20f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.38f, u * 0.50f),
+                    style = Stroke(width = stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.20f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.62f, u * 0.50f),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.44f, u * 0.50f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.56f, u * 0.50f),
+                    strokeWidth = stroke,
+                    cap = round,
+                )
+            }
+            LauncherContactsSearchProvider.PROVIDER_ID -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.15f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.34f),
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.28f, u * 0.78f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.72f, u * 0.78f),
+                    strokeWidth = stroke * 1.55f,
+                    cap = round,
+                )
+            }
+            LauncherCallHistorySearchProvider.PROVIDER_ID -> {
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.26f, u * 0.24f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.72f, u * 0.76f),
+                    strokeWidth = stroke * 1.65f,
+                    cap = round,
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.22f, u * 0.22f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.35f, u * 0.18f),
+                    strokeWidth = stroke * 1.55f,
+                    cap = round,
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.67f, u * 0.82f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.80f, u * 0.76f),
+                    strokeWidth = stroke * 1.55f,
+                    cap = round,
+                )
+            }
+            LauncherMessagesSearchProvider.PROVIDER_ID -> {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = androidx.compose.ui.geometry.Offset(u * 0.16f, u * 0.22f),
+                    size = androidx.compose.ui.geometry.Size(u * 0.68f, u * 0.48f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                        u * 0.15f,
+                        u * 0.15f,
+                    ),
+                    style = Stroke(width = stroke),
+                )
+                drawLine(
+                    color = tint,
+                    start = androidx.compose.ui.geometry.Offset(u * 0.36f, u * 0.70f),
+                    end = androidx.compose.ui.geometry.Offset(u * 0.28f, u * 0.84f),
+                    strokeWidth = stroke,
+                    cap = round,
+                )
+                listOf(0.36f, 0.50f, 0.64f).forEach { x ->
+                    drawCircle(
+                        color = tint,
+                        radius = u * 0.035f,
+                        center = androidx.compose.ui.geometry.Offset(u * x, u * 0.46f),
+                    )
+                }
+            }
+            LauncherFilesSearchProvider.PROVIDER_ID -> {
+                val folder = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(u * 0.14f, u * 0.30f)
+                    lineTo(u * 0.40f, u * 0.30f)
+                    lineTo(u * 0.48f, u * 0.40f)
+                    lineTo(u * 0.86f, u * 0.40f)
+                    lineTo(u * 0.82f, u * 0.76f)
+                    lineTo(u * 0.14f, u * 0.76f)
+                    close()
+                }
+                drawPath(folder, color = tint, style = Stroke(width = stroke))
+            }
+            else -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.20f,
+                    center = androidx.compose.ui.geometry.Offset(u * 0.50f, u * 0.50f),
+                    style = Stroke(width = stroke),
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LauncherSearchSourceManager(
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
@@ -1868,35 +2243,47 @@ private fun LauncherSearchSourceManager(
         item(key = "provider-controls") {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
+                shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.82f),
                 border = BorderStroke(
                     1.dp,
                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 ),
+                shadowElevation = 2.dp,
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
-                            start = GlazeMetrics.space3,
+                            start = GlazeMetrics.space2,
                             end = GlazeMetrics.space1,
                             top = GlazeMetrics.space1,
                             bottom = GlazeMetrics.space1,
                         ),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                 ) {
+                    Surface(
+                        modifier = Modifier.size(44.dp),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.11f),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            LauncherPrivacyShieldGlyph(
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
                     Column(Modifier.weight(1f)) {
                         Text(
                             "Private by default",
                             style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                         Text(
                             if (ready) {
-                                "Local stays local · connected sources are opt-in"
+                                "Local stays local · connected sources are optional."
                             } else {
                                 "Loading source controls…"
                             },
@@ -1906,327 +2293,427 @@ private fun LauncherSearchSourceManager(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    TextButton(onClick = onReset, enabled = ready) { Text("Reset") }
+                    TextButton(
+                        onClick = onReset,
+                        enabled = ready,
+                        modifier = Modifier.heightIn(min = 44.dp),
+                    ) { Text("Reset") }
                     TextButton(
                         onClick = { reorderMode = !reorderMode },
                         enabled = ready && controls.orderedOptions.size > 1,
-                    ) { Text(if (reorderMode) "Done" else "Order") }
+                        modifier = Modifier.heightIn(min = 44.dp),
+                    ) {
+                        Text(if (reorderMode) "✓  Done" else "≡  Order")
+                    }
                 }
             }
         }
 
         sections.forEach { (section, options) ->
             item(key = "section-block-" + section.name) {
+                val accent = when (section) {
+                    LauncherSearchSourceSection.DEVICE -> MaterialTheme.colorScheme.primary
+                    LauncherSearchSourceSection.PERSONAL -> MaterialTheme.colorScheme.tertiary
+                    LauncherSearchSourceSection.CONNECTED -> MaterialTheme.colorScheme.secondary
+                }
+
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    shape = RoundedCornerShape(GlazeMetrics.radius2ExtraLarge),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.88f),
                     border = BorderStroke(
                         1.dp,
                         MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                     ),
+                    shadowElevation = 3.dp,
                 ) {
                     Column {
-                        Column(
-                            modifier = Modifier.padding(
-                                horizontal = GlazeMetrics.space3,
-                                vertical = GlazeMetrics.space2,
-                            ),
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = GlazeMetrics.space2,
+                                    end = GlazeMetrics.space3,
+                                    top = GlazeMetrics.space2,
+                                    bottom = GlazeMetrics.space2,
+                                ),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                         ) {
-                            Text(
-                                section.title,
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Text(
-                                section.subtitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Surface(
+                                modifier = Modifier.size(44.dp),
+                                shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                                color = accent.copy(alpha = 0.11f),
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    LauncherSearchSectionGlyph(section = section, tint = accent)
+                                }
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    section.title,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Text(
+                                    section.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                         }
 
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f),
-                        )
-
-                        options.forEachIndexed { sectionIndex, option ->
-                            val index = controls.orderedOptions.indexOfFirst {
-                                it.providerId == option.providerId
-                            }
-                            val enabled = controls.isEnabled(option.providerId)
-                            val permissionGranted =
-                                LauncherLocalSearchPermissions.isGranted(context, option.providerId)
-                            val driveSource =
-                                option.providerId ==
-                                    LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID
-                            val driveConnected =
-                                driveSource && LauncherGoogleDriveAuthorizationState.isConnected()
-                            val driveConnectionAvailable =
-                                !driveSource || launcherDriveInlineConnectionAvailable(
-                                    debugBuild = BuildConfig.DEBUG,
-                                    alreadyConnected = driveConnected,
-                                )
-                            val providerReady = !driveSource || driveConnected
-                            val issue = issues[option.providerId]
-                            val isMessages =
-                                option.providerId == LauncherMessagesSearchProvider.PROVIDER_ID
-                            val expanded = detailProviderId == option.providerId
-                            val errorMessage = when {
-                                issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED && isMessages ->
-                                    "Android denied restricted SMS access. Launcher cannot override it."
-                                issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED ->
-                                    "Android blocked this source even though it was enabled."
-                                issue == LauncherLocalSearchIssue.SOURCE_UNAVAILABLE ->
-                                    "This Android data source could not be queried."
-                                !permissionGranted && isMessages ->
-                                    "SMS permission is required; some Android devices restrict it."
-                                !permissionGranted ->
-                                    "Android permission is required before this source can be searched."
-                                else -> null
-                            }
-                            val statusLabel = when {
-                                issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED ->
-                                    "Restricted by Android"
-                                issue == LauncherLocalSearchIssue.SOURCE_UNAVAILABLE ->
-                                    "Unavailable"
-                                !permissionGranted && isMessages ->
-                                    "SMS permission required"
-                                !permissionGranted ->
-                                    "Permission required"
-                                option.providerId == LauncherFilesSearchProvider.PROVIDER_ID &&
-                                    fileSearchRoots.isEmpty() ->
-                                    "Choose a folder to enable"
-                                driveSource && !driveConnectionAvailable ->
-                                    "Signed Development build required"
-                                else -> null
-                            }
-
-                            if (sectionIndex > 0) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(start = GlazeMetrics.space3),
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                                )
-                            }
-
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        detailProviderId =
-                                            if (expanded) null else option.providerId
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(
+                                    start = GlazeMetrics.space2,
+                                    end = GlazeMetrics.space2,
+                                    bottom = GlazeMetrics.space2,
+                                ),
+                            shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.52f),
+                            border = BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.045f),
+                            ),
+                        ) {
+                            Column {
+                                options.forEachIndexed { sectionIndex, option ->
+                                    val index = controls.orderedOptions.indexOfFirst {
+                                        it.providerId == option.providerId
                                     }
-                                    .padding(
-                                        horizontal = GlazeMetrics.space3,
-                                        vertical = GlazeMetrics.space2,
-                                    ),
-                                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                                ) {
-                                    if (section == LauncherSearchSourceSection.CONNECTED) {
-                                        Surface(
-                                            modifier = Modifier.size(40.dp),
-                                            shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
-                                            color = MaterialTheme.colorScheme.surfaceVariant
-                                                .copy(alpha = 0.46f),
-                                        ) {
-                                            Box(contentAlignment = Alignment.Center) {
-                                                LauncherConnectedProviderFallbackGlyph(
-                                                    option.providerId,
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    Column(Modifier.weight(1f)) {
-                                        Text(
-                                            option.displayName,
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.SemiBold,
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                    val enabled = controls.isEnabled(option.providerId)
+                                    val permissionGranted =
+                                        LauncherLocalSearchPermissions.isGranted(
+                                            context,
+                                            option.providerId,
                                         )
-                                        Text(
-                                            compactSourceSummary(
-                                                context = context,
-                                                option = option,
-                                                fileSearchRoots = fileSearchRoots,
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis,
+                                    val driveSource =
+                                        option.providerId ==
+                                            LauncherConnectedSearchProviderRegistry
+                                                .GOOGLE_DRIVE_PROVIDER_ID
+                                    val driveConnected =
+                                        driveSource &&
+                                            LauncherGoogleDriveAuthorizationState.isConnected()
+                                    val driveConnectionAvailable =
+                                        !driveSource || launcherDriveInlineConnectionAvailable(
+                                            debugBuild = BuildConfig.DEBUG,
+                                            alreadyConnected = driveConnected,
                                         )
-                                        if (statusLabel != null) {
-                                            Text(
-                                                statusLabel,
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = if (errorMessage != null) {
-                                                    MaterialTheme.colorScheme.error
-                                                } else {
-                                                    MaterialTheme.colorScheme.primary
-                                                },
-                                                fontWeight = FontWeight.SemiBold,
-                                                maxLines = 1,
-                                            )
-                                        }
+                                    val providerReady = !driveSource || driveConnected
+                                    val issue = issues[option.providerId]
+                                    val isMessages =
+                                        option.providerId ==
+                                            LauncherMessagesSearchProvider.PROVIDER_ID
+                                    val expanded = detailProviderId == option.providerId
+                                    val errorMessage = when {
+                                        issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED &&
+                                            isMessages ->
+                                            "Android denied restricted SMS access. Launcher cannot override it."
+                                        issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED ->
+                                            "Android blocked this source even though it was enabled."
+                                        issue == LauncherLocalSearchIssue.SOURCE_UNAVAILABLE ->
+                                            "This Android data source could not be queried."
+                                        !permissionGranted && isMessages ->
+                                            "SMS permission is required; some Android devices restrict it."
+                                        !permissionGranted ->
+                                            "Android permission is required before this source can be searched."
+                                        else -> null
+                                    }
+                                    val statusLabel = when {
+                                        issue == LauncherLocalSearchIssue.ANDROID_RESTRICTED ->
+                                            "Restricted by Android"
+                                        issue == LauncherLocalSearchIssue.SOURCE_UNAVAILABLE ->
+                                            "Unavailable"
+                                        !permissionGranted && isMessages ->
+                                            "SMS permission required"
+                                        !permissionGranted ->
+                                            "Permission required"
+                                        option.providerId ==
+                                            LauncherFilesSearchProvider.PROVIDER_ID &&
+                                            fileSearchRoots.isEmpty() ->
+                                            "Choose a folder to enable"
+                                        driveSource && !driveConnectionAvailable ->
+                                            "Signed Development build required"
+                                        else -> null
                                     }
 
-                                    Switch(
-                                        checked = enabled && permissionGranted && providerReady,
-                                        onCheckedChange = {
-                                            onSetEnabled(controls, option.providerId, it)
-                                        },
-                                        enabled = ready && driveConnectionAvailable,
-                                        modifier = Modifier.testTag(
-                                            "launcher-search-source-" + option.providerId,
-                                        ),
-                                    )
-                                }
+                                    if (sectionIndex > 0) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(start = 62.dp),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                                .copy(alpha = 0.055f),
+                                        )
+                                    }
 
-                                if (
-                                    option.providerId == LauncherFilesSearchProvider.PROVIDER_ID &&
-                                    fileSearchRoots.isEmpty()
-                                ) {
-                                    TextButton(
-                                        onClick = onChooseFileSearchRoot,
-                                        enabled = ready,
+                                    Column(
                                         modifier = Modifier
-                                            .align(Alignment.End)
-                                            .heightIn(min = 48.dp),
-                                    ) {
-                                        Text("Choose folder")
-                                    }
-                                }
-
-                                if (expanded) {
-                                    Surface(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                            .copy(alpha = 0.34f),
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(GlazeMetrics.space2),
-                                            verticalArrangement = Arrangement.spacedBy(
-                                                GlazeMetrics.space1,
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                detailProviderId =
+                                                    if (expanded) null else option.providerId
+                                            }
+                                            .padding(
+                                                horizontal = GlazeMetrics.space2,
+                                                vertical = GlazeMetrics.space2,
                                             ),
+                                        verticalArrangement =
+                                            Arrangement.spacedBy(GlazeMetrics.space1),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement =
+                                                Arrangement.spacedBy(GlazeMetrics.space2),
                                         ) {
-                                            if (errorMessage != null) {
-                                                Text(
-                                                    errorMessage,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.error,
-                                                )
-                                            }
-                                            Text(
-                                                option.privacySummary,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            )
-                                            connectedSourceDetail(
-                                                context = context,
+                                            LauncherSearchSourceBadge(
                                                 option = option,
-                                                fileSearchRoots = fileSearchRoots,
-                                            )?.let { detail ->
+                                                section = section,
+                                                accent = accent,
+                                            )
+
+                                            Column(Modifier.weight(1f)) {
                                                 Text(
-                                                    detail,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    option.displayName,
+                                                    style = MaterialTheme.typography.titleSmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
                                                 )
+                                                Text(
+                                                    compactSourceSummary(
+                                                        context = context,
+                                                        option = option,
+                                                        fileSearchRoots = fileSearchRoots,
+                                                    ),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color =
+                                                        MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                )
+                                                if (statusLabel != null) {
+                                                    Text(
+                                                        statusLabel,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = if (errorMessage != null) {
+                                                            MaterialTheme.colorScheme.error
+                                                        } else {
+                                                            MaterialTheme.colorScheme.primary
+                                                        },
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        maxLines = 1,
+                                                    )
+                                                }
                                             }
 
-                                            if (
-                                                option.providerId ==
-                                                LauncherFilesSearchProvider.PROVIDER_ID
+                                            Switch(
+                                                checked =
+                                                    enabled &&
+                                                        permissionGranted &&
+                                                        providerReady,
+                                                onCheckedChange = {
+                                                    onSetEnabled(
+                                                        controls,
+                                                        option.providerId,
+                                                        it,
+                                                    )
+                                                },
+                                                enabled = ready && driveConnectionAvailable,
+                                                modifier = Modifier.testTag(
+                                                    "launcher-search-source-" +
+                                                        option.providerId,
+                                                ),
+                                            )
+                                            Text(
+                                                if (expanded) "⌃" else "›",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    .copy(alpha = 0.72f),
+                                                fontWeight = FontWeight.SemiBold,
+                                            )
+                                        }
+
+                                        if (
+                                            option.providerId ==
+                                                LauncherFilesSearchProvider.PROVIDER_ID &&
+                                            fileSearchRoots.isEmpty()
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End,
                                             ) {
                                                 TextButton(
                                                     onClick = onChooseFileSearchRoot,
                                                     enabled = ready,
-                                                    modifier = Modifier.heightIn(min = 48.dp),
+                                                    modifier = Modifier.heightIn(min = 44.dp),
                                                 ) {
-                                                    Text(
-                                                        if (fileSearchRoots.isEmpty()) {
-                                                            "Choose folder"
-                                                        } else {
-                                                            "Add folder"
-                                                        },
-                                                    )
+                                                    Text("▣  Choose folder")
                                                 }
-                                                fileSearchRoots.forEach { root ->
-                                                    Row(
-                                                        modifier = Modifier.fillMaxWidth(),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement =
-                                                            Arrangement.spacedBy(
-                                                                GlazeMetrics.space2,
-                                                            ),
-                                                    ) {
+                                            }
+                                        }
+
+                                        if (expanded) {
+                                            Surface(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                shape = RoundedCornerShape(
+                                                    GlazeMetrics.radiusMedium,
+                                                ),
+                                                color = MaterialTheme.colorScheme.surfaceVariant
+                                                    .copy(alpha = 0.30f),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    MaterialTheme.colorScheme.onSurface
+                                                        .copy(alpha = 0.045f),
+                                                ),
+                                            ) {
+                                                Column(
+                                                    modifier = Modifier.padding(
+                                                        GlazeMetrics.space2,
+                                                    ),
+                                                    verticalArrangement =
+                                                        Arrangement.spacedBy(
+                                                            GlazeMetrics.space1,
+                                                        ),
+                                                ) {
+                                                    if (errorMessage != null) {
                                                         Text(
-                                                            root.lastPathSegment
-                                                                ?.substringAfterLast(':')
-                                                                ?.takeIf { it.isNotBlank() }
-                                                                ?: "Selected folder",
-                                                            modifier = Modifier.weight(1f),
-                                                            style = MaterialTheme.typography.bodySmall,
+                                                            errorMessage,
+                                                            style =
+                                                                MaterialTheme.typography.bodySmall,
+                                                            color =
+                                                                MaterialTheme.colorScheme.error,
+                                                        )
+                                                    }
+                                                    Text(
+                                                        option.privacySummary,
+                                                        style =
+                                                            MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme
+                                                            .onSurfaceVariant,
+                                                    )
+                                                    connectedSourceDetail(
+                                                        context = context,
+                                                        option = option,
+                                                        fileSearchRoots = fileSearchRoots,
+                                                    )?.let { detail ->
+                                                        Text(
+                                                            detail,
+                                                            style =
+                                                                MaterialTheme.typography.bodySmall,
                                                             color = MaterialTheme.colorScheme
                                                                 .onSurfaceVariant,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis,
                                                         )
+                                                    }
+
+                                                    if (
+                                                        option.providerId ==
+                                                            LauncherFilesSearchProvider.PROVIDER_ID
+                                                    ) {
                                                         TextButton(
-                                                            onClick = {
-                                                                onRemoveFileSearchRoot(root)
-                                                            },
+                                                            onClick = onChooseFileSearchRoot,
                                                             enabled = ready,
-                                                        ) { Text("Remove") }
+                                                            modifier =
+                                                                Modifier.heightIn(min = 44.dp),
+                                                        ) {
+                                                            Text(
+                                                                if (fileSearchRoots.isEmpty()) {
+                                                                    "Choose folder"
+                                                                } else {
+                                                                    "Add folder"
+                                                                },
+                                                            )
+                                                        }
+                                                        fileSearchRoots.forEach { root ->
+                                                            Row(
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                verticalAlignment =
+                                                                    Alignment.CenterVertically,
+                                                                horizontalArrangement =
+                                                                    Arrangement.spacedBy(
+                                                                        GlazeMetrics.space2,
+                                                                    ),
+                                                            ) {
+                                                                Text(
+                                                                    root.lastPathSegment
+                                                                        ?.substringAfterLast(':')
+                                                                        ?.takeIf {
+                                                                            it.isNotBlank()
+                                                                        }
+                                                                        ?: "Selected folder",
+                                                                    modifier =
+                                                                        Modifier.weight(1f),
+                                                                    style = MaterialTheme
+                                                                        .typography.bodySmall,
+                                                                    color = MaterialTheme
+                                                                        .colorScheme
+                                                                        .onSurfaceVariant,
+                                                                    maxLines = 1,
+                                                                    overflow =
+                                                                        TextOverflow.Ellipsis,
+                                                                )
+                                                                TextButton(
+                                                                    onClick = {
+                                                                        onRemoveFileSearchRoot(
+                                                                            root,
+                                                                        )
+                                                                    },
+                                                                    enabled = ready,
+                                                                ) {
+                                                                    Text("Remove")
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
-                                }
 
-                                if (reorderMode) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.End,
-                                    ) {
-                                        TextButton(
-                                            onClick = {
-                                                onSet(
-                                                    LauncherSearchProviderUserControlPolicy
-                                                        .moveProviderBy(
-                                                            controls,
-                                                            option.providerId,
-                                                            -1,
-                                                        ),
-                                                )
-                                            },
-                                            enabled = ready && index > 0,
-                                        ) { Text("↑") }
-                                        TextButton(
-                                            onClick = {
-                                                onSet(
-                                                    LauncherSearchProviderUserControlPolicy
-                                                        .moveProviderBy(
-                                                            controls,
-                                                            option.providerId,
-                                                            1,
-                                                        ),
-                                                )
-                                            },
-                                            enabled = ready &&
-                                                index in 0 until
-                                                    controls.orderedOptions.lastIndex,
-                                        ) { Text("↓") }
+                                        if (reorderMode) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.End,
+                                            ) {
+                                                TextButton(
+                                                    onClick = {
+                                                        onSet(
+                                                            LauncherSearchProviderUserControlPolicy
+                                                                .moveProviderBy(
+                                                                    controls,
+                                                                    option.providerId,
+                                                                    -1,
+                                                                ),
+                                                        )
+                                                    },
+                                                    enabled = ready && index > 0,
+                                                ) {
+                                                    Text("↑  Earlier")
+                                                }
+                                                TextButton(
+                                                    onClick = {
+                                                        onSet(
+                                                            LauncherSearchProviderUserControlPolicy
+                                                                .moveProviderBy(
+                                                                    controls,
+                                                                    option.providerId,
+                                                                    1,
+                                                                ),
+                                                        )
+                                                    },
+                                                    enabled =
+                                                        ready &&
+                                                            index in 0 until
+                                                                controls.orderedOptions.lastIndex,
+                                                ) {
+                                                    Text("↓  Later")
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
