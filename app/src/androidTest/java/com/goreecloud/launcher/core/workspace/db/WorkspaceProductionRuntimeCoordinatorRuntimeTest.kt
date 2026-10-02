@@ -60,7 +60,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
             runtime.reconcileAndActivate(),
         )
         assertEquals(WorkspaceAuthority.ROOM, repository.state.first().authority)
-        assertReady(runtime, INITIAL_FAVORITES, INITIAL_DOCK)
+        assertRoomSnapshot(INITIAL_FAVORITES, INITIAL_DOCK)
 
         assertEquals(
             WorkspaceAuthoritativeWriteResult.Written(
@@ -72,7 +72,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
             ),
             runtime.toggleFavorite(ROOM_ADDED),
         )
-        assertReady(runtime, INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK)
+        assertRoomSnapshot(INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK)
 
         closeWorkspaceDataStore()
         database.close()
@@ -85,7 +85,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
             WorkspaceProductionRuntimeResult.RoomReady,
             runtime.reconcileAndActivate(),
         )
-        assertReady(runtime, INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK)
+        assertRoomSnapshot(INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK)
 
         assertEquals(
             WorkspaceAuthoritativeWriteResult.Written(
@@ -97,7 +97,7 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
             ),
             runtime.toggleDock(DOCK_ADDED),
         )
-        assertReady(runtime, INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK + DOCK_ADDED)
+        assertRoomSnapshot(INITIAL_FAVORITES + ROOM_ADDED, INITIAL_DOCK + DOCK_ADDED)
     }
 
     @Test
@@ -247,6 +247,19 @@ class WorkspaceProductionRuntimeCoordinatorRuntimeTest {
             healthyRuntime.reconcileAndActivate(),
         )
         assertReady(healthyRuntime, INITIAL_FAVORITES, INITIAL_DOCK)
+    }
+
+    private suspend fun assertRoomSnapshot(
+        favorites: List<String>,
+        dock: List<String>,
+    ) {
+        assertEquals(
+            WorkspaceRelationalSnapshot(
+                favoriteKeys = favorites,
+                dockKeys = dock,
+            ),
+            WorkspaceCanonicalRoomPlacementReader.read(database.workspaceDao()),
+        )
     }
 
     private suspend fun assertReady(
