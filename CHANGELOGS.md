@@ -1,5 +1,13 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 3, 2026 — reversible Hidden apps UI candidate
+
+This Development candidate layers the validated profile-qualified Hidden apps core onto the current Launcher polish line. **Hide app** suppresses only the exact selected User/Work identity from App Drawer and Universal Search discovery; it does not disable or uninstall the Android package and does not remove existing Home, Dock, folder, widget, or Room placement. The same component in another Android profile remains independent.
+
+App context exposes **Hide from Apps & Search / Show in Apps & Search**. Launcher Settings → App drawer exposes **Hidden apps** with direct **Show** recovery actions and an explicit count; recovery rows distinguish User from Work identities, and Settings search indexes hidden/hide/visibility terms. Hidden state stays device-local and outside portable preference v1 until a separately versioned backup/recovery policy is defined. No new Android permission, network path, cloud dependency, telemetry, package mutation, or cross-profile inference is added.
+
+**Acceptance boundary:** unmerged Development candidate. Focused persistence/isolation tests are carried from the green core foundation, while fresh exact-head Launcher build/JVM/lint/schema, complete Android 16 runtime, transition-performance, provenance, Foundation, migrated-app required gate, and protected promotion are required for this combined UI head. Representative personal/Work/Shelter/private-space, accessibility/large-text/form-factor, backup/recovery, protected signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain open.
+
 ## October 3, 2026 — follow-up density, glyph, and starter-cleanup candidate
 
 This Development candidate continues the CI-661/PR #194 representative-device polish without widening Launcher authority. Universal Search now exposes an inline clear-query glyph while text is present and gives a no-result state a direct Search Sources recovery action. Search Sources replaces its Reset/Order text buttons with accessible Launcher-owned glyph actions, reports enabled/total counts by section, and moves the Files folder-picker action into the Files row instead of spending another line below it. Ordinary Search rows replace the trailing Open/Copy text affordance with a small vector action glyph, and Contact Call/Message actions move into the same result row so contact results no longer grow a second action row.
