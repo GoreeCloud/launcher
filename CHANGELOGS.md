@@ -1,30 +1,30 @@
 # GoreeCloud Launcher — Changelogs
 
-## October 3, 2026 — onboarding and Search-source scanability follow-up
+## October 3, 2026 — integrate onboarding and Search-source scanability follow-up
 
-This Development follow-up removes remaining setup and source-management friction after the broader October 3 polish tranche. The startup wizard now uses the same compact segmented control pattern for **Home apps**, Grid, and Dock rather than three larger Home-mode cards; each compact choice keeps a 48 dp minimum and exposes radio-button selected-state semantics, its progress rail follows the semantic accent of the active step, setup copy is shorter, Search-mode cards are slightly tighter, and the compact gesture strip keeps bounded decorative geometry with clearer surface separation while preserving the existing three-step flow and persisted configuration.
+Protected PR #224 integrates the bounded setup and source-management follow-up on top of the Hidden Apps runtime line. The startup wizard now uses the same compact segmented control pattern for **Home apps**, Grid, and Dock rather than three larger Home-mode cards; each compact choice keeps a 48 dp minimum and exposes radio-button selected-state semantics, its progress rail follows the semantic accent of the active step, setup copy is shorter, Search-mode cards are slightly tighter, and the compact gesture strip keeps bounded decorative geometry with clearer surface separation while preserving the existing three-step flow and persisted configuration.
 
 Universal Search now turns an unavailable-source warning into a direct **Sources** recovery action instead of passive error copy. Search Sources replaces font-arrow reorder labels with Launcher-owned vector movement glyphs, shortens section/folder/provider summaries for faster scanning, bounds fallback result titles to one ellipsized line, and keeps existing permission, connected-provider, retention, and explicit-handoff authority unchanged. Search actions, including the Sources Back control, keep a 48 dp interaction floor. Runtime acceptance exercises the clear-query action end-to-end by returning to suggestions, confirming the clear control disappears, and retyping the query before continuing.
 
-**Acceptance boundary:** Development candidate only. Fresh exact-head Launcher build/JVM/lint/schema, Android 16 runtime, transition-performance, migration provenance, Android Development Foundation, and protected-promotion validation remain required before integration. Representative-device visual/accessibility/large-text/form-factor acceptance, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
+**Integration evidence:** PR #224 exact head `8ee98f3286e7e2e67677393664a905086a8d8581` passed Mandatory app migration provenance run `37140755406`, Android Development Foundation run `37140755431`, Migrated Android apps CI run `37140755457` including Launcher build/JVM/lint/schema, the complete Android 16 runtime suite, transition-performance diagnostics and the migrated-app required gate, plus Protected promotion run `37140755404`, with zero unresolved review threads. It then merged through expected-head-protected squash as authoritative main `06c4be22844c8f97e9c3fdee7757629ab11ccdb9`. **Acceptance boundary:** Development integration only. Representative-device visual/accessibility/large-text/form-factor acceptance, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
 
-## October 3, 2026 — reversible Hidden apps UI candidate
+## October 3, 2026 — integrate reversible profile-qualified Hidden apps UI
 
-This Development candidate layers the validated profile-qualified Hidden apps core onto the current Launcher polish line. **Hide app** suppresses only the exact selected User/Work identity from App Drawer and Universal Search discovery; it does not disable or uninstall the Android package and does not remove existing Home, Dock, folder, widget, or Room placement. The same component in another Android profile remains independent.
+Protected PR #223 integrates the validated profile-qualified Hidden apps core and its reversible presentation/recovery surface into the Launcher Development line. **Hide app** suppresses only the exact selected User/Work identity from App Drawer and Universal Search discovery; it does not disable or uninstall the Android package and does not remove existing Home, Dock, folder, widget, or Room placement. The same component in another Android profile remains independent.
 
 App context exposes **Hide from Apps & Search / Show in Apps & Search**. Launcher Settings → App drawer exposes **Hidden apps** with direct **Show** recovery actions and an explicit count; recovery rows distinguish User from Work identities, and Settings search indexes hidden/hide/visibility terms. Hidden state stays device-local and outside portable preference v1 until a separately versioned backup/recovery policy is defined. No new Android permission, network path, cloud dependency, telemetry, package mutation, or cross-profile inference is added.
 
-**Acceptance boundary:** unmerged Development candidate. Focused persistence/isolation tests are carried from the green core foundation, while fresh exact-head Launcher build/JVM/lint/schema, complete Android 16 runtime, transition-performance, provenance, Foundation, migrated-app required gate, and protected promotion are required for this combined UI head. Representative personal/Work/Shelter/private-space, accessibility/large-text/form-factor, backup/recovery, protected signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain open.
+**Integration evidence:** PR #223 exact head `4ce68c0201cb2779c91c3203e68a8d75fdc07cd6` passed Migrated Android apps CI run `37138104658` including Launcher build/JVM/lint/schema, the complete Android 16 runtime suite, transition-performance diagnostics and the migrated-app required gate, Mandatory app migration provenance run `37138104703`, Android Development Foundation run `37138104654`, and Protected promotion run `37138104626`, with zero unresolved review threads. It merged through expected-head-protected squash as `b433104499372248d03cd0fed89fa729b6db1d77`. **Acceptance boundary:** Development integration only. Representative personal/Work/Shelter/private-space behavior, accessibility/large-text/form-factor acceptance, portable backup/recovery policy, protected signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain open.
 
-## October 3, 2026 — follow-up density, glyph, and starter-cleanup candidate
+## October 3, 2026 — integrate broader Search, widget, onboarding, and starter-Home polish
 
-This Development candidate continues the CI-661/PR #194 representative-device polish without widening Launcher authority. Universal Search now exposes an inline clear-query glyph while text is present and gives a no-result state a direct Search Sources recovery action. Search Sources replaces its Reset/Order text buttons with accessible Launcher-owned glyph actions, reports enabled/total counts by section, and moves the Files folder-picker action into the Files row instead of spending another line below it. Ordinary Search rows replace the trailing Open/Copy text affordance with a small vector action glyph, and Contact Call/Message actions move into the same result row so contact results no longer grow a second action row.
+Protected PR #216 integrates the next representative-device-driven Search, widget, onboarding, and starter-Home polish tranche without widening Launcher authority. Universal Search now exposes an inline clear-query glyph while text is present and gives a no-result state a direct Search Sources recovery action. Search Sources replaces its Reset/Order text buttons with accessible Launcher-owned glyph actions, reports enabled/total counts by section, and moves the Files folder-picker action into the Files row instead of spending another line below it. Ordinary Search rows replace the trailing Open/Copy text affordance with a small vector action glyph, and Contact Call/Message actions move into the same result row so contact results no longer grow a second action row.
 
 The widget and App Drawer presentation is tightened in the same tranche. Built-in widget-picker entries use compact single-row cards with smaller truthful previews and span metadata, while remaining battery/search/pin/check pseudo-glyphs in Launcher-owned UI are replaced with first-party vector artwork. First-run and post-setup guidance are tightened again: the onboarding card is top-anchored rather than vertically centered, outer whitespace is reduced, Search-mode and feature-card heights are trimmed, and the gesture strip uses first-party vector cues instead of font arrows. Home hints now use distinct edit/gesture/apps artwork instead of repeating one generic gesture icon.
 
 The starter migration is also safer and more effective for Development upgrades. The reserved historical starter Calendar and Quick-actions item IDs are GoreeCloud-created identities, so those exact seeded instances are retired whenever they are still present even if the user has since added other Home content. User-created Calendar or Quick-actions widgets use different item IDs and are not removed. Existing workspace authority, HOME-role behavior, provider execution, permissions, privacy boundaries, user-created widget identities, and production drag behavior remain unchanged.
 
-**Acceptance boundary:** unmerged Development candidate. Fresh exact-head Launcher JVM/unit/lint/build/schema, Android 16 runtime, transition-performance, migration provenance, Android Development, and protected-promotion gates are required before integration. A new representative-device APK and visual retest remain open; protected Development signing/update continuity, accessibility/large-text/form-factor acceptance, Release Candidate, Production, and Stable remain separate gates.
+**Integration evidence:** PR #216 exact head `40d9608533936bbea29d73f2ccf33c7a7b0a6c05` passed Mandatory app migration provenance run `37130779442`, Android Development Foundation run `37130779438`, Migrated Android apps CI run `37130779487` including Launcher build/JVM/lint/schema, complete Android 16 runtime and transition-performance diagnostics, plus Protected promotion run `37130779497` before protected squash merge as `0978c4deaf460ed15bd9ffd37f573bf4d2772168`. **Acceptance boundary:** Development integration only. A fresh representative-device visual retest remains open; protected Development signing/update continuity, accessibility/large-text/form-factor acceptance, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
 
 ## October 2, 2026 — compact Search, clean starter Home, and visual onboarding candidate
 
@@ -1104,11 +1104,11 @@ Validation:
 
 **Lifecycle boundary:** Development only. Representative-device permission behavior, profile isolation, accessibility, latency, distribution-policy review, release qualification, production, and Stable acceptance remain open under issue #80.
 
-## September 22, 2026 — PR #228 connected persisted Universal Search source controls
+## September 22, 2026 — legacy standalone PR #228 connected persisted Universal Search source controls
 
 **Change type:** Universal Search provider controls; rendered Sources management; Development implementation.
 
-PR #228, **Connect persisted Universal Search source controls on current main**, was guarded-squash merged to `main` as `1e1f72c6a994e8381c0eecf3bd9fc3db17a44dde`.
+Legacy standalone-repository PR #228, **Connect persisted Universal Search source controls on current main**, was guarded-squash merged to `main` as `1e1f72c6a994e8381c0eecf3bd9fc3db17a44dde`.
 
 Implemented:
 
@@ -1152,11 +1152,11 @@ Validation:
 
 **Lifecycle boundary:** Development only. Representative-device visual quality, resolution/orientation rendering, picker accessibility, sustained performance/power, Human Visual Excellence, release qualification, production, and Stable acceptance remain open under issue #80.
 
-## September 22, 2026 — PR #223 removed persistent app-drawer header actions
+## September 22, 2026 — legacy standalone PR #223 removed persistent app-drawer header actions
 
 **Change type:** App drawer interaction; navigation cleanup; Development implementation.
 
-PR #223, **Use gesture-only app drawer dismissal**, was guarded-squash merged to `main` as `c09e2d581f300271f762422eef206631769f73b1`.
+Legacy standalone-repository PR #223, **Use gesture-only app drawer dismissal**, was guarded-squash merged to `main` as `c09e2d581f300271f762422eef206631769f73b1`.
 
 Implemented:
 
