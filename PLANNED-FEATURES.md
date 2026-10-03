@@ -1,5 +1,9 @@
 # GoreeCloud Launcher — Planned Features
 
+## October 3, 2026 — Hidden apps persistence foundation candidate
+
+This independent Development foundation adds device-local hidden-app state keyed by exact profile-qualified Launcher workspace identity, exposes it through the existing atomic App Drawer presentation snapshot, and adds a small discovery policy that excludes only explicitly hidden identities. Focused tests verify persistence plus same-component personal/Work isolation. This tranche deliberately does **not** wire hiding into the App Drawer, Universal Search, app context menu, or Settings yet, so no user-visible Hidden apps capability is claimed from this branch alone. The follow-on presentation/recovery tranche remains required, as do fresh exact-head protected validation, profile/device/accessibility acceptance, and explicit portable backup/recovery policy.
+
 ## October 2, 2026 — pinned ordering integration and reset candidate
 
 Protected PR #185 integrated device-local, profile-qualified manual App Drawer pin ordering to authoritative monorepo main `7902e7bd58a510591e6c8f8778a3872df4c77642`. **Pinned first** honors the manual order and pinned Drawer app menus expose **Move pinned earlier / Move pinned later**. Ordering remains presentation metadata only and does not mutate Home, Dock, folders, package state, cross-profile authority, or portable preference v1.

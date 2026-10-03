@@ -79,6 +79,33 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun hiddenAppsPersistByExactProfileQualifiedIdentity() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("hidden-apps.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            val personal = "0:com.example/.Main"
+            val work = "10:com.example/.Main"
+
+            repository.setAppHidden(personal, true).join()
+            repository.setAppHidden(work, true).join()
+            assertEquals(setOf(personal, work), repository.hiddenAppKeys.first())
+
+            repository.setAppHidden(personal, false).join()
+            assertEquals(setOf(work), repository.hiddenAppKeys.first())
+
+            repository.setAppHidden(work, false).join()
+            assertEquals(emptySet<String>(), repository.hiddenAppKeys.first())
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun hiddenHomeSuggestionsPersistIndependentlyFromManualPlacementPreferences() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

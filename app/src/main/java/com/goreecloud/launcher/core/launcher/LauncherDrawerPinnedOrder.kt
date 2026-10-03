@@ -1,14 +1,15 @@
 package com.goreecloud.launcher.core.launcher
 
 /**
- * Ordered presentation metadata for App Drawer pins.
+ * Device-local App Drawer presentation metadata.
  *
- * Membership remains the existing profile-qualified pinned-key set. This sidecar only remembers
- * user ordering and is intentionally outside portable preference v1.
+ * Pin membership/order and hidden discovery identities use exact profile-qualified workspace keys.
+ * This sidecar state remains intentionally outside portable preference v1.
  */
 data class LauncherDrawerPinnedState(
     val keys: Set<String>,
     val order: List<String>,
+    val hiddenKeys: Set<String> = emptySet(),
 )
 
 internal object LauncherDrawerPinnedOrder {
