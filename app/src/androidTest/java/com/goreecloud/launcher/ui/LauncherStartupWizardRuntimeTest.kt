@@ -2,6 +2,8 @@ package com.goreecloud.launcher.ui
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -56,13 +58,19 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText("None")
             .performScrollTo()
             .assertIsDisplayed()
+            .assertIsSelected()
         composeRule.onNodeWithText("Recent")
             .performScrollTo()
             .assertIsDisplayed()
+            .assertIsNotSelected()
         composeRule.onNodeWithText("Most used")
             .performScrollTo()
             .assertIsDisplayed()
+            .assertIsNotSelected()
             .performClick()
+            .assertIsSelected()
+        composeRule.onNodeWithText("None")
+            .assertIsNotSelected()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Search and gestures")

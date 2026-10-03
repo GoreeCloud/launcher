@@ -1293,11 +1293,38 @@ class ActivatedHomeLifecycleRuntimeTest {
                     )
                     .performTextInput("theme")
                 composeRule
-                    .onNodeWithContentDescription(
-                        "Clear Universal Search query",
+                    .onNodeWithTag(
+                        "launcher-universal-search-clear",
                         useUnmergedTree = true,
                     )
+                    .assertIsDisplayed()
                     .assertHasClickAction()
+                    .performClick()
+                composeRule.waitUntil(timeoutMillis = 10_000) {
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-universal-search-suggestions",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty()
+                }
+                assertEquals(
+                    0,
+                    composeRule
+                        .onAllNodesWithTag(
+                            "launcher-universal-search-clear",
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .size,
+                )
+                composeRule
+                    .onNodeWithTag(
+                        "launcher-universal-search-field",
+                        useUnmergedTree = true,
+                    )
+                    .performTextInput("theme")
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
                         .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)

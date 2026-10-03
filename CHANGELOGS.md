@@ -1,5 +1,13 @@
 # GoreeCloud Launcher — Changelogs
 
+## October 3, 2026 — onboarding and Search-source scanability follow-up
+
+This Development follow-up removes remaining setup and source-management friction after the broader October 3 polish tranche. The startup wizard now uses the same compact segmented control pattern for **Home apps**, Grid, and Dock rather than three larger Home-mode cards; each compact choice keeps a 48 dp minimum and exposes radio-button selected-state semantics, its progress rail follows the semantic accent of the active step, setup copy is shorter, Search-mode cards are slightly tighter, and the compact gesture strip keeps bounded decorative geometry with clearer surface separation while preserving the existing three-step flow and persisted configuration.
+
+Universal Search now turns an unavailable-source warning into a direct **Sources** recovery action instead of passive error copy. Search Sources replaces font-arrow reorder labels with Launcher-owned vector movement glyphs, shortens section/folder/provider summaries for faster scanning, bounds fallback result titles to one ellipsized line, and keeps existing permission, connected-provider, retention, and explicit-handoff authority unchanged. Search actions, including the Sources Back control, keep a 48 dp interaction floor. Runtime acceptance exercises the clear-query action end-to-end by returning to suggestions, confirming the clear control disappears, and retyping the query before continuing.
+
+**Acceptance boundary:** Development candidate only. Fresh exact-head Launcher build/JVM/lint/schema, Android 16 runtime, transition-performance, migration provenance, Android Development Foundation, and protected-promotion validation remain required before integration. Representative-device visual/accessibility/large-text/form-factor acceptance, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
+
 ## October 3, 2026 — reversible Hidden apps UI candidate
 
 This Development candidate layers the validated profile-qualified Hidden apps core onto the current Launcher polish line. **Hide app** suppresses only the exact selected User/Work identity from App Drawer and Universal Search discovery; it does not disable or uninstall the Android package and does not remove existing Home, Dock, folder, widget, or Room placement. The same component in another Android profile remains independent.
