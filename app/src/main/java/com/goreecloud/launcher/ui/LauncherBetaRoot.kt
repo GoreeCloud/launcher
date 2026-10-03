@@ -61,6 +61,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draganddrop.DragAndDropEvent
 import androidx.compose.ui.draganddrop.DragAndDropTarget
@@ -68,6 +70,7 @@ import androidx.compose.ui.draganddrop.DragAndDropTransferData
 import androidx.compose.ui.draganddrop.toAndroidDragEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -2680,21 +2683,27 @@ private fun WidgetPickerBuiltInCard(
         modifier = modifier.testTag("launcher-widget-built-in-$typeId"),
         onClick = onClick,
         shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.065f),
+        ),
     ) {
-        Column(
-            modifier = Modifier.padding(GlazeMetrics.space3),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Surface(
-                shape = RoundedCornerShape(18.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                modifier = Modifier.size(58.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
             ) {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(72.dp)
+                        .fillMaxSize()
                         .clearAndSetSemantics { },
                     contentAlignment = Alignment.Center,
                 ) {
@@ -2702,7 +2711,7 @@ private fun WidgetPickerBuiltInCard(
                         WorkspaceWidgetCatalog.CALENDAR -> {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(1.dp),
+                                verticalArrangement = Arrangement.spacedBy(0.dp),
                             ) {
                                 Text(
                                     now.format(
@@ -2717,37 +2726,24 @@ private fun WidgetPickerBuiltInCard(
                                 )
                                 Text(
                                     now.dayOfMonth.toString(),
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Light,
                                     color = previewColor,
                                 )
                             }
                         }
-
                         WorkspaceWidgetCatalog.WEATHER -> {
+                            LauncherWeatherIcon(
+                                kind = LauncherWeatherVisualKind.UNKNOWN,
+                                isDay = true,
+                                color = previewColor,
+                                size = 30.dp,
+                            )
+                        }
+                        WorkspaceWidgetCatalog.GLANCE -> {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(2.dp),
-                            ) {
-                                LauncherWeatherIcon(
-                                    kind = LauncherWeatherVisualKind.UNKNOWN,
-                                    isDay = true,
-                                    color = previewColor,
-                                    size = 32.dp,
-                                )
-                                Text(
-                                    "Weather",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = previewColor.copy(alpha = 0.78f),
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
-                        }
-
-                        WorkspaceWidgetCatalog.GLANCE -> {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(1.dp),
                             ) {
                                 Text(
                                     now.format(
@@ -2756,19 +2752,21 @@ private fun WidgetPickerBuiltInCard(
                                             Locale.getDefault(),
                                         ),
                                     ),
-                                    style = MaterialTheme.typography.titleLarge,
+                                    style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Light,
                                     color = previewColor,
                                 )
-                                LauncherWeatherIcon(
-                                    kind = LauncherWeatherVisualKind.UNKNOWN,
-                                    isDay = true,
-                                    color = previewColor,
-                                    size = 28.dp,
+                                Box(
+                                    modifier = Modifier
+                                        .width(22.dp)
+                                        .height(2.dp)
+                                        .background(
+                                            previewColor.copy(alpha = 0.72f),
+                                            RoundedCornerShape(GlazeMetrics.radiusPill),
+                                        ),
                                 )
                             }
                         }
-
                         WorkspaceWidgetCatalog.CLOCK,
                         WorkspaceWidgetCatalog.COMPACT_CLOCK,
                         -> Text(
@@ -2778,24 +2776,24 @@ private fun WidgetPickerBuiltInCard(
                                     Locale.getDefault(),
                                 ),
                             ),
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Light,
                             color = previewColor,
                         )
-
-                        WorkspaceWidgetCatalog.ANALOG_CLOCK -> Text(
-                            "◷",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = previewColor,
+                        WorkspaceWidgetCatalog.ANALOG_CLOCK,
+                        WorkspaceWidgetCatalog.QUICK_ACTIONS,
+                        WorkspaceWidgetCatalog.BATTERY,
+                        -> LauncherWidgetPreviewGlyph(
+                            typeId = typeId,
+                            tint = previewColor,
+                            modifier = Modifier.size(30.dp),
                         )
-
                         WorkspaceWidgetCatalog.DATE -> Text(
                             now.dayOfMonth.toString(),
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Light,
                             color = previewColor,
                         )
-
                         WorkspaceWidgetCatalog.MONTH -> Text(
                             now.format(
                                 DateTimeFormatter.ofPattern(
@@ -2803,55 +2801,64 @@ private fun WidgetPickerBuiltInCard(
                                     Locale.getDefault(),
                                 ),
                             ).uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = previewColor,
                         )
-
-                        WorkspaceWidgetCatalog.SEARCH -> LauncherSearchMagnifier(previewColor)
-
-                        WorkspaceWidgetCatalog.QUICK_ACTIONS -> Text(
-                            "•••",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = previewColor,
-                        )
-
-                        WorkspaceWidgetCatalog.BATTERY -> Text(
-                            "▰",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = previewColor,
-                        )
-
+                        WorkspaceWidgetCatalog.SEARCH ->
+                            LauncherSearchMagnifier(previewColor)
                         WorkspaceWidgetCatalog.LAUNCHER_STATUS -> Text(
                             "GC",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = previewColor,
                         )
-
-                        else -> Text(
-                            "•",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = previewColor,
+                        else -> Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(previewColor, CircleShape),
                         )
                     }
                 }
             }
-            Text(
-                WorkspaceWidgetCatalog.displayName(typeId),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                WorkspaceWidgetCatalog.description(typeId),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                "${span.first} × ${span.second}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
-            )
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                Text(
+                    WorkspaceWidgetCatalog.displayName(typeId),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    WorkspaceWidgetCatalog.description(typeId),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            Surface(
+                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                ),
+            ) {
+                Text(
+                    "${span.first} × ${span.second}",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -5272,11 +5279,15 @@ private fun LauncherBuiltInWidget(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                     ) {
-                        Text(
-                            "⌕",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        Surface(
+                            modifier = Modifier.size(36.dp),
+                            shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                LauncherSearchMagnifier(MaterialTheme.colorScheme.primary)
+                            }
+                        }
                         Column(Modifier.weight(1f)) {
                             Text(
                                 "Search GoreeCloud",
@@ -5307,15 +5318,35 @@ private fun LauncherBuiltInWidget(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                     ) {
-                        GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
-                        GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
+                        GlazeActionChip(
+                            title = "Apps",
+                            symbol = LauncherQuickActionSymbol.APPS,
+                            onClick = onOpenApps,
+                            modifier = Modifier.weight(1f),
+                        )
+                        GlazeActionChip(
+                            title = "Search",
+                            symbol = LauncherQuickActionSymbol.SEARCH,
+                            onClick = onOpenSearch,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
                     ) {
-                        GlazeActionChip("Edit Home", onOpenHomeEditor, Modifier.weight(1f))
-                        GlazeActionChip("Settings", onOpenSettings, Modifier.weight(1f))
+                        GlazeActionChip(
+                            title = "Edit Home",
+                            symbol = LauncherQuickActionSymbol.EDIT_HOME,
+                            onClick = onOpenHomeEditor,
+                            modifier = Modifier.weight(1f),
+                        )
+                        GlazeActionChip(
+                            title = "Settings",
+                            symbol = LauncherQuickActionSymbol.SETTINGS,
+                            onClick = onOpenSettings,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
             }
@@ -5341,10 +5372,10 @@ private fun LauncherBuiltInWidget(
                             color = foreground.copy(alpha = 0.70f),
                         )
                     }
-                    Text(
-                        if (battery.charging) "⚡" else "▰",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary,
+                    LauncherBatteryGlyph(
+                        percent = battery.percent,
+                        charging = battery.charging,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -5602,14 +5633,25 @@ private fun HomeQuickActions(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
-        GlazeActionChip("Apps", onOpenApps, Modifier.weight(1f))
-        GlazeActionChip("Search", onOpenSearch, Modifier.weight(1f))
+        GlazeActionChip(
+            title = "Apps",
+            symbol = LauncherQuickActionSymbol.APPS,
+            onClick = onOpenApps,
+            modifier = Modifier.weight(1f),
+        )
+        GlazeActionChip(
+            title = "Search",
+            symbol = LauncherQuickActionSymbol.SEARCH,
+            onClick = onOpenSearch,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
 @Composable
 private fun GlazeActionChip(
     title: String,
+    symbol: LauncherQuickActionSymbol,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -5629,35 +5671,269 @@ private fun GlazeActionChip(
     Surface(
         modifier = modifier.heightIn(min = resolvedPresentation.minimumInteractionTarget),
         onClick = onClick,
-        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
         color = when (resolvedPresentation.materialRole) {
             GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
             GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.68f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.64f)
         },
         border = BorderStroke(
             1.dp,
             if (solidResolved) {
                 MaterialTheme.colorScheme.outlineVariant
             } else {
-                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f)
             },
         ),
-        shadowElevation = if (solidResolved) 1.dp else 2.dp,
+        shadowElevation = if (solidResolved) 1.dp else 0.dp,
     ) {
-        Box(
-            modifier = Modifier.padding(
-                horizontal = GlazeMetrics.space3,
-                vertical = GlazeMetrics.space2,
-            ),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
         ) {
+            Surface(
+                modifier = Modifier.size(28.dp),
+                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    LauncherQuickActionGlyph(
+                        symbol = symbol,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+            }
             Text(
                 title,
                 style = MaterialTheme.typography.labelMedium,
-                color = foreground.copy(alpha = 0.92f),
+                color = foreground.copy(alpha = 0.94f),
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+private enum class LauncherQuickActionSymbol {
+    APPS,
+    SEARCH,
+    EDIT_HOME,
+    SETTINGS,
+}
+
+@Composable
+private fun LauncherQuickActionGlyph(
+    symbol: LauncherQuickActionSymbol,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(18.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.09f
+        val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
+            drawLine(
+                tint,
+                Offset(u * x1, u * y1),
+                Offset(u * x2, u * y2),
+                stroke,
+                cap = cap,
+            )
+        }
+        when (symbol) {
+            LauncherQuickActionSymbol.APPS -> {
+                listOf(
+                    0.16f to 0.16f,
+                    0.57f to 0.16f,
+                    0.16f to 0.57f,
+                    0.57f to 0.57f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = tint,
+                        topLeft = Offset(u * x, u * y),
+                        size = Size(u * 0.27f, u * 0.27f),
+                        cornerRadius = CornerRadius(u * 0.06f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                    )
+                }
+            }
+            LauncherQuickActionSymbol.SEARCH -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.24f,
+                    center = Offset(u * 0.42f, u * 0.42f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                line(0.60f, 0.60f, 0.84f, 0.84f)
+            }
+            LauncherQuickActionSymbol.EDIT_HOME -> {
+                line(0.18f, 0.52f, 0.50f, 0.22f)
+                line(0.50f, 0.22f, 0.82f, 0.52f)
+                line(0.28f, 0.46f, 0.28f, 0.82f)
+                line(0.72f, 0.46f, 0.72f, 0.82f)
+                line(0.28f, 0.82f, 0.72f, 0.82f)
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.055f,
+                    center = Offset(u * 0.72f, u * 0.24f),
+                )
+            }
+            LauncherQuickActionSymbol.SETTINGS -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.24f,
+                    center = Offset(u * 0.50f, u * 0.50f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.07f,
+                    center = Offset(u * 0.50f, u * 0.50f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                listOf(
+                    0.50f to 0.12f,
+                    0.50f to 0.88f,
+                    0.12f to 0.50f,
+                    0.88f to 0.50f,
+                ).forEach { (x, y) -> line(0.50f, 0.50f, x, y) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherBatteryGlyph(
+    percent: Int?,
+    charging: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    val contrast = MaterialTheme.colorScheme.surface
+    Canvas(modifier.size(30.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.065f
+        val level = ((percent ?: 55).coerceIn(0, 100) / 100f)
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(u * 0.10f, u * 0.27f),
+            size = Size(u * 0.70f, u * 0.46f),
+            cornerRadius = CornerRadius(u * 0.08f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+        )
+        drawRoundRect(
+            color = tint.copy(alpha = 0.80f),
+            topLeft = Offset(u * 0.15f, u * 0.32f),
+            size = Size(u * 0.60f * level.coerceAtLeast(0.06f), u * 0.36f),
+            cornerRadius = CornerRadius(u * 0.05f),
+        )
+        drawRoundRect(
+            color = tint,
+            topLeft = Offset(u * 0.82f, u * 0.40f),
+            size = Size(u * 0.08f, u * 0.20f),
+            cornerRadius = CornerRadius(u * 0.025f),
+        )
+        if (charging) {
+            val bolt = Path().apply {
+                moveTo(u * 0.52f, u * 0.18f)
+                lineTo(u * 0.37f, u * 0.49f)
+                lineTo(u * 0.51f, u * 0.49f)
+                lineTo(u * 0.43f, u * 0.82f)
+                lineTo(u * 0.67f, u * 0.43f)
+                lineTo(u * 0.54f, u * 0.43f)
+                close()
+            }
+            drawPath(bolt, color = contrast)
+        }
+    }
+}
+
+@Composable
+private fun LauncherHomeOpenGlyph(
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(18.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.10f
+        val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        drawLine(tint, Offset(u * 0.28f, u * 0.50f), Offset(u * 0.72f, u * 0.50f), stroke, cap = cap)
+        drawLine(tint, Offset(u * 0.55f, u * 0.32f), Offset(u * 0.72f, u * 0.50f), stroke, cap = cap)
+        drawLine(tint, Offset(u * 0.72f, u * 0.50f), Offset(u * 0.55f, u * 0.68f), stroke, cap = cap)
+    }
+}
+
+@Composable
+private fun LauncherWidgetPreviewGlyph(
+    typeId: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(34.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.065f
+        when (typeId) {
+            WorkspaceWidgetCatalog.ANALOG_CLOCK -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.34f,
+                    center = center,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                drawLine(
+                    tint,
+                    center,
+                    Offset(u * 0.50f, u * 0.29f),
+                    stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+                drawLine(
+                    tint,
+                    center,
+                    Offset(u * 0.68f, u * 0.58f),
+                    stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+            }
+            WorkspaceWidgetCatalog.QUICK_ACTIONS -> {
+                listOf(
+                    0.14f to 0.14f,
+                    0.55f to 0.14f,
+                    0.14f to 0.55f,
+                    0.55f to 0.55f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = tint,
+                        topLeft = Offset(u * x, u * y),
+                        size = Size(u * 0.31f, u * 0.31f),
+                        cornerRadius = CornerRadius(u * 0.08f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                    )
+                }
+            }
+            WorkspaceWidgetCatalog.BATTERY -> {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(u * 0.12f, u * 0.30f),
+                    size = Size(u * 0.66f, u * 0.40f),
+                    cornerRadius = CornerRadius(u * 0.07f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(u * 0.18f, u * 0.36f),
+                    size = Size(u * 0.38f, u * 0.28f),
+                    cornerRadius = CornerRadius(u * 0.04f),
+                )
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(u * 0.80f, u * 0.42f),
+                    size = Size(u * 0.08f, u * 0.16f),
+                    cornerRadius = CornerRadius(u * 0.02f),
+                )
+            }
         }
     }
 }
@@ -5667,31 +5943,55 @@ private fun EmptyWorkspaceCard(
     onOpenApps: () -> Unit,
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = GlazeAtmosphere.canvasBlack.copy(alpha = 0.20f),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.08f)),
+        onClick = onOpenApps,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 54.dp)
+            .semantics {
+                contentDescription = "Open Apps. Hold Home to customize."
+            },
+        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.60f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.055f),
+        ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(GlazeMetrics.space3),
+                .padding(horizontal = 12.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Surface(
+                modifier = Modifier.size(34.dp),
+                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    LauncherQuickActionGlyph(
+                        symbol = LauncherQuickActionSymbol.APPS,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Add apps to Home",
-                    color = Color.White,
+                    "Open Apps",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    "Long-press an app to place it on Home or in the dock.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.74f),
+                    "Hold Home to customize",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            GlazeTextAction("Apps", onOpenApps)
+            LauncherHomeOpenGlyph(
+                tint = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -5842,50 +6142,40 @@ private fun LauncherUniversalSearchResultRow(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         onClick = onClick,
-        shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.64f),
+        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.58f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.055f),
         ),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = GlazeMetrics.space3, vertical = 14.dp),
+                .heightIn(min = 52.dp)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             Surface(
-                modifier = Modifier.size(42.dp),
+                modifier = Modifier.size(34.dp),
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        when (result.category) {
-                            LauncherSearchCategory.APPLICATION -> "◫"
-                            LauncherSearchCategory.SHORTCUT -> "↗"
-                            LauncherSearchCategory.CONTACT -> "●"
-                            LauncherSearchCategory.CALL_HISTORY -> "☎"
-                            LauncherSearchCategory.MESSAGE -> "✉"
-                            LauncherSearchCategory.FILE -> "▤"
-                            LauncherSearchCategory.CONNECTED_SOURCE -> "⌕"
-                            LauncherSearchCategory.SETTING -> "⚙"
-                            LauncherSearchCategory.ACTION -> "→"
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                    LauncherLegacySearchCategoryGlyph(
+                        category = result.category,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+                verticalArrangement = Arrangement.spacedBy(1.dp),
             ) {
                 Text(
                     result.title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -5893,7 +6183,7 @@ private fun LauncherUniversalSearchResultRow(
                 result.subtitle?.takeIf { it.isNotBlank() }?.let { subtitle ->
                     Text(
                         subtitle,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -5904,7 +6194,123 @@ private fun LauncherUniversalSearchResultRow(
                 categoryLabel,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
             )
+        }
+    }
+}
+
+@Composable
+private fun LauncherLegacySearchCategoryGlyph(
+    category: LauncherSearchCategory,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(18.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.09f
+        val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
+            drawLine(tint, Offset(u * x1, u * y1), Offset(u * x2, u * y2), stroke, cap = cap)
+        }
+        when (category) {
+            LauncherSearchCategory.APPLICATION -> {
+                listOf(
+                    0.15f to 0.15f,
+                    0.57f to 0.15f,
+                    0.15f to 0.57f,
+                    0.57f to 0.57f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = tint,
+                        topLeft = Offset(u * x, u * y),
+                        size = Size(u * 0.28f, u * 0.28f),
+                        cornerRadius = CornerRadius(u * 0.06f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                    )
+                }
+            }
+            LauncherSearchCategory.SHORTCUT,
+            LauncherSearchCategory.ACTION,
+            -> {
+                line(0.22f, 0.70f, 0.72f, 0.26f)
+                line(0.48f, 0.26f, 0.72f, 0.26f)
+                line(0.72f, 0.26f, 0.72f, 0.50f)
+            }
+            LauncherSearchCategory.CONTACT -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.16f,
+                    center = Offset(u * 0.50f, u * 0.34f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                drawArc(
+                    color = tint,
+                    startAngle = 205f,
+                    sweepAngle = 130f,
+                    useCenter = false,
+                    topLeft = Offset(u * 0.24f, u * 0.50f),
+                    size = Size(u * 0.52f, u * 0.30f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+            }
+            LauncherSearchCategory.CALL_HISTORY -> {
+                line(0.28f, 0.22f, 0.72f, 0.78f)
+                line(0.22f, 0.22f, 0.36f, 0.18f)
+                line(0.64f, 0.82f, 0.78f, 0.76f)
+            }
+            LauncherSearchCategory.MESSAGE -> {
+                drawRoundRect(
+                    color = tint,
+                    topLeft = Offset(u * 0.14f, u * 0.22f),
+                    size = Size(u * 0.72f, u * 0.48f),
+                    cornerRadius = CornerRadius(u * 0.14f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                line(0.34f, 0.70f, 0.26f, 0.84f)
+            }
+            LauncherSearchCategory.FILE -> {
+                val path = Path().apply {
+                    moveTo(u * 0.18f, u * 0.18f)
+                    lineTo(u * 0.58f, u * 0.18f)
+                    lineTo(u * 0.82f, u * 0.42f)
+                    lineTo(u * 0.82f, u * 0.82f)
+                    lineTo(u * 0.18f, u * 0.82f)
+                    close()
+                }
+                drawPath(path, tint, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                line(0.58f, 0.18f, 0.58f, 0.42f)
+                line(0.58f, 0.42f, 0.82f, 0.42f)
+            }
+            LauncherSearchCategory.CONNECTED_SOURCE -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.23f,
+                    center = Offset(u * 0.42f, u * 0.42f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                line(0.59f, 0.59f, 0.84f, 0.84f)
+            }
+            LauncherSearchCategory.SETTING -> {
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.24f,
+                    center = Offset(u * 0.50f, u * 0.50f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                drawCircle(
+                    color = tint,
+                    radius = u * 0.07f,
+                    center = Offset(u * 0.50f, u * 0.50f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(stroke),
+                )
+                listOf(
+                    0.50f to 0.12f,
+                    0.50f to 0.88f,
+                    0.12f to 0.50f,
+                    0.88f to 0.50f,
+                ).forEach { (x, y) -> line(0.50f, 0.50f, x, y) }
+            }
         }
     }
 }
@@ -6458,11 +6864,7 @@ private fun AppDrawerSurface(
                                     DropdownMenuItem(
                                         text = {
                                             Text(
-                                                if (order == drawerSortOrder) {
-                                                    "✓ " + order.displayName
-                                                } else {
-                                                    order.displayName
-                                                },
+                                                order.displayName,
                                                 color = if (glass) {
                                                     Color.White.copy(alpha = 0.94f)
                                                 } else {
@@ -6473,6 +6875,21 @@ private fun AppDrawerSurface(
                                         onClick = {
                                             onSetSortOrderName(order.name)
                                             showDrawerSortMenu = false
+                                        },
+                                        trailingIcon = if (order == drawerSortOrder) {
+                                            {
+                                                GlazePopupActionGlyph(
+                                                    symbol = GlazePopupActionSymbol.CHECK,
+                                                    color = if (glass) {
+                                                        Color.White.copy(alpha = 0.94f)
+                                                    } else {
+                                                        MaterialTheme.colorScheme.primary
+                                                    },
+                                                    iconSize = 15.dp,
+                                                )
+                                            }
+                                        } else {
+                                            null
                                         },
                                     )
                                 }
@@ -6504,14 +6921,14 @@ private fun AppDrawerSurface(
                                 },
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        "★",
-                                        style = MaterialTheme.typography.titleMedium,
+                                    GlazePopupActionGlyph(
+                                        symbol = GlazePopupActionSymbol.PIN,
                                         color = if (showPinnedOnly) {
                                             MaterialTheme.colorScheme.onPrimaryContainer
                                         } else {
                                             drawerSecondaryColor
                                         },
+                                        iconSize = 17.dp,
                                     )
                                 }
                             }
@@ -9991,10 +10408,10 @@ private fun DrawerPinnedMark(
         ),
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(
-                "★",
-                style = MaterialTheme.typography.labelSmall,
+            GlazePopupActionGlyph(
+                symbol = GlazePopupActionSymbol.PIN,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
+                iconSize = 11.dp,
             )
         }
     }
@@ -10814,12 +11231,12 @@ internal fun LauncherFolderContentsSheet(
                                                                     contentAlignment =
                                                                         Alignment.Center,
                                                                 ) {
-                                                                    Text(
-                                                                        "✓",
-                                                                        style = MaterialTheme
-                                                                            .typography.labelMedium,
+                                                                    GlazePopupActionGlyph(
+                                                                        symbol =
+                                                                            GlazePopupActionSymbol.CHECK,
                                                                         color = MaterialTheme
                                                                             .colorScheme.onPrimary,
+                                                                        iconSize = 12.dp,
                                                                     )
                                                                 }
                                                             }
@@ -11213,7 +11630,7 @@ internal fun LauncherFolderAppPickerSheet(
                                 overflow = TextOverflow.Ellipsis,
                             )
                             Text(
-                                if (alreadyAdded) "✓ Added" else "+ Add",
+                                if (alreadyAdded) "Added" else "Add",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (alreadyAdded) {
                                     MaterialTheme.colorScheme.primary
@@ -11682,14 +12099,19 @@ private enum class GlazePopupActionSymbol {
     WALLPAPER,
     APPS,
     SETTINGS,
+    CHECK,
     INFO,
     UNINSTALL,
 }
 
 /** Decorative vector geometry; labels remain the accessible action description. */
 @Composable
-private fun GlazePopupActionGlyph(symbol: GlazePopupActionSymbol, color: Color) {
-    Canvas(Modifier.size(22.dp)) {
+private fun GlazePopupActionGlyph(
+    symbol: GlazePopupActionSymbol,
+    color: Color,
+    iconSize: Dp = 22.dp,
+) {
+    Canvas(Modifier.size(iconSize)) {
         val u = size.minDimension
         val w = 1.8.dp.toPx()
         fun segment(x1: Float, y1: Float, x2: Float, y2: Float) {
@@ -11809,6 +12231,10 @@ private fun GlazePopupActionGlyph(symbol: GlazePopupActionSymbol, color: Color) 
                 ).forEach { (x, y) ->
                     segment(.50f, .50f, x, y)
                 }
+            }
+            GlazePopupActionSymbol.CHECK -> {
+                segment(.18f, .52f, .40f, .72f)
+                segment(.40f, .72f, .82f, .28f)
             }
             GlazePopupActionSymbol.INFO -> {
                 drawCircle(color, radius = u * .36f, center = Offset(u * .5f, u * .5f), style = Stroke(w))

@@ -657,9 +657,10 @@ class MainActivity : ComponentActivity() {
                 launcherPreferencesRepository.markStarterLayoutApplied()
             }
 
-            // Repair only known Development starter signatures. The effect keys intentionally
-            // stay stable while pages/widgets are mutated so its own successful writes cannot
-            // cancel the remainder of the migration.
+            // Remove only known Development starter identities and repair the narrow empty-starter
+            // signature. Reserved widget IDs prove GoreeCloud-created starter placement, so they
+            // can be retired without touching user-created widgets of the same type. The effect
+            // keys intentionally stay stable while pages/widgets are mutated.
             LaunchedEffect(
                 apps.isNotEmpty(),
                 renderedPages.isNotEmpty(),
@@ -706,14 +707,6 @@ class MainActivity : ComponentActivity() {
                         page.folderPlacements.isEmpty() &&
                         page.unsupportedItemCount == 0
                 }
-                val allPagesContainOnlyReservedStarterContent = pagesSnapshot.all { page ->
-                    page.appKeys.isEmpty() &&
-                        page.folderPlacements.isEmpty() &&
-                        page.unsupportedItemCount == 0 &&
-                        page.widgetPlacements.all { placement ->
-                            placement.itemId in reservedStarterWidgetIds
-                        }
-                }
                 val repairEmptyStarter = LauncherStarterHomeDefaultsPolicy.shouldRepairEmptyStarter(
                     roomAuthoritative = true,
                     starterLayoutApplied = experiencePreferences.starterLayoutApplied,
@@ -725,28 +718,19 @@ class MainActivity : ComponentActivity() {
                     pageIds = pagesSnapshot.map { it.pageId },
                     allPagesEmpty = allPagesEmpty,
                 )
-                val repairSeededStarter =
-                    hasSeededStarterWidgets &&
-                        LauncherStarterHomeDefaultsPolicy.shouldRepairEmptyStarter(
-                            roomAuthoritative = true,
-                            starterLayoutApplied = experiencePreferences.starterLayoutApplied,
-                            startupWizardCompleted = experiencePreferences.startupWizardCompleted,
-                            hasApps = true,
-                            hasFavorites = workspace.favoriteKeys.isNotEmpty(),
-                            dockItemCount = workspace.dockKeys.size,
-                            expectedStarterDockSize = visualPreferences.starterDockSize,
-                            pageIds = pagesSnapshot.map { it.pageId },
-                            allPagesEmpty = allPagesContainOnlyReservedStarterContent,
-                        )
 
-                if (!hasLegacyStarterGlance && !repairSeededStarter && !repairEmptyStarter) {
+                if (!hasLegacyStarterGlance && !hasSeededStarterWidgets && !repairEmptyStarter) {
                     return@LaunchedEffect
                 }
 
                 if (hasLegacyStarterGlance) {
                     workspaceRuntimeCoordinator.removeWidget(STARTER_GLANCE_WIDGET_ID)
                 }
-                if (repairSeededStarter) {
+                if (hasSeededStarterWidgets) {
+                    // These exact IDs were only used by GoreeCloud's historical automatic
+                    // starter placement. User-added Calendar/Quick-actions widgets receive
+                    // different identities, so removing the reserved instances is safe even
+                    // after the user has added other Home content.
                     workspaceRuntimeCoordinator.removeWidget(STARTER_CALENDAR_WIDGET_ID)
                     workspaceRuntimeCoordinator.removeWidget(STARTER_QUICK_ACTIONS_WIDGET_ID)
                 }

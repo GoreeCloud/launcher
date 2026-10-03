@@ -1020,11 +1020,9 @@ class LauncherPreferencesRepository(
         }
     }
 
-    fun markStarterLayoutApplied() {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.starterLayoutApplied] = true
-            }
+    fun markStarterLayoutApplied(): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.starterLayoutApplied] = true
         }
     }
 

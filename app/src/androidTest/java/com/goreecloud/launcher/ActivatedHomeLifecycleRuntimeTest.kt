@@ -117,7 +117,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             }
         }
 
-        lifecyclePreferencesRepository.markStarterLayoutApplied()
+        lifecyclePreferencesRepository.markStarterLayoutApplied().join()
         withTimeout(5_000) {
             lifecyclePreferencesRepository.experiencePreferences.first {
                 it.homeAppMode == LauncherHomeAppMode.NONE &&
@@ -1248,6 +1248,28 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
                 composeRule
+                    .onNodeWithContentDescription(
+                        "Reset Search source order and enabled defaults",
+                        useUnmergedTree = true,
+                    )
+                    .assertHasClickAction()
+                composeRule
+                    .onNodeWithContentDescription(
+                        "Reorder Search sources",
+                        useUnmergedTree = true,
+                    )
+                    .assertHasClickAction()
+                check(
+                    composeRule
+                        .onAllNodesWithText(
+                            "enabled",
+                            substring = true,
+                            useUnmergedTree = true,
+                        )
+                        .fetchSemanticsNodes()
+                        .isNotEmpty(),
+                ) { "Search Source sections should expose enabled/total counts." }
+                composeRule
                     .onNodeWithContentDescription("Back to Universal Search", useUnmergedTree = true)
                     .assertHasClickAction()
                     .performClick()
@@ -1263,6 +1285,12 @@ class ActivatedHomeLifecycleRuntimeTest {
                         useUnmergedTree = true,
                     )
                     .performTextInput("theme")
+                composeRule
+                    .onNodeWithContentDescription(
+                        "Clear Universal Search query",
+                        useUnmergedTree = true,
+                    )
+                    .assertHasClickAction()
                 composeRule.waitUntil(timeoutMillis = 10_000) {
                     composeRule
                         .onAllNodesWithTag("launcher-glaze-search-panel", useUnmergedTree = true)

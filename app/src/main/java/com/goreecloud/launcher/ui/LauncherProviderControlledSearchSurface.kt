@@ -441,9 +441,19 @@ internal fun LauncherProviderControlledSearchSurface(
                         placeholder = "Search with GoreeCloud…",
                         inputTestTag = "launcher-universal-search-field",
                         trailingContent = {
-                            LauncherUniversalSearchSettingsAction(
-                                onClick = { showSources = true },
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            ) {
+                                if (query.isNotBlank()) {
+                                    LauncherUniversalSearchClearAction(
+                                        onClick = { query = "" },
+                                    )
+                                }
+                                LauncherUniversalSearchSettingsAction(
+                                    onClick = { showSources = true },
+                                )
+                            }
                         },
                     )
                     if (idleSearch) {
@@ -527,6 +537,14 @@ internal fun LauncherProviderControlledSearchSurface(
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            TextButton(
+                                onClick = { showSources = true },
+                                modifier = Modifier
+                                    .align(Alignment.End)
+                                    .heightIn(min = 40.dp),
+                            ) {
+                                Text("Search sources")
+                            }
                         }
                     } else {
                         val topResult = results.firstOrNull()
@@ -1309,6 +1327,43 @@ private fun LauncherConnectedProviderFallbackGlyph(
 }
 
 @Composable
+private fun LauncherUniversalSearchClearAction(
+    onClick: () -> Unit,
+) {
+    val iconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .size(48.dp)
+            .testTag("launcher-universal-search-clear")
+            .semantics { contentDescription = "Clear Universal Search query" },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = Color.Transparent,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(18.dp)) {
+                val strokeWidth = 1.8.dp.toPx()
+                val inset = 4.dp.toPx()
+                drawLine(
+                    color = iconColor,
+                    start = androidx.compose.ui.geometry.Offset(inset, inset),
+                    end = androidx.compose.ui.geometry.Offset(size.width - inset, size.height - inset),
+                    strokeWidth = strokeWidth,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+                drawLine(
+                    color = iconColor,
+                    start = androidx.compose.ui.geometry.Offset(size.width - inset, inset),
+                    end = androidx.compose.ui.geometry.Offset(inset, size.height - inset),
+                    strokeWidth = strokeWidth,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun LauncherUniversalSearchSettingsAction(
     onClick: () -> Unit,
 ) {
@@ -1822,42 +1877,36 @@ private fun LauncherGlazeSearchResult(
                             )
                         }
                     }
-                    Text(
-                        when {
-                            isContact -> "View"
-                            result.action is LauncherCopyTextSearchAction -> "Copy"
-                            else -> "Open"
-                        },
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.SemiBold,
+                    if (isContact && number != null) {
+                        LauncherContactQuickAction(
+                            type = LauncherContactQuickActionType.CALL,
+                            contentDescription = "Call " + result.title,
+                            onClick = {
+                                onOpenSearchUri(
+                                    LauncherOpenUriSearchAction(
+                                        Intent.ACTION_DIAL,
+                                        Uri.fromParts("tel", number, null).toString(),
+                                    ),
+                                )
+                            },
+                        )
+                        LauncherContactQuickAction(
+                            type = LauncherContactQuickActionType.MESSAGE,
+                            contentDescription = "Message " + result.title,
+                            onClick = {
+                                onOpenSearchUri(
+                                    LauncherOpenUriSearchAction(
+                                        Intent.ACTION_SENDTO,
+                                        Uri.fromParts("smsto", number, null).toString(),
+                                    ),
+                                )
+                            },
+                        )
+                    }
+                    LauncherSearchResultTrailingGlyph(
+                        copy = result.action is LauncherCopyTextSearchAction,
+                        tint = MaterialTheme.colorScheme.primary,
                     )
-                }
-            }
-            if (isContact && number != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            onOpenSearchUri(
-                                LauncherOpenUriSearchAction(
-                                    Intent.ACTION_DIAL,
-                                    Uri.fromParts("tel", number, null).toString(),
-                                ),
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                    ) { Text("Call") }
-                    androidx.compose.material3.OutlinedButton(
-                        onClick = {
-                            onOpenSearchUri(
-                                LauncherOpenUriSearchAction(
-                                    Intent.ACTION_SENDTO,
-                                    Uri.fromParts("smsto", number, null).toString(),
-                                ),
-                            )
-                        },
-                        modifier = Modifier.heightIn(min = 40.dp),
-                    ) { Text("Message") }
                 }
             }
         }
@@ -2089,6 +2138,257 @@ private fun LauncherSearchResultCategoryGlyph(
                     }
                 }
             }
+        }
+    }
+}
+
+private enum class LauncherSourceToolbarActionType {
+    RESET,
+    ORDER,
+    DONE,
+}
+
+@Composable
+private fun LauncherSourceToolbarAction(
+    action: LauncherSourceToolbarActionType,
+    enabled: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val tint = if (enabled) {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.36f)
+    }
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(40.dp)
+            .semantics { this.contentDescription = contentDescription },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(
+            alpha = if (enabled) 0.42f else 0.20f,
+        ),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(
+                alpha = if (enabled) 0.06f else 0.03f,
+            ),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(18.dp)) {
+                val u = size.minDimension
+                val stroke = u * 0.09f
+                val cap = androidx.compose.ui.graphics.StrokeCap.Round
+                when (action) {
+                    LauncherSourceToolbarActionType.RESET -> {
+                        drawArc(
+                            color = tint,
+                            startAngle = -35f,
+                            sweepAngle = 290f,
+                            useCenter = false,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.14f, u * 0.14f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.72f, u * 0.72f),
+                            style = Stroke(width = stroke),
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.19f, u * 0.17f),
+                            androidx.compose.ui.geometry.Offset(u * 0.19f, u * 0.38f),
+                            stroke,
+                            cap = cap,
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.19f, u * 0.17f),
+                            androidx.compose.ui.geometry.Offset(u * 0.40f, u * 0.17f),
+                            stroke,
+                            cap = cap,
+                        )
+                    }
+                    LauncherSourceToolbarActionType.ORDER -> {
+                        listOf(0.28f, 0.50f, 0.72f).forEach { y ->
+                            drawCircle(
+                                color = tint,
+                                radius = u * 0.045f,
+                                center = androidx.compose.ui.geometry.Offset(u * 0.20f, u * y),
+                            )
+                            drawLine(
+                                tint,
+                                androidx.compose.ui.geometry.Offset(u * 0.36f, u * y),
+                                androidx.compose.ui.geometry.Offset(u * 0.82f, u * y),
+                                stroke,
+                                cap = cap,
+                            )
+                        }
+                    }
+                    LauncherSourceToolbarActionType.DONE -> {
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.18f, u * 0.52f),
+                            androidx.compose.ui.geometry.Offset(u * 0.40f, u * 0.73f),
+                            stroke,
+                            cap = cap,
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.40f, u * 0.73f),
+                            androidx.compose.ui.geometry.Offset(u * 0.82f, u * 0.28f),
+                            stroke,
+                            cap = cap,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSourceFolderAction(
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(40.dp)
+            .semantics { contentDescription = "Choose a folder to search" },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.primary.copy(
+            alpha = if (enabled) 0.10f else 0.04f,
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            LauncherLocalSearchSourceGlyph(
+                providerId = LauncherFilesSearchProvider.PROVIDER_ID,
+                tint = MaterialTheme.colorScheme.primary.copy(
+                    alpha = if (enabled) 1f else 0.35f,
+                ),
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
+
+private enum class LauncherContactQuickActionType {
+    CALL,
+    MESSAGE,
+}
+
+@Composable
+private fun LauncherContactQuickAction(
+    type: LauncherContactQuickActionType,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    val tint = MaterialTheme.colorScheme.primary
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .size(40.dp)
+            .semantics { this.contentDescription = contentDescription },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(18.dp)) {
+                val u = size.minDimension
+                val stroke = u * 0.09f
+                val cap = androidx.compose.ui.graphics.StrokeCap.Round
+                when (type) {
+                    LauncherContactQuickActionType.CALL -> {
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.28f, u * 0.24f),
+                            androidx.compose.ui.geometry.Offset(u * 0.70f, u * 0.76f),
+                            stroke * 1.5f,
+                            cap = cap,
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.24f, u * 0.22f),
+                            androidx.compose.ui.geometry.Offset(u * 0.36f, u * 0.18f),
+                            stroke * 1.4f,
+                            cap = cap,
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.66f, u * 0.82f),
+                            androidx.compose.ui.geometry.Offset(u * 0.80f, u * 0.76f),
+                            stroke * 1.4f,
+                            cap = cap,
+                        )
+                    }
+                    LauncherContactQuickActionType.MESSAGE -> {
+                        drawRoundRect(
+                            color = tint,
+                            topLeft = androidx.compose.ui.geometry.Offset(u * 0.14f, u * 0.22f),
+                            size = androidx.compose.ui.geometry.Size(u * 0.72f, u * 0.50f),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * 0.15f),
+                            style = Stroke(width = stroke),
+                        )
+                        drawLine(
+                            tint,
+                            androidx.compose.ui.geometry.Offset(u * 0.34f, u * 0.72f),
+                            androidx.compose.ui.geometry.Offset(u * 0.27f, u * 0.84f),
+                            stroke,
+                            cap = cap,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LauncherSearchResultTrailingGlyph(
+    copy: Boolean,
+    tint: Color,
+    modifier: Modifier = Modifier,
+) {
+    Canvas(modifier.size(18.dp)) {
+        val u = size.minDimension
+        val stroke = u * 0.09f
+        val cap = androidx.compose.ui.graphics.StrokeCap.Round
+        if (copy) {
+            drawRoundRect(
+                color = tint,
+                topLeft = androidx.compose.ui.geometry.Offset(u * 0.30f, u * 0.18f),
+                size = androidx.compose.ui.geometry.Size(u * 0.48f, u * 0.58f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * 0.08f),
+                style = Stroke(width = stroke),
+            )
+            drawRoundRect(
+                color = tint.copy(alpha = 0.72f),
+                topLeft = androidx.compose.ui.geometry.Offset(u * 0.16f, u * 0.32f),
+                size = androidx.compose.ui.geometry.Size(u * 0.48f, u * 0.52f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(u * 0.08f),
+                style = Stroke(width = stroke),
+            )
+        } else {
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.36f, u * 0.24f),
+                androidx.compose.ui.geometry.Offset(u * 0.64f, u * 0.50f),
+                stroke,
+                cap = cap,
+            )
+            drawLine(
+                tint,
+                androidx.compose.ui.geometry.Offset(u * 0.64f, u * 0.50f),
+                androidx.compose.ui.geometry.Offset(u * 0.36f, u * 0.76f),
+                stroke,
+                cap = cap,
+            )
         }
     }
 }
@@ -2583,18 +2883,26 @@ private fun LauncherSearchSourceManager(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    TextButton(
-                        onClick = onReset,
+                    LauncherSourceToolbarAction(
+                        action = LauncherSourceToolbarActionType.RESET,
                         enabled = ready,
-                        modifier = Modifier.heightIn(min = 44.dp),
-                    ) { Text("Reset") }
-                    TextButton(
-                        onClick = { reorderMode = !reorderMode },
+                        contentDescription = "Reset Search source order and enabled defaults",
+                        onClick = onReset,
+                    )
+                    LauncherSourceToolbarAction(
+                        action = if (reorderMode) {
+                            LauncherSourceToolbarActionType.DONE
+                        } else {
+                            LauncherSourceToolbarActionType.ORDER
+                        },
                         enabled = ready && controls.orderedOptions.size > 1,
-                        modifier = Modifier.heightIn(min = 44.dp),
-                    ) {
-                        Text(if (reorderMode) "Done" else "Order")
-                    }
+                        contentDescription = if (reorderMode) {
+                            "Finish ordering Search sources"
+                        } else {
+                            "Reorder Search sources"
+                        },
+                        onClick = { reorderMode = !reorderMode },
+                    )
                 }
             }
         }
@@ -2654,6 +2962,12 @@ private fun LauncherSearchSourceManager(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                             }
+                            LauncherSearchSourceStatusPill(
+                                label = controls.orderedOptions.count { option ->
+                                    option in options && controls.isEnabled(option.providerId)
+                                }.toString() + "/" + options.size + " enabled",
+                                isError = false,
+                            )
                         }
 
                         Surface(
@@ -2809,6 +3123,16 @@ private fun LauncherSearchSourceManager(
                                                 )
                                             }
 
+                                            if (
+                                                option.providerId ==
+                                                    LauncherFilesSearchProvider.PROVIDER_ID &&
+                                                fileSearchRoots.isEmpty()
+                                            ) {
+                                                LauncherSourceFolderAction(
+                                                    enabled = ready,
+                                                    onClick = onChooseFileSearchRoot,
+                                                )
+                                            }
                                             Switch(
                                                 checked =
                                                     enabled &&
@@ -2835,37 +3159,6 @@ private fun LauncherSearchSourceManager(
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                                     .copy(alpha = 0.72f),
                                             )
-                                        }
-
-                                        if (
-                                            option.providerId ==
-                                                LauncherFilesSearchProvider.PROVIDER_ID &&
-                                            fileSearchRoots.isEmpty()
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.End,
-                                            ) {
-                                                TextButton(
-                                                    onClick = onChooseFileSearchRoot,
-                                                    enabled = ready,
-                                                    modifier = Modifier.heightIn(min = 44.dp),
-                                                ) {
-                                                    Row(
-                                                        horizontalArrangement =
-                                                            Arrangement.spacedBy(6.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                    ) {
-                                                        LauncherLocalSearchSourceGlyph(
-                                                            providerId =
-                                                                LauncherFilesSearchProvider.PROVIDER_ID,
-                                                            tint = MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.size(18.dp),
-                                                        )
-                                                        Text("Choose folder")
-                                                    }
-                                                }
-                                            }
                                         }
 
                                         if (expanded) {

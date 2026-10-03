@@ -102,7 +102,7 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText("Search and gestures")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Apps")
+        composeRule.onNodeWithText("Hold + drag to place")
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Widgets")
@@ -133,9 +133,10 @@ class LauncherStartupWizardRuntimeTest {
             }
         }
 
-        composeRule.onNodeWithText("↑  Apps").assertIsDisplayed()
-        composeRule.onNodeWithText("↓  Search").assertIsDisplayed()
-        composeRule.onNodeWithText("Hold  Edit").assertIsDisplayed()
+        composeRule.onNodeWithText("Swipe up").assertIsDisplayed()
+        composeRule.onNodeWithText("Swipe down").assertIsDisplayed()
+        composeRule.onNodeWithText("Hold").assertIsDisplayed()
+        composeRule.onNodeWithText("Edit").assertIsDisplayed()
         composeRule.onNodeWithText("Place precisely").assertIsDisplayed()
         composeRule.onNodeWithText(
             "Hold an app, widget, or folder and drag it to a Home cell or Dock position.",

@@ -1,5 +1,15 @@
 # GoreeCloud Launcher — Implemented Features
 
+## October 2, 2026 — compact Universal Search, clean starter Home, and visual onboarding
+
+Protected PR #194 integrates the CI-661 follow-up density and first-run redesign. Universal Search now keeps a distinct Top result while ordinary app matches, app-shortcut groups, handoff rows, and section headers use substantially denser presentation. Search Sources uses compact back/title navigation, keeps Suggestion tabs inside the normal scrolling list, flattens grouped source presentation, keeps the complete registered connected-source catalog visible, and reduces source rows to a concise two-line hierarchy with expanded details for technical/privacy information.
+
+Fresh starter provisioning no longer automatically places built-in Calendar or Quick-actions widgets and sets the starter Home card presentation to Off without globally changing the established preference fallback. The three-step startup wizard uses a visible progress rail, explicit Step n of 3 orientation, visual Search-mode previews, compact Home/Grid/Dock choices, concise feature cards, and Learn more for advanced details. The post-setup Home hint uses the same condensed visual language.
+
+Exact PR head `ef21e27304071c332ec72b2c1497332c6be2dbf9` passed Mandatory app migration provenance #660, Android Development Foundation #1152, Migrated Android apps CI #686, and Protected promotion #640 before squash merge as `a318fd982d0fa7ba437cca1a2a1fad5fcfe16be3`.
+
+**Acceptance boundary:** Development integration only. Representative-device visual acceptance, protected Development signing/update continuity, accessibility/large-text/form-factor acceptance, Release Candidate, Production, Stable, Seal, and Anchor remain open.
+
 ## October 2, 2026 — representative-device UI correction after CI-649
 
 Protected PR #192 integrates the first screenshot-driven follow-up after the CI-649 representative-device pass. Launcher-owned Calendar, Weather, and Quick actions Home widgets now use lighter wallpaper-aware Glaze surfaces; Edit Home and New Folder replace visible font/Unicode pseudo-icons with Launcher-owned vector geometry; Edit Home page previews use widget-specific miniature structures instead of generic blue blocks; the App Drawer sort/new-folder/settings artwork and sort popup are visually aligned to the dark Glaze drawer; fixed five-column Drawer labels use bounded single-line ellipsis; and Universal Search Sources keeps the complete registered connected-source catalog visible even when an optional handoff application is unavailable.
