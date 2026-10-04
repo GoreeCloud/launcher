@@ -1,5 +1,11 @@
 # GoreeCloud Launcher — Planned Features
 
+## October 3, 2026 — App Lock acceptance and portability remain
+
+The active Development candidate contains Launcher-managed App Lock for exact profile-qualified app identities, including searchable **All / Locked** management, app-context controls, locked-state indicators in Apps, setup discoverability, and Android-authenticated Launcher-originated app/shortcut launches.
+
+Remaining work is acceptance and portability: complete the current exact-head protected validation matrix; verify successful, cancelled, and unavailable authentication on representative physical devices; exercise personal/Work/Shelter/private-space lifecycle and same-package isolation; validate TalkBack/Switch Access, hardware keyboard, large/extra-large text, RTL/localization, phone/tablet/foldable layouts, contrast and reduced-motion/transparency behavior; provision and verify protected Development signing/update continuity; and define a separately versioned portable-state policy before locked membership is ever exported. Launches initiated outside GoreeCloud Launcher remain outside this feature's authority, and any future system-wide protection requires an Android-authorized mechanism appropriate to that scope.
+
 ## October 3, 2026 — Hidden apps integrated; acceptance and recovery work remains
 
 Protected PR #223 integrated profile-qualified Hidden Apps persistence, App Drawer/Universal Search suppression, reversible app-context Hide/Show controls, and Launcher Settings recovery on exact head `4ce68c0201cb2779c91c3203e68a8d75fdc07cd6`, merging as `b433104499372248d03cd0fed89fa729b6db1d77` after the complete protected matrix passed. The user-visible source capability is therefore implemented rather than a pending presentation candidate.
@@ -34,7 +40,7 @@ Still open after runtime-gate integration: representative/default-HOME multi-pag
 **Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Mandatory monorepo consolidation is complete. The standalone repository is no longer an active development target; historical entries remain provenance only.**  
-**Current authoritative main:** `06c4be22844c8f97e9c3fdee7757629ab11ccdb9` after protected PR #224 integration on top of Hidden Apps PR #223; Launcher remains Development. Historical candidate sections below remain dated provenance and do not override newer verified current-state checkpoints.  
+**Current repository main:** `60912ef51825b2f3d63d46a9e0a77e673480ef3f`; the latest Launcher source-bearing main integration remains `06c4be22844c8f97e9c3fdee7757629ab11ccdb9` from PR #224. PR #231 remains a Development candidate; Launcher remains Development. Historical candidate sections below remain dated provenance and do not override newer verified current-state checkpoints.  
 **Governing standard:** Standard — Repository Feature Tracking and Changelog Governance, version 1.0, effective September 22, 2026.
 
 ## Purpose

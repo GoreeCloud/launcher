@@ -402,6 +402,7 @@ class LauncherPreferencesRepository(
         val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
         val hiddenHomeSuggestionKeys = stringSetPreferencesKey("hidden_home_suggestion_keys_v1")
         val hiddenAppKeys = stringSetPreferencesKey("hidden_app_keys_v1")
+        val lockedAppKeys = stringSetPreferencesKey("locked_app_keys_v1")
         val drawerPinnedAppKeys = stringSetPreferencesKey("drawer_pinned_app_keys_v1")
         val drawerPinnedAppOrder = stringPreferencesKey("drawer_pinned_app_order_v1")
         val drawerSortOrderName = stringPreferencesKey("drawer_sort_order_name_v1")
@@ -458,6 +459,10 @@ class LauncherPreferencesRepository(
                     .orEmpty()
                     .filterNot(String::isBlank)
                     .toSet(),
+                lockedKeys = values[Keys.lockedAppKeys]
+                    .orEmpty()
+                    .filterNot(String::isBlank)
+                    .toSet(),
             )
         }
         .distinctUntilChanged()
@@ -476,6 +481,17 @@ class LauncherPreferencesRepository(
      */
     val hiddenAppKeys: Flow<Set<String>> = drawerPinnedState
         .map { it.hiddenKeys }
+        .distinctUntilChanged()
+
+    /**
+     * Launcher App Lock membership keyed by exact profile-qualified app identity.
+     *
+     * This state is device-local and intentionally excluded from portable preference v1. Launcher
+     * uses Android authentication only when a launch originates inside Launcher; it does not claim
+     * authority over notifications, Settings, other launchers, deep links, or another app.
+     */
+    val lockedAppKeys: Flow<Set<String>> = drawerPinnedState
+        .map { it.lockedKeys }
         .distinctUntilChanged()
 
     /**
@@ -949,6 +965,23 @@ class LauncherPreferencesRepository(
                 values.remove(Keys.hiddenAppKeys)
             } else {
                 values[Keys.hiddenAppKeys] = updated
+            }
+        }
+    }
+
+    fun setAppLocked(appKey: String, locked: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.lockedAppKeys].orEmpty().toMutableSet()
+            if (locked) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.lockedAppKeys)
+            } else {
+                values[Keys.lockedAppKeys] = updated
             }
         }
     }

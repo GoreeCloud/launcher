@@ -158,7 +158,7 @@ fun LauncherStartupWizard(
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 tonalElevation = 0.dp,
-                shadowElevation = 12.dp,
+                shadowElevation = 2.dp,
             ) {
                 Column(
                     modifier = Modifier
@@ -195,7 +195,7 @@ fun LauncherStartupWizard(
                             Text(
                                 text = stepTitle,
                                 modifier = Modifier.semantics { heading() },
-                                style = MaterialTheme.typography.headlineSmall,
+                                style = MaterialTheme.typography.titleLarge,
                                 fontWeight = FontWeight.SemiBold,
                             )
                             Text(
@@ -352,9 +352,9 @@ fun LauncherStartupWizard(
                                     modifier = Modifier.weight(1f),
                                 )
                                 WizardMiniFeatureCard(
-                                    title = "Private Search",
-                                    summary = "Connected sources are opt-in",
-                                    symbol = WizardVisualSymbol.PRIVACY,
+                                    title = "App Lock",
+                                    summary = "Protect selected app launches",
+                                    symbol = WizardVisualSymbol.LOCK,
                                     accent = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.weight(1f),
                                 )
@@ -448,6 +448,7 @@ private enum class WizardVisualSymbol {
     WIDGETS,
     FOLDER,
     SEARCH,
+    LOCK,
     GESTURE,
     EDIT,
 }
@@ -861,6 +862,24 @@ private fun WizardVisualGlyph(
                 )
                 line(0.60f, 0.60f, 0.84f, 0.84f)
             }
+            WizardVisualSymbol.LOCK -> {
+                drawRoundRect(
+                    tint,
+                    Offset(u * 0.24f, u * 0.44f),
+                    androidx.compose.ui.geometry.Size(u * 0.52f, u * 0.38f),
+                    androidx.compose.ui.geometry.CornerRadius(u * 0.08f),
+                    style = Stroke(stroke),
+                )
+                drawArc(
+                    color = tint,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(u * 0.31f, u * 0.17f),
+                    size = androidx.compose.ui.geometry.Size(u * 0.38f, u * 0.46f),
+                    style = Stroke(stroke),
+                )
+            }
             WizardVisualSymbol.GESTURE -> {
                 line(0.50f, 0.82f, 0.50f, 0.20f)
                 line(0.50f, 0.20f, 0.32f, 0.38f)
@@ -883,11 +902,14 @@ fun LauncherHomeHintCard(
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        modifier = modifier.widthIn(max = 620.dp),
+        modifier = modifier.widthIn(max = 560.dp),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        shadowElevation = 10.dp,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.70f),
+        ),
+        shadowElevation = 4.dp,
     ) {
         Column(
             modifier = Modifier.padding(GlazeMetrics.space3),
@@ -910,8 +932,8 @@ fun LauncherHomeHintCard(
                 symbol = WizardVisualSymbol.GESTURE,
             )
             WizardHintRow(
-                title = "Keep Apps tidy",
-                summary = "Pin important apps, then use Pinned first or the Favorites filter when you want them together.",
+                title = "Organize Apps",
+                summary = "Pin important apps and use Pinned first when you want them together.",
                 symbol = WizardVisualSymbol.APPS,
             )
             Row(
@@ -935,7 +957,7 @@ private fun WizardHintRow(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusMedium),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.34f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),

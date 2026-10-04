@@ -119,7 +119,7 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText("Folders")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithText("Private Search")
+        composeRule.onNodeWithText("App Lock")
             .performScrollTo()
             .assertIsDisplayed()
         composeRule.onNodeWithText("Learn more")
@@ -153,7 +153,7 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText(
             "Keep holding at a page edge to switch pages, then release on the target.",
         ).assertIsDisplayed()
-        composeRule.onNodeWithText("Keep Apps tidy").assertIsDisplayed()
+        composeRule.onNodeWithText("Organize Apps").assertIsDisplayed()
     }
 
     @Test

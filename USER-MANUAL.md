@@ -32,6 +32,14 @@ Recent/most-used suggestions are presentation-only. They fill otherwise-empty Ho
 
 The ranking store is local and privacy-bounded. It retains only application workspace keys, aggregate Launcher launch counts, and a bounded recency ordering. It does not request Android Usage Access or retain launch timestamps, dwell time, Search queries, or network telemetry for this feature.
 
+## App Lock
+
+Open **Launcher settings → Privacy & security → App Lock** to manage protected apps. The manager can search installed apps and switch between **All** and **Locked** views. Each row identifies Personal or Work context and the package name, and its switch enables or removes App Lock for that exact profile-qualified app identity. You can also long-press an app and choose **Lock app** or **Remove App Lock**. Locked apps are marked with a small lock indicator in Apps.
+
+When GoreeCloud Launcher opens a locked app—or a Launcher app shortcut belonging to a locked app—Android presents the configured device-authentication screen before the launch proceeds. If Android reports that no secure screen lock is configured or cannot provide an authentication flow, Launcher keeps the protected launch closed rather than bypassing App Lock.
+
+App Lock is a **Launcher-originated launch control**, not a system-wide application firewall. Notifications, Android Settings, deep links, other launchers, and other apps can initiate app launches outside GoreeCloud Launcher's authority. Locked membership is stored locally using the exact Launcher workspace identity and is intentionally excluded from portable preference v1 until a separately versioned recovery policy is defined.
+
 ## Home screen
 
 The primary Home experience is a launcher-style surface. Android renders the device wallpaper behind the launcher window, and Home presents the persisted application grid and Dock over that surface without requesting wallpaper-storage privileges.

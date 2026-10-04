@@ -2,6 +2,7 @@ package com.goreecloud.launcher
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.KeyguardManager
 import android.app.WallpaperManager
 import android.appwidget.AppWidgetManager
 import android.app.role.RoleManager
@@ -13,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -181,6 +183,9 @@ class MainActivity : ComponentActivity() {
     private val portableRestoreRecoveryResult =
         MutableStateFlow<LauncherPortableRestoreRecoveryCoordinator.Result?>(null)
     private var pendingAppWidgetId: Int = AppWidgetManager.INVALID_APPWIDGET_ID
+    private var pendingAppLockApp: LauncherActivityInfo? = null
+    private var pendingAppLockShortcut: LauncherLaunchShortcutSearchAction? = null
+    private var pendingAppLockRecordUsage: Boolean = false
     private var showWallpaperPicker by mutableStateOf(false)
     private var pendingSearchProviderSnapshot: LauncherSearchProviderPreferenceSnapshot? = null
     private var pendingSearchProviderId: String? = null
@@ -193,6 +198,22 @@ class MainActivity : ComponentActivity() {
         Identity.getAuthorizationClient(this)
     }
 
+
+    private val appLockAuthenticationRequest =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val app = pendingAppLockApp
+            val shortcut = pendingAppLockShortcut
+            val recordUsage = pendingAppLockRecordUsage
+            pendingAppLockApp = null
+            pendingAppLockShortcut = null
+            pendingAppLockRecordUsage = false
+            if (result.resultCode == Activity.RESULT_OK) {
+                when {
+                    shortcut != null -> completeShortcutLaunch(shortcut)
+                    app != null -> completeAppLaunch(app, recordUsage)
+                }
+            }
+        }
 
     private val fileSearchRootRequest =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
@@ -474,6 +495,7 @@ class MainActivity : ComponentActivity() {
             val drawerPinnedAppKeys = drawerPinnedState.keys
             val drawerPinnedAppOrder = drawerPinnedState.order
             val hiddenAppKeys = drawerPinnedState.hiddenKeys
+            val lockedAppKeys = drawerPinnedState.lockedKeys
             val drawerSortOrderName by launcherPreferencesRepository.drawerSortOrderName.collectAsStateWithLifecycle(
                 initialValue = null,
             )
@@ -533,10 +555,11 @@ class MainActivity : ComponentActivity() {
             }
 
             val launchApp: (LauncherActivityInfo) -> Unit = { app ->
-                appsRepository.launch(app)
-                if (experiencePreferences.homeAppMode != LauncherHomeAppMode.NONE) {
-                    localUsageRepository.recordLaunch(app.workspaceKey())
-                }
+                requestAppLaunch(
+                    app = app,
+                    lockedAppKeys = lockedAppKeys,
+                    recordUsage = experiencePreferences.homeAppMode != LauncherHomeAppMode.NONE,
+                )
             }
 
             LaunchedEffect(
@@ -1138,6 +1161,7 @@ class MainActivity : ComponentActivity() {
                             localLaunchCounts = localLaunchCounts,
                             hiddenHomeSuggestionKeys = hiddenHomeSuggestionKeys,
                             hiddenAppKeys = hiddenAppKeys,
+                            lockedAppKeys = lockedAppKeys,
                             drawerPinnedAppKeys = drawerPinnedAppKeys,
                             drawerPinnedAppOrder = drawerPinnedAppOrder,
                             drawerSortOrderName = drawerSortOrderName,
@@ -1478,19 +1502,11 @@ class MainActivity : ComponentActivity() {
                             onChooseFileSearchRoot = ::chooseFileSearchRoot,
                             onRemoveFileSearchRoot = ::confirmRemoveFileSearchRoot,
                             onLaunchSearchShortcut = { action ->
-                                runCatching {
-                                    appsRepository.launchShortcut(
-                                        packageName = action.packageName,
-                                        shortcutId = action.shortcutId,
-                                        user = action.user,
-                                    )
-                                }.onFailure {
-                                    Toast.makeText(
-                                        this@MainActivity,
-                                        "That shortcut is no longer available.",
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
+                                requestShortcutLaunch(
+                                    action = action,
+                                    apps = apps,
+                                    lockedAppKeys = lockedAppKeys,
+                                )
                             },
                             onOpenSearchUri = ::openSearchUri,
                             onOpenDocument = ::openDocument,
@@ -1541,6 +1557,7 @@ class MainActivity : ComponentActivity() {
                             },
                             onSetHomeSuggestionHidden = launcherPreferencesRepository::setHomeSuggestionHidden,
                             onSetAppHidden = launcherPreferencesRepository::setAppHidden,
+                            onSetAppLocked = launcherPreferencesRepository::setAppLocked,
                             onSetDrawerAppPinned = launcherPreferencesRepository::setDrawerAppPinned,
                             onMoveDrawerPinnedApp = launcherPreferencesRepository::moveDrawerPinnedApp,
                             onSetDrawerPinnedAppOrder = launcherPreferencesRepository::setDrawerPinnedAppOrder,
@@ -1889,6 +1906,110 @@ class MainActivity : ComponentActivity() {
                 }
                 }
             }
+        }
+    }
+
+    private fun requestAppLaunch(
+        app: LauncherActivityInfo,
+        lockedAppKeys: Set<String>,
+        recordUsage: Boolean,
+    ) {
+        if (app.workspaceKey() !in lockedAppKeys) {
+            completeAppLaunch(app, recordUsage)
+            return
+        }
+
+        beginAppLockAuthentication(
+            label = app.label.toString(),
+            app = app,
+            recordUsage = recordUsage,
+        )
+    }
+
+    private fun requestShortcutLaunch(
+        action: LauncherLaunchShortcutSearchAction,
+        apps: List<LauncherActivityInfo>,
+        lockedAppKeys: Set<String>,
+    ) {
+        val matchingApps = apps.filter { app ->
+            app.user == action.user &&
+                app.componentName.packageName == action.packageName
+        }
+        val locked = matchingApps.any { app -> app.workspaceKey() in lockedAppKeys }
+        if (!locked) {
+            completeShortcutLaunch(action)
+            return
+        }
+
+        beginAppLockAuthentication(
+            label = matchingApps.firstOrNull()?.label?.toString()
+                ?: action.packageName.substringAfterLast('.'),
+            shortcut = action,
+        )
+    }
+
+    @Suppress("DEPRECATION")
+    private fun beginAppLockAuthentication(
+        label: String,
+        app: LauncherActivityInfo? = null,
+        shortcut: LauncherLaunchShortcutSearchAction? = null,
+        recordUsage: Boolean = false,
+    ) {
+        val keyguardManager = getSystemService(KeyguardManager::class.java)
+        if (!keyguardManager.isDeviceSecure) {
+            Toast.makeText(
+                this,
+                "App Lock requires an Android screen lock. Configure one in system Security settings.",
+                Toast.LENGTH_LONG,
+            ).show()
+            runCatching {
+                startActivity(Intent(Settings.ACTION_SECURITY_SETTINGS))
+            }
+            return
+        }
+
+        val credentialIntent = keyguardManager.createConfirmDeviceCredentialIntent(
+            "Unlock $label",
+            "Authenticate to open this app from GoreeCloud Launcher.",
+        )
+        if (credentialIntent == null) {
+            Toast.makeText(
+                this,
+                "Android authentication is unavailable, so this locked app stays closed.",
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
+
+        pendingAppLockApp = app
+        pendingAppLockShortcut = shortcut
+        pendingAppLockRecordUsage = recordUsage
+        appLockAuthenticationRequest.launch(credentialIntent)
+    }
+
+    private fun completeAppLaunch(
+        app: LauncherActivityInfo,
+        recordUsage: Boolean,
+    ) {
+        appsRepository.launch(app)
+        if (recordUsage) {
+            localUsageRepository.recordLaunch(app.workspaceKey())
+        }
+    }
+
+    private fun completeShortcutLaunch(action: LauncherLaunchShortcutSearchAction) {
+        runCatching {
+            appsRepository.launchShortcut(
+                packageName = action.packageName,
+                shortcutId = action.shortcutId,
+                user = action.user,
+            )
+        }.onFailure {
+            Toast.makeText(
+                this,
+                "That shortcut is no longer available.",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 

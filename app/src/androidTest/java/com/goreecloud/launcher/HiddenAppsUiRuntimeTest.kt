@@ -38,6 +38,7 @@ class HiddenAppsUiRuntimeTest {
     private lateinit var preferencesRepository: LauncherPreferencesRepository
     private var previousHomeAppMode = LauncherHomeAppMode.NONE
     private var previousHiddenKeys: Set<String> = emptySet()
+    private var previousLockedKeys: Set<String> = emptySet()
 
     @Before
     fun prepareEstablishedLauncher(): Unit = runBlocking {
@@ -45,9 +46,13 @@ class HiddenAppsUiRuntimeTest {
         preferencesRepository = LauncherPreferencesRepository(context)
         previousHomeAppMode = preferencesRepository.experiencePreferences.first().homeAppMode
         previousHiddenKeys = preferencesRepository.hiddenAppKeys.first()
+        previousLockedKeys = preferencesRepository.lockedAppKeys.first()
 
         previousHiddenKeys.forEach { key ->
             preferencesRepository.setAppHidden(key, false).join()
+        }
+        previousLockedKeys.forEach { key ->
+            preferencesRepository.setAppLocked(key, false).join()
         }
         preferencesRepository.setHomeAppMode(LauncherHomeAppMode.NONE).join()
         preferencesRepository.setHomeHintsDismissed(true).join()
@@ -99,6 +104,13 @@ class HiddenAppsUiRuntimeTest {
         }
         previousHiddenKeys.forEach { key ->
             preferencesRepository.setAppHidden(key, true).join()
+        }
+        val currentLockedKeys = preferencesRepository.lockedAppKeys.first()
+        currentLockedKeys.forEach { key ->
+            preferencesRepository.setAppLocked(key, false).join()
+        }
+        previousLockedKeys.forEach { key ->
+            preferencesRepository.setAppLocked(key, true).join()
         }
         preferencesRepository.setHomeAppMode(previousHomeAppMode).join()
     }
@@ -173,6 +185,96 @@ class HiddenAppsUiRuntimeTest {
                 composeRule
                     .onAllNodesWithTag(
                         "launcher-hidden-apps-manager",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNodes()
+                    .isEmpty()
+            }
+        } finally {
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun settingsExposesAppLockManagerAndAuthorityBoundary() {
+        val scenario = ActivityScenario.launch(MainActivity::class.java)
+        try {
+            composeRule.waitUntil(timeoutMillis = 15_000) {
+                composeRule
+                    .onAllNodesWithTag(
+                        "launcher-home-empty-space-actions",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+
+            composeRule
+                .onNodeWithTag(
+                    "launcher-home-empty-space-actions",
+                    useUnmergedTree = true,
+                )
+                .performSemanticsAction(SemanticsActions.OnLongClick)
+
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule
+                    .onAllNodesWithTag(
+                        "launcher-home-editor-fullscreen",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+
+            composeRule
+                .onAllNodesWithText("Settings", useUnmergedTree = true)[0]
+                .performClick()
+
+            composeRule
+                .onNodeWithText("Privacy & security", useUnmergedTree = true)
+                .performScrollTo()
+                .performClick()
+
+            composeRule
+                .onNodeWithTag("launcher-settings-app-lock", useUnmergedTree = true)
+                .performScrollTo()
+                .performClick()
+
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule
+                    .onAllNodesWithTag(
+                        "launcher-app-lock-manager",
+                        useUnmergedTree = true,
+                    )
+                    .fetchSemanticsNodes()
+                    .isNotEmpty()
+            }
+            composeRule
+                .onNodeWithTag("launcher-app-lock-manager", useUnmergedTree = true)
+                .assertIsDisplayed()
+            composeRule
+                .onNodeWithText(
+                    "Launcher-only boundary: direct launches from notifications, Android Settings, " +
+                        "deep links, other launchers, or another app are not intercepted.",
+                    useUnmergedTree = true,
+                )
+                .assertIsDisplayed()
+            composeRule
+                .onNodeWithTag("launcher-app-lock-search", useUnmergedTree = true)
+                .assertIsDisplayed()
+            composeRule
+                .onNodeWithTag("launcher-app-lock-filter-all", useUnmergedTree = true)
+                .assertIsDisplayed()
+            composeRule
+                .onNodeWithTag("launcher-app-lock-filter-locked", useUnmergedTree = true)
+                .assertIsDisplayed()
+            composeRule
+                .onNodeWithTag("launcher-app-lock-close", useUnmergedTree = true)
+                .performClick()
+            composeRule.waitUntil(timeoutMillis = 10_000) {
+                composeRule
+                    .onAllNodesWithTag(
+                        "launcher-app-lock-manager",
                         useUnmergedTree = true,
                     )
                     .fetchSemanticsNodes()

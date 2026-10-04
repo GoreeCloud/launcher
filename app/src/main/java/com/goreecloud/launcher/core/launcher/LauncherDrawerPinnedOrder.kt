@@ -3,13 +3,15 @@ package com.goreecloud.launcher.core.launcher
 /**
  * Device-local App Drawer presentation metadata.
  *
- * Pin membership/order and hidden discovery identities use exact profile-qualified workspace keys.
- * This sidecar state remains intentionally outside portable preference v1.
+ * Pin membership/order, hidden discovery identities, and App Lock membership use exact
+ * profile-qualified workspace keys. This sidecar state remains intentionally outside portable
+ * preference v1 so security-sensitive local state is not silently exported.
  */
 data class LauncherDrawerPinnedState(
     val keys: Set<String>,
     val order: List<String>,
     val hiddenKeys: Set<String> = emptySet(),
+    val lockedKeys: Set<String> = emptySet(),
 )
 
 internal object LauncherDrawerPinnedOrder {

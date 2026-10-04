@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -696,6 +697,7 @@ fun LauncherBetaRoot(
     localLaunchCounts: Map<String, Long>,
     hiddenHomeSuggestionKeys: Set<String>,
     hiddenAppKeys: Set<String>,
+    lockedAppKeys: Set<String>,
     drawerPinnedAppKeys: Set<String>,
     drawerPinnedAppOrder: List<String>,
     drawerSortOrderName: String?,
@@ -758,6 +760,7 @@ fun LauncherBetaRoot(
     onSetHomeLabelOverride: (LauncherActivityInfo, String?) -> Unit,
     onSetHomeSuggestionHidden: (String, Boolean) -> Unit,
     onSetAppHidden: (String, Boolean) -> Unit,
+    onSetAppLocked: (String, Boolean) -> Unit,
     onSetDrawerAppPinned: (String, Boolean) -> Unit,
     onMoveDrawerPinnedApp: (String, Int) -> Unit,
     onSetDrawerPinnedAppOrder: (List<String>) -> Unit,
@@ -833,6 +836,7 @@ fun LauncherBetaRoot(
     var folderAppPickerId by rememberSaveable { mutableStateOf<String?>(null) }
     var showFolderManager by rememberSaveable { mutableStateOf(false) }
     var showHiddenAppsManager by rememberSaveable { mutableStateOf(false) }
+    var showAppLockManager by rememberSaveable { mutableStateOf(false) }
     var folderManagerAddToHome by rememberSaveable { mutableStateOf(false) }
     val primaryFolderProfileId = remember { Process.myUserHandle().hashCode() }
     var folderManagerProfileId by rememberSaveable {
@@ -1484,6 +1488,7 @@ fun LauncherBetaRoot(
                 localLaunchCounts = localLaunchCounts,
                 pinnedAppKeys = drawerPinnedAppKeys,
                 pinnedAppOrder = drawerPinnedAppOrder,
+                lockedAppKeys = lockedAppKeys,
                 sortOrderName = drawerSortOrderName,
                 preferences = preferences,
                 drawerLayoutMode = drawerLayoutMode,
@@ -1531,6 +1536,8 @@ fun LauncherBetaRoot(
                         },
                         hiddenAppCount = hiddenAppKeys.count(rootAppsByKey::containsKey),
                         onManageHiddenApps = { showHiddenAppsManager = true },
+                        lockedAppCount = lockedAppKeys.count(rootAppsByKey::containsKey),
+                        onManageAppLock = { showAppLockManager = true },
                         onSetHomeGrid = onSetHomeGrid,
                         onSetDrawerColumns = onSetDrawerColumns,
                         onSetDrawerLayoutMode = onSetDrawerLayoutMode,
@@ -1601,6 +1608,7 @@ fun LauncherBetaRoot(
                     selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
                         drawerPinnedAppKeys.size > 1,
                 hiddenFromLauncher = appKey in hiddenAppKeys,
+                lockedByLauncher = appKey in lockedAppKeys,
                 availableAndroidWidgets = availableAndroidWidgets,
                 onHomeAction = {
                     if (
@@ -1666,6 +1674,11 @@ fun LauncherBetaRoot(
                 },
                 onToggleHidden = {
                     onSetAppHidden(appKey, appKey !in hiddenAppKeys)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onToggleLocked = {
+                    onSetAppLocked(appKey, appKey !in lockedAppKeys)
                     selectedApp = null
                     selectedAppAnchor = null
                 },
@@ -1817,6 +1830,16 @@ fun LauncherBetaRoot(
                 .toList(),
             onRestore = { app -> onSetAppHidden(app.workspaceKey(), false) },
             onDismiss = { showHiddenAppsManager = false },
+        )
+    }
+
+    if (showAppLockManager) {
+        LauncherAppLockManagerSheet(
+            apps = rootAppsByKey.values
+                .sortedBy { app -> app.label.toString().lowercase(Locale.getDefault()) },
+            lockedAppKeys = lockedAppKeys,
+            onSetLocked = { app, locked -> onSetAppLocked(app.workspaceKey(), locked) },
+            onDismiss = { showAppLockManager = false },
         )
     }
 
@@ -2572,9 +2595,10 @@ private fun LauncherWidgetPickerSheet(
 
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .testTag("launcher-widget-picker-sheet")
-            .navigationBarsPadding()
+            .safeDrawingPadding()
+            .imePadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
@@ -2591,12 +2615,12 @@ private fun LauncherWidgetPickerSheet(
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                 )
-                TextButton(
-                    modifier = Modifier.testTag("launcher-widget-picker-close"),
+                LauncherHeaderGlyphAction(
+                    contentDescription = "Close widget picker",
+                    symbol = GlazePopupActionSymbol.CLOSE,
                     onClick = onDismiss,
-                ) {
-                    Text("Close")
-                }
+                    modifier = Modifier.testTag("launcher-widget-picker-close"),
+                )
             }
             Text(
                 "GoreeCloud widgets and installed Android widgets in one Launcher gallery.",
@@ -2605,15 +2629,11 @@ private fun LauncherWidgetPickerSheet(
             )
         }
 
-        OutlinedTextField(
+        LauncherSettingsSearchField(
             value = query,
             onValueChange = { query = it },
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("launcher-widget-search-field"),
-            singleLine = true,
-            label = { Text("Search widgets") },
-            placeholder = { Text("GoreeCloud widget, app, or package") },
+            placeholder = "Search widgets",
+            inputTestTag = "launcher-widget-search-field",
         )
 
         Text(
@@ -2636,19 +2656,24 @@ private fun LauncherWidgetPickerSheet(
                 )
             }
         } else {
-            filteredBuiltIns.chunked(2).forEach { row ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
-                ) {
-                    row.forEach { typeId ->
-                        WidgetPickerBuiltInCard(
-                            typeId = typeId,
-                            onClick = { onAddBuiltInWidget(typeId) },
-                            modifier = Modifier.weight(1f),
-                        )
+            BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                val columns = if (maxWidth >= 720.dp) 2 else 1
+                Column(verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2)) {
+                    filteredBuiltIns.chunked(columns).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            row.forEach { typeId ->
+                                WidgetPickerBuiltInCard(
+                                    typeId = typeId,
+                                    onClick = { onAddBuiltInWidget(typeId) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
         }
@@ -2687,11 +2712,54 @@ private fun LauncherWidgetPickerSheet(
             }
         }
 
-        OutlinedButton(
+        Surface(
             onClick = onPickAndroidWidget,
             modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(GlazeMetrics.radiusLarge),
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+            border = BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.065f),
+            ),
         ) {
-            Text("Open Android widget picker")
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            ) {
+                Surface(
+                    modifier = Modifier.size(40.dp),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.WIDGET,
+                            color = MaterialTheme.colorScheme.primary,
+                            iconSize = 20.dp,
+                        )
+                    }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "Android widget picker",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "Browse every widget exposed by Android",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                LauncherHomeOpenGlyph(
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
         Text(
             "Android may still show a system authorization or configuration screen after you choose a third-party widget.",
@@ -2963,16 +3031,23 @@ private fun InstalledWidgetPickerRow(
                 )
             }
             Surface(
-                shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                modifier = Modifier
+                    .size(44.dp)
+                    .semantics { contentDescription = "Add " + descriptor.label + " widget" },
+                shape = CircleShape,
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                ),
             ) {
-                Text(
-                    "Add",
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                Box(contentAlignment = Alignment.Center) {
+                    GlazePopupActionGlyph(
+                        symbol = GlazePopupActionSymbol.ADD,
+                        color = MaterialTheme.colorScheme.primary,
+                        iconSize = 18.dp,
+                    )
+                }
             }
         }
     }
@@ -3139,8 +3214,7 @@ private fun HomeEditorSurface(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .safeDrawingPadding()
             .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space2),
         verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
@@ -3166,12 +3240,12 @@ private fun HomeEditorSurface(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            TextButton(
+            LauncherHeaderGlyphAction(
+                contentDescription = "Done editing Home",
+                symbol = GlazePopupActionSymbol.CHECK,
                 onClick = onDone,
-                modifier = Modifier.heightIn(min = 48.dp),
-            ) {
-                Text("Done")
-            }
+                modifier = Modifier.testTag("launcher-home-editor-done"),
+            )
         }
 
         HomeEditorPageOverview(
@@ -3337,14 +3411,14 @@ private fun HomeEditorPageOverview(
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text(
-                            "+",
-                            style = MaterialTheme.typography.displaySmall,
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.ADD,
                             color = if (layoutLocked) {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             } else {
                                 MaterialTheme.colorScheme.primary
                             },
+                            iconSize = 34.dp,
                         )
                         Text(
                             "Add Page",
@@ -3441,17 +3515,14 @@ private fun HomeEditorPageOverview(
                             )
                         }
                         if (canDelete) {
-                            TextButton(
+                            HomeEditorDeleteGlyphAction(
+                                contentDescription = "Delete empty " +
+                                    (if (primary) "Home page" else "page " + (index + 1)),
                                 onClick = { pendingDeletePageId = page.pageId },
-                                modifier = Modifier.heightIn(min = 48.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                            ) {
-                                Text(
-                                    "Delete",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.error,
-                                )
-                            }
+                                modifier = Modifier.testTag(
+                                    "launcher-home-editor-delete-page-" + page.pageId,
+                                ),
+                            )
                         } else if (primary) {
                             Text(
                                 "Protected",
@@ -3516,6 +3587,34 @@ private fun HomeEditorPreviewIcon(app: LauncherActivityInfo) {
             shape = RoundedCornerShape(10.dp),
             color = Color.White.copy(alpha = 0.14f),
         ) {}
+    }
+}
+
+@Composable
+private fun HomeEditorDeleteGlyphAction(
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .size(48.dp)
+            .semantics { this.contentDescription = contentDescription },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.52f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.error.copy(alpha = 0.16f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            GlazePopupActionGlyph(
+                symbol = GlazePopupActionSymbol.DELETE,
+                color = MaterialTheme.colorScheme.error,
+                iconSize = 19.dp,
+            )
+        }
     }
 }
 
@@ -6085,8 +6184,8 @@ private fun LauncherUniversalSearchSurface(
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
                         "Universal Search",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         "Launcher-owned local search and actions",
@@ -6422,6 +6521,7 @@ private fun orderedDrawerVisualEntries(
 private fun LauncherDrawerVisualTile(
     entry: LauncherDrawerVisualEntry,
     allApps: List<LauncherActivityInfo>,
+    lockedAppKeys: Set<String>,
     iconScale: Float,
     showLabel: Boolean,
     compact: Boolean,
@@ -6439,6 +6539,7 @@ private fun LauncherDrawerVisualTile(
             compact = compact,
             fixedGridGeometry = true,
             pinnedInDrawer = entry.pinned,
+            lockedByLauncher = entry.app.workspaceKey() in lockedAppKeys,
             onClick = { onLaunchApp(entry.app) },
             onLongClick = { anchor -> onManageApp(entry.app, anchor) },
             dragData = if (layoutLocked) null else LauncherAppDragData(
@@ -6466,6 +6567,7 @@ private fun LauncherDrawerVisualTile(
 private fun StableDrawerVerticalGrid(
     entries: List<LauncherDrawerVisualEntry>,
     allApps: List<LauncherActivityInfo>,
+    lockedAppKeys: Set<String>,
     columns: Int,
     iconScale: Float,
     showLabel: Boolean,
@@ -6511,6 +6613,7 @@ private fun StableDrawerVerticalGrid(
                             LauncherDrawerVisualTile(
                                 entry = entry,
                                 allApps = allApps,
+                                lockedAppKeys = lockedAppKeys,
                                 iconScale = iconScale,
                                 showLabel = showLabel,
                                 compact = compact,
@@ -6555,6 +6658,7 @@ private fun StableDrawerVerticalGrid(
                             LauncherDrawerVisualTile(
                                 entry = entry,
                                 allApps = allApps,
+                                lockedAppKeys = lockedAppKeys,
                                 iconScale = iconScale,
                                 showLabel = showLabel,
                                 compact = compact,
@@ -6582,6 +6686,7 @@ private fun AppDrawerSurface(
     localLaunchCounts: Map<String, Long>,
     pinnedAppKeys: Set<String>,
     pinnedAppOrder: List<String>,
+    lockedAppKeys: Set<String>,
     sortOrderName: String?,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -7100,6 +7205,7 @@ private fun AppDrawerSurface(
                             localLaunchCounts = localLaunchCounts,
                             pinnedAppKeys = pinnedAppKeys,
                             pinnedAppOrder = pinnedAppOrder,
+                            lockedAppKeys = lockedAppKeys,
                             query = drawerQuery,
                             preferences = preferences,
                             drawerLayoutMode = drawerLayoutMode,
@@ -7159,14 +7265,14 @@ private fun DrawerSearchField(
                     color = Color.Transparent,
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            "×",
-                            style = MaterialTheme.typography.titleMedium,
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.CLOSE,
                             color = if (darkSurface) {
                                 Color.White.copy(alpha = 0.78f)
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant
                             },
+                            iconSize = 17.dp,
                         )
                     }
                 }
@@ -7248,6 +7354,7 @@ private fun DrawerAppsContent(
     localLaunchCounts: Map<String, Long>,
     pinnedAppKeys: Set<String>,
     pinnedAppOrder: List<String>,
+    lockedAppKeys: Set<String>,
     query: String,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
@@ -7380,6 +7487,7 @@ private fun DrawerAppsContent(
                         LauncherDrawerVisualTile(
                             entry = entry,
                             allApps = apps,
+                            lockedAppKeys = lockedAppKeys,
                             iconScale = preferences.iconScale,
                             showLabel = experiencePreferences.showDrawerLabels,
                             compact = drawerLayoutMode == LauncherDrawerLayoutMode.COMPACT,
@@ -7419,6 +7527,7 @@ private fun DrawerAppsContent(
             StableDrawerVerticalGrid(
                 entries = entries,
                 allApps = apps,
+                lockedAppKeys = lockedAppKeys,
                 columns = preferences.drawerColumns,
                 iconScale = preferences.iconScale,
                 showLabel = experiencePreferences.showDrawerLabels,
@@ -7462,6 +7571,7 @@ private fun DrawerAppsContent(
                     LauncherDrawerVisualTile(
                         entry = entry,
                         allApps = apps,
+                        lockedAppKeys = lockedAppKeys,
                         iconScale = preferences.iconScale,
                         showLabel = experiencePreferences.showDrawerLabels,
                         compact = true,
@@ -7494,6 +7604,7 @@ private fun DrawerAppsContent(
                             app = entry.app,
                             iconScale = preferences.iconScale,
                             pinnedInDrawer = entry.pinned,
+                            lockedByLauncher = entry.app.workspaceKey() in lockedAppKeys,
                             onClick = { onLaunchApp(entry.app) },
                             onLongClick = { anchor -> onManageApp(entry.app, anchor) },
                             dragData = if (preferences.layoutLocked) null else LauncherAppDragData(
@@ -7504,6 +7615,7 @@ private fun DrawerAppsContent(
                         is LauncherDrawerVisualEntry.Folder -> LauncherDrawerVisualTile(
                             entry = entry,
                             allApps = apps,
+                            lockedAppKeys = lockedAppKeys,
                             iconScale = preferences.iconScale,
                             showLabel = true,
                             compact = true,
@@ -7541,6 +7653,7 @@ private fun DrawerAppsContent(
                         LauncherDrawerVisualTile(
                             entry = entry,
                             allApps = apps,
+                            lockedAppKeys = lockedAppKeys,
                             iconScale = preferences.iconScale,
                             showLabel = experiencePreferences.showDrawerLabels,
                             compact = false,
@@ -7603,6 +7716,7 @@ private fun DrawerAppsContent(
                                         compact = false,
                                         fixedGridGeometry = true,
                                         pinnedInDrawer = app.workspaceKey() in pinnedAppKeys,
+                                        lockedByLauncher = app.workspaceKey() in lockedAppKeys,
                                         onClick = { onLaunchApp(app) },
                                         onLongClick = { anchor -> onManageApp(app, anchor) },
                                         dragData = if (preferences.layoutLocked) null else {
@@ -7823,6 +7937,11 @@ private enum class LauncherSettingsCategory(
         "Local unread indicators and privacy controls",
         "notification badge badges unread dots numeric access privacy size corner",
     ),
+    SECURITY(
+        "Privacy & security",
+        "App Lock, hidden apps and protected launch controls",
+        "security privacy app lock locked authentication credential protect hidden apps",
+    ),
     SYSTEM(
         "System & setup",
         "Default Home, onboarding and Development status",
@@ -7844,12 +7963,14 @@ private fun LauncherSettingsCategoryIcon(
                     start = Offset(size.width * 0.16f, size.height * 0.48f),
                     end = Offset(size.width * 0.50f, size.height * 0.18f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
                 drawLine(
                     color = color,
                     start = Offset(size.width * 0.50f, size.height * 0.18f),
                     end = Offset(size.width * 0.84f, size.height * 0.48f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
                 drawRoundRect(
                     color = color,
@@ -7896,6 +8017,7 @@ private fun LauncherSettingsCategoryIcon(
                     start = Offset(size.width * 0.19f, size.height * 0.31f),
                     end = Offset(size.width * 0.42f, size.height * 0.31f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
             }
             LauncherSettingsCategory.SEARCH -> {
@@ -7910,6 +8032,7 @@ private fun LauncherSettingsCategoryIcon(
                     start = Offset(size.width * 0.62f, size.height * 0.62f),
                     end = Offset(size.width * 0.83f, size.height * 0.83f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
             }
             LauncherSettingsCategory.LOOK_AND_FEEL -> {
@@ -7945,6 +8068,7 @@ private fun LauncherSettingsCategoryIcon(
                     start = Offset(size.width * 0.38f, size.height * 0.41f),
                     end = Offset(size.width * 0.62f, size.height * 0.59f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
             }
             LauncherSettingsCategory.BADGES -> {
@@ -7958,6 +8082,44 @@ private fun LauncherSettingsCategoryIcon(
                     color = color,
                     radius = size.minDimension * 0.10f,
                     center = Offset(size.width * 0.73f, size.height * 0.27f),
+                )
+            }
+            LauncherSettingsCategory.SECURITY -> {
+                val p = Path().apply {
+                    moveTo(size.width * 0.50f, size.height * 0.12f)
+                    lineTo(size.width * 0.80f, size.height * 0.24f)
+                    lineTo(size.width * 0.76f, size.height * 0.58f)
+                    quadraticBezierTo(
+                        size.width * 0.70f,
+                        size.height * 0.78f,
+                        size.width * 0.50f,
+                        size.height * 0.88f,
+                    )
+                    quadraticBezierTo(
+                        size.width * 0.30f,
+                        size.height * 0.78f,
+                        size.width * 0.24f,
+                        size.height * 0.58f,
+                    )
+                    lineTo(size.width * 0.20f, size.height * 0.24f)
+                    close()
+                }
+                drawPath(p, color = color, style = Stroke(stroke))
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(size.width * 0.38f, size.height * 0.46f),
+                    size = Size(size.width * 0.24f, size.height * 0.20f),
+                    cornerRadius = CornerRadius(size.minDimension * 0.04f),
+                    style = Stroke(stroke),
+                )
+                drawArc(
+                    color = color,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(size.width * 0.40f, size.height * 0.32f),
+                    size = Size(size.width * 0.20f, size.height * 0.24f),
+                    style = Stroke(stroke),
                 )
             }
             LauncherSettingsCategory.SYSTEM -> {
@@ -7987,6 +8149,7 @@ private fun LauncherSettingsCategoryIcon(
                             Offset(size.width * 0.50f, size.height * 0.88f)
                         },
                         strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                     )
                 }
             }
@@ -7998,14 +8161,16 @@ private fun LauncherSettingsCategoryIcon(
 private fun LauncherSettingsSearchField(
     value: String,
     onValueChange: (String) -> Unit,
+    placeholder: String = "Search Launcher settings",
+    inputTestTag: String? = null,
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.70f),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.62f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.48f),
         ),
     ) {
         val searchIconColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -8013,9 +8178,9 @@ private fun LauncherSettingsSearchField(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 54.dp)
-                .padding(horizontal = GlazeMetrics.space3),
+                .padding(start = GlazeMetrics.space3, end = GlazeMetrics.space2),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
             Canvas(Modifier.size(22.dp)) {
                 val stroke = 2.dp.toPx()
@@ -8030,12 +8195,21 @@ private fun LauncherSettingsSearchField(
                     start = Offset(size.width * 0.64f, size.height * 0.64f),
                     end = Offset(size.width * 0.84f, size.height * 0.84f),
                     strokeWidth = stroke,
+                    cap = StrokeCap.Round,
                 )
             }
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .then(
+                        if (inputTestTag != null) {
+                            Modifier.testTag(inputTestTag)
+                        } else {
+                            Modifier
+                        },
+                    ),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(
                     color = MaterialTheme.colorScheme.onSurface,
@@ -8043,14 +8217,34 @@ private fun LauncherSettingsSearchField(
                 decorationBox = { inner ->
                     if (value.isBlank()) {
                         Text(
-                            "Search Launcher settings",
+                            placeholder,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodyLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     inner()
                 },
             )
+            if (value.isNotBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics { contentDescription = "Clear search" },
+                    onClick = { onValueChange("") },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.CLOSE,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconSize = 16.dp,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -8121,6 +8315,8 @@ private fun LauncherSettingsRootSurface(
     onManageFolders: () -> Unit,
     hiddenAppCount: Int,
     onManageHiddenApps: () -> Unit,
+    lockedAppCount: Int,
+    onManageAppLock: () -> Unit,
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
@@ -8226,22 +8422,28 @@ private fun LauncherSettingsRootSurface(
                 Column(Modifier.weight(1f)) {
                     Text(
                         selectedSettingsCategory?.title ?: "Launcher settings",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         selectedSettingsCategory?.summary
-                            ?: "Customize GoreeCloud Launcher without digging through one long page.",
+                            ?: "Home, apps, search, appearance and privacy in one place.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 if (selectedSettingsCategory == null) {
-                    GlazeTextAction("Done", onBack)
+                    LauncherHeaderGlyphAction(
+                        contentDescription = "Done",
+                        symbol = GlazePopupActionSymbol.CHECK,
+                        onClick = onBack,
+                    )
                 } else {
-                    GlazeTextAction("Back") {
-                        selectedSettingsCategoryName = null
-                    }
+                    LauncherHeaderGlyphAction(
+                        contentDescription = "Back",
+                        symbol = GlazePopupActionSymbol.BACK,
+                        onClick = { selectedSettingsCategoryName = null },
+                    )
                 }
             }
 
@@ -8275,11 +8477,10 @@ private fun LauncherSettingsRootSurface(
                                 color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    Text(
-                                        "!",
+                                    GlazePopupActionGlyph(
+                                        symbol = GlazePopupActionSymbol.INFO,
                                         color = MaterialTheme.colorScheme.error,
-                                        style = MaterialTheme.typography.titleLarge,
-                                        fontWeight = FontWeight.Bold,
+                                        iconSize = 22.dp,
                                     )
                                 }
                             }
@@ -8517,26 +8718,31 @@ private fun LauncherSettingsRootSurface(
                 visible = selectedSettingsCategory == LauncherSettingsCategory.HOME,
             ) {
                 Text(
-                    "Dock material",
+                    "Dock style",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
                 ChoiceRow(
-                    choices = listOf("Glass", "Clear", "Edge"),
+                    choices = listOf("Floating", "Minimal", "Edge"),
                     selected = when (experiencePreferences.dockStyle) {
-                        LauncherDockStyle.GLASS -> "Glass"
-                        LauncherDockStyle.CLEAR -> "Clear"
+                        LauncherDockStyle.GLASS -> "Floating"
+                        LauncherDockStyle.CLEAR -> "Minimal"
                         LauncherDockStyle.EDGE -> "Edge"
                     },
                     onChoice = {
                         onSetDockStyle(
                             when (it) {
-                                "Clear" -> LauncherDockStyle.CLEAR
+                                "Minimal" -> LauncherDockStyle.CLEAR
                                 "Edge" -> LauncherDockStyle.EDGE
                                 else -> LauncherDockStyle.GLASS
                             },
                         )
                     },
+                )
+                Text(
+                    "Floating and Minimal keep app icons directly on the wallpaper without a Dock background.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 SettingsReadOnlyRow("Capacity", "Adaptive · horizontal overflow")
                 SettingsReadOnlyRow("Edit", "Long-press an app")
@@ -9269,6 +9475,32 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
+                "Privacy & security",
+                "Protected Launcher actions",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.SECURITY,
+            ) {
+                GlazeSettingsAction(
+                    title = "App Lock",
+                    summary = "Require Android device authentication before Launcher opens selected apps.",
+                    value = if (lockedAppCount == 0) "None" else "$lockedAppCount locked",
+                    onClick = onManageAppLock,
+                    modifier = Modifier.testTag("launcher-settings-app-lock"),
+                )
+                Text(
+                    "App Lock protects launches that begin inside GoreeCloud Launcher. Android Settings, " +
+                        "notifications, deep links, other launchers, and other apps remain outside Launcher authority.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                GlazeSettingsAction(
+                    title = "Hidden apps",
+                    summary = "Manage apps hidden from Apps and Universal Search.",
+                    value = if (hiddenAppCount == 0) "None" else hiddenAppCount.toString(),
+                    onClick = onManageHiddenApps,
+                )
+            }
+
+            SettingsSection(
                 "System",
                 "Default HOME and Development status",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.SYSTEM,
@@ -9827,6 +10059,35 @@ private fun GlazeSettingsAction(
 }
 
 @Composable
+private fun LauncherHeaderGlyphAction(
+    contentDescription: String,
+    symbol: GlazePopupActionSymbol,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier
+            .size(48.dp)
+            .semantics { this.contentDescription = contentDescription },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.48f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            GlazePopupActionGlyph(
+                symbol = symbol,
+                color = MaterialTheme.colorScheme.onSurface,
+                iconSize = 20.dp,
+            )
+        }
+    }
+}
+
+@Composable
 internal fun GlazeTextAction(label: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
@@ -9972,12 +10233,17 @@ private fun GlazeSearchCapsule(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        "•••",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                    )
+                    val overflowTint = MaterialTheme.colorScheme.primary
+                    Canvas(Modifier.size(18.dp)) {
+                        val radius = size.minDimension * 0.075f
+                        listOf(0.25f, 0.50f, 0.75f).forEach { x ->
+                            drawCircle(
+                                color = overflowTint,
+                                radius = radius,
+                                center = Offset(size.width * x, size.height * 0.50f),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -10168,16 +10434,18 @@ internal fun GlazeDock(
                 onDockBoundsChanged(bounds)
             },
         shape = shape,
-        color = color,
-        border = border,
-        // Keep the Dock visually floating without casting a full-width horizontal shadow line.
-        shadowElevation = when (resolvedPresentation.materialRole) {
-            GlazeV16MaterialRole.CLEAR_GLASS,
-            GlazeV16MaterialRole.FUNCTIONAL_GLASS,
-            -> 0.dp
-            GlazeV16MaterialRole.SOLID -> 1.dp
-            GlazeV16MaterialRole.RAISED -> 2.dp
-            else -> 0.dp
+        color = if (style == LauncherDockStyle.EDGE || dockHovered) color else Color.Transparent,
+        border = if (style == LauncherDockStyle.EDGE || dockHovered) border else null,
+        // The normal Dock is intentionally background-free: icons float directly on wallpaper.
+        // A bounded surface appears only for the explicit Edge style or active drag feedback.
+        shadowElevation = if (style == LauncherDockStyle.EDGE || dockHovered) {
+            when (resolvedPresentation.materialRole) {
+                GlazeV16MaterialRole.SOLID -> 1.dp
+                GlazeV16MaterialRole.RAISED -> 2.dp
+                else -> 0.dp
+            }
+        } else {
+            0.dp
         },
     ) {
         BoxWithConstraints(
@@ -10271,6 +10539,7 @@ private fun LauncherAppTile(
     compact: Boolean,
     fixedGridGeometry: Boolean = false,
     pinnedInDrawer: Boolean = false,
+    lockedByLauncher: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (Rect?) -> Unit,
     modifier: Modifier,
@@ -10359,7 +10628,14 @@ private fun LauncherAppTile(
                 onLongClick = { onLongClick(tileBounds) },
             )
             .semantics {
-                if (pinnedInDrawer) stateDescription = "Pinned in Apps"
+                when {
+                    pinnedInDrawer && lockedByLauncher ->
+                        stateDescription = "Pinned in Apps. App Lock enabled"
+                    pinnedInDrawer ->
+                        stateDescription = "Pinned in Apps"
+                    lockedByLauncher ->
+                        stateDescription = "App Lock enabled"
+                }
             }
             .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -10391,6 +10667,11 @@ private fun LauncherAppTile(
             if (pinnedInDrawer) {
                 DrawerPinnedMark(
                     modifier = Modifier.align(Alignment.TopStart),
+                )
+            }
+            if (lockedByLauncher) {
+                DrawerLockedMark(
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -10459,6 +10740,32 @@ private fun DrawerPinnedMark(
     }
 }
 
+@Composable
+private fun DrawerLockedMark(
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier
+            .width(20.dp)
+            .height(16.dp)
+            .semantics { contentDescription = "App Lock enabled" },
+        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+        ),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            GlazePopupActionGlyph(
+                symbol = GlazePopupActionSymbol.LOCK,
+                color = MaterialTheme.colorScheme.primary,
+                iconSize = 10.dp,
+            )
+        }
+    }
+}
+
 @Suppress("DEPRECATION")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -10466,6 +10773,7 @@ private fun LauncherAppListRow(
     app: LauncherActivityInfo,
     iconScale: Float,
     pinnedInDrawer: Boolean = false,
+    lockedByLauncher: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (Rect?) -> Unit,
     dragData: LauncherAppDragData? = null,
@@ -10506,7 +10814,14 @@ private fun LauncherAppListRow(
                 onLongClick = { onLongClick(rowBounds) },
             )
             .semantics {
-                if (pinnedInDrawer) stateDescription = "Pinned in Apps"
+                when {
+                    pinnedInDrawer && lockedByLauncher ->
+                        stateDescription = "Pinned in Apps. App Lock enabled"
+                    pinnedInDrawer ->
+                        stateDescription = "Pinned in Apps"
+                    lockedByLauncher ->
+                        stateDescription = "App Lock enabled"
+                }
             }
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -10536,6 +10851,11 @@ private fun LauncherAppListRow(
                     modifier = Modifier.align(Alignment.TopStart),
                 )
             }
+            if (lockedByLauncher) {
+                DrawerLockedMark(
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -10551,6 +10871,227 @@ private fun LauncherAppListRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LauncherAppLockManagerSheet(
+    apps: List<LauncherActivityInfo>,
+    lockedAppKeys: Set<String>,
+    onSetLocked: (LauncherActivityInfo, Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    var showLockedOnly by rememberSaveable { mutableStateOf(false) }
+    val visibleApps = remember(apps, lockedAppKeys, query, showLockedOnly) {
+        apps.filter { app ->
+            (!showLockedOnly || app.workspaceKey() in lockedAppKeys) &&
+                (
+                    query.isBlank() ||
+                        LauncherLocalAppSearch.matches(
+                            label = app.label.toString(),
+                            packageName = app.componentName.packageName,
+                            rawQuery = query,
+                        )
+                )
+        }
+    }
+    val lockedCount = lockedAppKeys.count { key -> apps.any { it.workspaceKey() == key } }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("launcher-app-lock-manager"),
+        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f),
+        tonalElevation = 0.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4, vertical = GlazeMetrics.space3),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        "App Lock",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        "$lockedCount locked · " + apps.size + " available",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Surface(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("launcher-app-lock-close")
+                        .semantics { contentDescription = "Close App Lock" },
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.42f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        GlazePopupActionGlyph(
+                            symbol = GlazePopupActionSymbol.CLOSE,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconSize = 18.dp,
+                        )
+                    }
+                }
+            }
+
+            GlazeAppSearchField(
+                value = query,
+                onValueChange = { query = it },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("launcher-app-lock-search"),
+                placeholder = "Search apps",
+                inputTestTag = "launcher-app-lock-search-input",
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            ) {
+                listOf(false to "All", true to "Locked").forEach { (lockedOnly, label) ->
+                    val selected = showLockedOnly == lockedOnly
+                    Surface(
+                        onClick = { showLockedOnly = lockedOnly },
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 48.dp)
+                            .testTag(
+                                if (lockedOnly) "launcher-app-lock-filter-locked"
+                                else "launcher-app-lock-filter-all",
+                            ),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusPill),
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.68f)
+                        } else {
+                            Color.Transparent
+                        },
+                        border = BorderStroke(
+                            1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.46f)
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.68f),
+                        ),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 11.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                label + " · " + if (lockedOnly) lockedCount else apps.size,
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+            ) {
+                Text(
+                    "Launcher-only boundary: direct launches from notifications, Android Settings, " +
+                        "deep links, other launchers, or another app are not intercepted.",
+                    modifier = Modifier.padding(GlazeMetrics.space3),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            ) {
+                if (visibleApps.isEmpty()) {
+                    item(key = "app-lock-empty") {
+                        Text(
+                            if (showLockedOnly && query.isBlank()) {
+                                "No apps are locked."
+                            } else {
+                                "No apps match this search."
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = GlazeMetrics.space4),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+                lazyItems(
+                    items = visibleApps,
+                    key = { app -> app.workspaceKey() },
+                ) { app ->
+                    val appKey = app.workspaceKey()
+                    val locked = appKey in lockedAppKeys
+                    val icon = rememberLauncherAppIcon(app)
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("launcher-app-lock-" + appKey),
+                        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.18f),
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 60.dp)
+                                .padding(horizontal = GlazeMetrics.space3, vertical = GlazeMetrics.space1),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+                        ) {
+                            if (icon != null) {
+                                Image(
+                                    bitmap = icon,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(40.dp).launcherIconMask(),
+                                )
+                            }
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    app.label.toString(),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                Text(
+                                    (if (app.user == Process.myUserHandle()) "Personal" else "Work") +
+                                        " · " + app.componentName.packageName,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            Switch(
+                                checked = locked,
+                                onCheckedChange = { onSetLocked(app, it) },
+                                modifier = Modifier.testTag("launcher-app-lock-toggle-" + appKey),
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -12007,6 +12548,7 @@ private fun AppContextPopup(
     canMoveDrawerPinnedLater: Boolean,
     canResetDrawerPinnedOrder: Boolean,
     hiddenFromLauncher: Boolean,
+    lockedByLauncher: Boolean,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
     onHomeAction: () -> Unit,
     onToggleDock: () -> Unit,
@@ -12017,6 +12559,7 @@ private fun AppContextPopup(
     onMoveDrawerPinnedLater: () -> Unit,
     onResetDrawerPinnedOrder: () -> Unit,
     onToggleHidden: () -> Unit,
+    onToggleLocked: () -> Unit,
     onAddToFolder: () -> Unit,
     onOpenWidgets: (List<LauncherWidgetProviderDescriptor>) -> Unit,
     onLaunchShortcut: (LauncherLaunchShortcutSearchAction) -> Unit,
@@ -12105,6 +12648,7 @@ private fun AppContextPopup(
                                 add("$badgeCount " + if (badgeCount == 1) "notification" else "notifications")
                             }
                             if (drawerPinned) add("Pinned in Apps")
+                            if (lockedByLauncher) add("App Lock")
                             if (layoutLocked) add("Home layout locked")
                         }.joinToString(" · ")
                         if (status.isNotBlank()) {
@@ -12221,6 +12765,11 @@ private fun AppContextPopup(
                     enabled = canAddToFolder && !layoutLocked,
                 )
                 GlazeLauncherPopupAction(
+                    label = if (lockedByLauncher) "Remove App Lock" else "Lock app",
+                    symbol = GlazePopupActionSymbol.LOCK,
+                    onClick = onToggleLocked,
+                )
+                GlazeLauncherPopupAction(
                     label = if (hiddenFromLauncher) "Show in Apps & Search" else "Hide from Apps & Search",
                     symbol = GlazePopupActionSymbol.VISIBILITY,
                     onClick = onToggleHidden,
@@ -12282,6 +12831,8 @@ private enum class GlazePopupActionSymbol {
     HOME,
     DOCK,
     WIDGET,
+    ADD,
+    DELETE,
     SHORTCUT,
     PIN,
     FOLDER,
@@ -12289,7 +12840,10 @@ private enum class GlazePopupActionSymbol {
     APPS,
     SETTINGS,
     CHECK,
+    BACK,
+    CLOSE,
     INFO,
+    LOCK,
     VISIBILITY,
     UNINSTALL,
 }
@@ -12305,7 +12859,13 @@ private fun GlazePopupActionGlyph(
         val u = size.minDimension
         val w = 1.8.dp.toPx()
         fun segment(x1: Float, y1: Float, x2: Float, y2: Float) {
-            drawLine(color, Offset(x1 * u, y1 * u), Offset(x2 * u, y2 * u), strokeWidth = w)
+            drawLine(
+                color,
+                Offset(x1 * u, y1 * u),
+                Offset(x2 * u, y2 * u),
+                strokeWidth = w,
+                cap = StrokeCap.Round,
+            )
         }
         when (symbol) {
             GlazePopupActionSymbol.HOME -> {
@@ -12336,6 +12896,23 @@ private fun GlazePopupActionGlyph(
                 segment(.30f, .34f, .70f, .34f)
                 segment(.30f, .50f, .58f, .50f)
                 segment(.30f, .66f, .48f, .66f)
+            }
+            GlazePopupActionSymbol.ADD -> {
+                segment(.18f, .50f, .82f, .50f)
+                segment(.50f, .18f, .50f, .82f)
+            }
+            GlazePopupActionSymbol.DELETE -> {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(u * .28f, u * .34f),
+                    size = Size(u * .44f, u * .48f),
+                    cornerRadius = CornerRadius(u * .06f),
+                    style = Stroke(w),
+                )
+                segment(.22f, .28f, .78f, .28f)
+                segment(.38f, .20f, .62f, .20f)
+                segment(.40f, .42f, .40f, .70f)
+                segment(.60f, .42f, .60f, .70f)
             }
             GlazePopupActionSymbol.SHORTCUT -> {
                 segment(.24f, .76f, .76f, .24f)
@@ -12426,10 +13003,41 @@ private fun GlazePopupActionGlyph(
                 segment(.18f, .52f, .40f, .72f)
                 segment(.40f, .72f, .82f, .28f)
             }
+            GlazePopupActionSymbol.BACK -> {
+                segment(.68f, .18f, .34f, .50f)
+                segment(.34f, .50f, .68f, .82f)
+            }
+            GlazePopupActionSymbol.CLOSE -> {
+                segment(.24f, .24f, .76f, .76f)
+                segment(.76f, .24f, .24f, .76f)
+            }
             GlazePopupActionSymbol.INFO -> {
                 drawCircle(color, radius = u * .36f, center = Offset(u * .5f, u * .5f), style = Stroke(w))
                 drawCircle(color, radius = w * .65f, center = Offset(u * .5f, u * .33f))
                 segment(.50f, .47f, .50f, .70f)
+            }
+            GlazePopupActionSymbol.LOCK -> {
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(u * .24f, u * .43f),
+                    size = Size(u * .52f, u * .40f),
+                    cornerRadius = CornerRadius(u * .08f),
+                    style = Stroke(w),
+                )
+                drawArc(
+                    color = color,
+                    startAngle = 180f,
+                    sweepAngle = 180f,
+                    useCenter = false,
+                    topLeft = Offset(u * .31f, u * .16f),
+                    size = Size(u * .38f, u * .48f),
+                    style = Stroke(w),
+                )
+                drawCircle(
+                    color = color,
+                    radius = u * .035f,
+                    center = Offset(u * .50f, u * .61f),
+                )
             }
             GlazePopupActionSymbol.VISIBILITY -> {
                 drawOval(
