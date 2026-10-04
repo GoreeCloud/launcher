@@ -178,7 +178,7 @@ A full Theme Manager, third-party icon-pack selection, icon masking, and richer 
 
 ### Appearance
 
-The launcher supports persisted **System**, **Light**, and **Dark** appearance selection. Launcher retains evidence-backed Glaze UI Adoption Candidate mapping. The current repository mapping target is GLAZE UI V1.6 / 1.6.0 at the accepted source revision recorded by Launcher; complete rendered/native/accessibility/device acceptance remains separately gated.
+The launcher supports persisted **System**, **Light**, and **Dark** appearance selection. Launcher retains evidence-backed Glaze UI Adoption Candidate mapping. The current shared target is Glaze V1.7 / 1.7.0. Launcher still carries its accepted V1.6 implementation mapping, which V1.7 inherits at runtime, but fresh V1.7 contract adoption plus rendered/native/accessibility/device acceptance remain separately gated.
 
 ## Multi-page Home navigation
 

@@ -125,7 +125,7 @@ Issue #80 remains open for representative-device first-use/resume and refreshed-
 ### Presentation and accessibility
 
 - Complete Theme Manager behavior, icon-pack discovery/application, icon masking/normalization, wallpaper-derived palettes, expression controls, and broader gesture bindings.
-- Complete Launcher-specific GLAZE UI V1.6 rendered/accessibility/adaptive/performance/power/rollback/Human Visual Excellence acceptance.
+- Complete Launcher-specific Glaze V1.7 / 1.7.0 contract re-pin plus rendered/accessibility/adaptive/performance/power/rollback/Human Visual Excellence acceptance; retain V1.6 as inherited runtime/implementation provenance only.
 - Validate keyboard, D-pad, Switch Access, TalkBack, large text, RTL/localization, reduced motion/transparency, contrast, and touch-target behavior across Home, Search, Apps, Settings, and editing surfaces.
 
 ### Portability, platform integration, and release

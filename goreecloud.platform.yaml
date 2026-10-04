@@ -4,7 +4,7 @@ component:
   type: application
   id: goreecloud-launcher
   product_name: GoreeCloud Launcher
-  repository: GoreeCloud/launcher
+  repository: GoreeCloud/android-app-defaults
 
 lifecycle: development
 version: "0.1.0-dev"
@@ -65,8 +65,8 @@ platform_systems:
       - docs/development/portable-restore-preview.md
     notes: Versioned workspace-placement and explicit preference snapshots have validation-before-write, pair-level Home-grid compatibility, reviewed apply, concrete Room/DataStore persistence, a durable pre-Room device-local recovery journal, exact-state interrupted-operation reconciliation, readback verification, guarded compensation, and emulator-targeted recovery tests. This remains partial Development recovery; the coordinator is not yet an accepted production startup gate, clean-target/cross-device identity reconstruction and complete Launcher-owned recovery scope remain incomplete, and accepted Everkeep integration is not established.
   glaze_ui:
-    result: applicable-blocked
-    version: "1.6.0"
+    result: applicable-migration-required
+    version: "1.7.0"
     evidence:
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeMetrics.kt
       - app/src/main/java/com/goreecloud/launcher/ui/theme/GlazeV16PresentationPolicy.kt
@@ -79,7 +79,7 @@ platform_systems:
       - app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeThemeManagerCatalogTest.kt
       - scripts/check_glaze_ui.py
       - docs/glaze-ui-adoption.md
-    notes: Authoritative Launcher source maps to exact Official Stable GLAZE UI V1.6 / 1.6.0 release source a7180679ea851389e0f3004515f9a25f420e716d and implements repository-local presentation policy. Glaze remains applicable-blocked because authoritative runtime accessibility/performance wiring, rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
+    notes: Current shared authority is Glaze V1.7 / 1.7.0 at release integration 1a5756daed2294155be2e9972b24f580f6222b7b (qualification anchor 7c4ded83d7a8725165bb6a55dfb175667cc9589e). V1.7.0 intentionally inherits accepted V1.6.0 runtime behavior. Launcher retains its V1.6 presentation implementation at a7180679ea851389e0f3004515f9a25f420e716d, but that mapping has not been freshly rebound and accepted as a V1.7 consumer; Glaze is therefore applicable-migration-required, and rendered/accessibility/adaptive phone/tablet/foldable, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance remain incomplete.
   mesh:
     result: applicable-blocked
     version: null
@@ -154,10 +154,10 @@ external_dependencies:
 
 compatibility:
   platform_contract: "0.4"
-  glaze_ui_required: "1.6.0"
+  glaze_ui_required: "1.7.0"
   requires:
     - goreecloud-platform-contract==0.4
-    - glaze-ui==1.6.0
+    - glaze-ui==1.7.0
     - android-api>=29
   provides:
     - goreecloud-launcher-workspace-snapshot/1
@@ -188,7 +188,7 @@ conformance:
     - app/src/test/java/com/goreecloud/launcher/core/workspace/db/WorkspacePortableHomeStateFingerprintTest.kt
     - app/src/androidTest/java/com/goreecloud/launcher/core/launcher/LauncherPortableRestorePersistenceRuntimeTest.kt
   blockers:
-    - "Launcher source maps to current Official Stable GLAZE UI V1.6 / 1.6.0, but consumer acceptance remains blocked: authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete."
+    - "Launcher retains an accepted V1.6 presentation implementation while current shared authority is Glaze V1.7 / 1.7.0. V1.7 inherits the accepted V1.6 runtime, but fresh V1.7 contract re-pinning plus authoritative runtime accessibility/performance wiring, complete component/state review, rendered accessibility, adaptive/form-factor, representative-device, performance/power, rollback, localization/RTL, Human Visual Excellence, platform-system, signing, release, and production acceptance are incomplete."
     - GoreeCloud Identity integration and acceptance are not established for future identity-aware capabilities.
     - Wardveil Security integration and acceptance are not established.
     - Privacy Shield integration and acceptance are not established.
@@ -199,4 +199,4 @@ conformance:
     - GoreeCloud Observability health, metrics, events, diagnostics, performance/power, dependency-health, provenance/freshness, alerting, collection-gap, and representative-device runtime acceptance are not established.
     - Product-wide export and import scope remains incomplete beyond the bounded workspace-placement and explicit-preference formats.
     - Signed representative-device HOME-role, lifecycle, accessibility, restore, rollback, upgrade, and release-candidate acceptance remain outstanding.
-    - Production signing, distribution, deployment, release approval, and Stable qualification remain outstanding.
+    - Production signing, distribution, deployment, release approval, Seal qualification, production acceptance, and Anchor qualification remain outstanding.

@@ -1,9 +1,10 @@
 # GLAZE UI V1.6 Source Mapping — GoreeCloud Launcher
 
-Status: **Development source mapping integrated / application acceptance pending**  
+Status: **Development source mapping integrated / V1.7 migration and application acceptance pending**  
+Current shared authority: **Glaze V1.7 (`1.7.0`)** at `1a5756daed2294155be2e9972b24f580f6222b7b`  
 Current required target: **GLAZE UI V1.6 (`1.6.0`)**  
 Canonical repository: `GoreeCloud/goreecloud-glaze-ui`  
-Exact Stable release source authority: `a7180679ea851389e0f3004515f9a25f420e716d`  
+Exact V1.6 implementation source authority: `a7180679ea851389e0f3004515f9a25f420e716d`  
 Shared known-good rollback Stable: **GLAZE UI V1.5.1**  
 Prior Launcher source baseline: **GLAZE UI V1.1 (`1.1.0`)** at `15cc76d2bcd4065552dc31c77145b63f34d9e7b2`  
 Production eligible on the Glaze UI gate: **no**  
@@ -23,12 +24,12 @@ Those references control composition, hierarchy, translucency, spacing, density,
 The mockup-alignment candidate therefore keeps Launcher search/provider authority, explicit connected-source handoff rules, workspace persistence, Android permissions, and Glaze V1.6 source authority unchanged while replacing the prior dark/opaque Home and Search presentation with wallpaper-first light glass.
 
 
-The exact V1.6 Stable release is consumer-eligible, but downstream application acceptance is explicitly non-transferable. The integrated Launcher source therefore separates **source mapping** from **consumer acceptance**:
+Glaze V1.7 / 1.7.0 is now the current Anchor shared release at `1a5756daed2294155be2e9972b24f580f6222b7b` (qualification anchor `7c4ded83d7a8725165bb6a55dfb175667cc9589e`). V1.7.0 intentionally inherits the accepted V1.6.0 runtime, so Launcher's integrated V1.6 implementation remains relevant provenance but downstream V1.7 contract adoption and application acceptance are explicitly non-transferable. The Launcher source therefore separates **implementation mapping**, **current shared authority**, and **consumer acceptance**:
 
 - `GlazeMetrics` and `GlazeV16PresentationPolicy` pin exact V1.6 source provenance.
-- `GlazeCurrentAuthority.sourceMigrationRequired()` is false because authoritative Launcher source and exact Stable authority now agree.
+- `GlazeCurrentAuthority.sourceMigrationRequired()` is true because the repository is still explicitly mapped as a V1.6 consumer while current shared authority is V1.7 / 1.7.0.
 - `currentConsumerConformanceEstablished` remains false and `consumerAcceptanceRequired()` remains true.
-- Platform Contract stays Development/nonconformant and records Glaze as applicable-blocked rather than conformant.
+- Platform Contract stays Development/nonconformant and records Glaze as `applicable-migration-required` rather than conformant.
 
 No source string, successful build, emulator run, or shared Glaze qualification is allowed to manufacture Launcher-local rendered, accessibility, device, performance, production, release, or Stable acceptance.
 

@@ -420,7 +420,7 @@ Paged App Drawer layouts now keep the existing restrained **6/8 dp** visual dots
 - Kept the work on Draft PR #248; no Stable, production, or representative-device acceptance is claimed.
 
 **Record type:** Repository change history  
-**Repository:** `GoreeCloud/launcher`  
+**Repository:** `GoreeCloud/android-app-defaults` (`apps/launcher/`)  
 **Lifecycle:** Development  
 **Migration state:** **Authoritative on `main` after PR #201 merged as `009371938ac3cab041cfb0893ede68e66e211a4f` and default-branch readback verified this record and its imported history. PR #203 reconciled the post-migration authority records, and legacy Launcher Drive roadmap/changelog retirement was subsequently verified.**  
 **Runtime source baseline:** `03d4c3d2d7e355916412565b531e411d1bba71de` (PR #240). Repository-native change records were reconciled after that runtime merge through PR #241.  
