@@ -1,3 +1,9 @@
+## October 4, 2026 — icon-mask and Apps header polish
+
+Development source now provides mask-ready adaptive-icon rendering: adaptive background and foreground layers are flattened before the user-selected Launcher shape is applied, avoiding the nested-mask/gray-corner effect seen on representative-device screenshots. Masked app artwork uses crop presentation across Home, Apps, Search, widget-provider, hidden-app, and App Lock surfaces that share the Launcher icon pipeline.
+
+Apps now has a direct accessible layout quick-switch in its header. It cycles Grid, Compact, List, and Category using the existing persisted layout authority, keeps the 48 dp interaction floor in icon mode, and exposes current layout through accessibility state description. Drawer Sort/Layout/New folder/Settings glyphs share a consistent vector stroke/optical grammar, and Universal Search suggestion-tab glyphs have matching semantic cleanup.
+
 # GoreeCloud Launcher — Implemented Features
 
 ## October 3, 2026 — inset, icon-mask, Search, and widget-gallery correction candidate

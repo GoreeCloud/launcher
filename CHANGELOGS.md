@@ -1,3 +1,11 @@
+## October 4, 2026 — full-bleed icon masks, consistent glyphs, and quick Apps layout switching
+
+Current Development source corrects the owner-reported icon-mask presentation defect by flattening Android adaptive-icon background/foreground layers into a full-bleed square before applying the selected Launcher mask. The mask no longer paints a visible gray backing plate, and masked app/provider artwork uses crop presentation so adaptive backgrounds fill the selected rounded-square, squircle, circle, or teardrop boundary instead of looking like an icon floating inside another shape. The shared cache keeps its existing profile badging, retry, invalidation, stale-while-revalidate, and bounded-memory behavior.
+
+The App Drawer header now uses one consistent rounded-stroke glyph family for Sort, Layout, New folder, and Settings. A new 48 dp Layout quick action cycles Grid → Compact → List → Category → Grid while persisting through the existing drawer-layout preference callback; the Settings path remains available for direct mode selection. Universal Search suggestion tabs also use cleaner semantic vector cues.
+
+Automated coverage includes the deterministic drawer-layout cycle and Android runtime verification that a synthetic adaptive icon retains full-bleed corner coverage before Launcher masking. Representative-device visual acceptance, profile/OEM icon edge cases, accessibility/large-text/form-factor review, protected Development signing/update continuity, and release qualification remain open.
+
 # GoreeCloud Launcher — Changelogs
 
 ## October 3, 2026 — representative-device inset, icon-mask, Search, and widget-gallery corrections

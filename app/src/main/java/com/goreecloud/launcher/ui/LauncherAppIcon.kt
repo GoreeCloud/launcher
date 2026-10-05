@@ -1,11 +1,9 @@
 package com.goreecloud.launcher.ui
 
 import android.content.pm.LauncherActivityInfo
-import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -99,12 +97,9 @@ internal fun Modifier.launcherIconMask(): Modifier {
     val shape = LocalLauncherIconAppearance.current.shape
     if (shape == LauncherIconShape.ORIGINAL) return this
 
-    val composeShape = shape.toLauncherComposeShape()
-    // Android/OEM launcher artwork may already arrive with a circular adaptive-icon mask baked
-    // into transparent pixels. A shaped backing plane makes the selected Launcher mask visible
-    // and consistent even for those icons, while the clip still constrains square artwork.
-    val backing = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)
-    return background(backing, composeShape).clip(composeShape)
+    // Adaptive icons are flattened to a mask-ready full-bleed bitmap in LauncherAppIconCache.
+    // The UI mask therefore clips artwork without painting a visible gray backing plate.
+    return clip(shape.toLauncherComposeShape())
 }
 
 internal fun LauncherIconShape.toLauncherComposeShape(): Shape = when (this) {

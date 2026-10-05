@@ -1,5 +1,6 @@
 package com.goreecloud.launcher.ui
 
+import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerSpacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -7,6 +8,26 @@ import org.junit.Test
 
 class LauncherDrawerSortingPolicyTest {
     private data class Entry(val label: String, val stableKey: String)
+
+    @Test
+    fun quickLayoutCycleVisitsEveryDrawerModeAndReturnsToGrid() {
+        var mode = LauncherDrawerLayoutMode.GRID
+        val visited = mutableListOf(mode)
+        repeat(4) {
+            mode = nextLauncherDrawerLayoutMode(mode)
+            visited += mode
+        }
+        assertEquals(
+            listOf(
+                LauncherDrawerLayoutMode.GRID,
+                LauncherDrawerLayoutMode.COMPACT,
+                LauncherDrawerLayoutMode.LIST,
+                LauncherDrawerLayoutMode.CATEGORY,
+                LauncherDrawerLayoutMode.GRID,
+            ),
+            visited,
+        )
+    }
 
     @Test
     fun appsAndFoldersInterleaveAlphabeticallyWithoutEmptyGridSlots() {

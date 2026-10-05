@@ -2,6 +2,9 @@ package com.goreecloud.launcher.core.launcher
 
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.graphics.Color
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.ColorDrawable
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.flow.first
@@ -14,6 +17,20 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class LauncherAppIconRuntimeTest {
+    @Test
+    fun adaptiveIconRasterizerKeepsFullBleedBackgroundForLauncherMasks() {
+        val bitmap = renderLauncherMaskReadyBitmap(
+            drawable = AdaptiveIconDrawable(
+                ColorDrawable(Color.rgb(32, 96, 180)),
+                ColorDrawable(Color.TRANSPARENT),
+            ),
+            sizePx = 64,
+        )
+        requireNotNull(bitmap)
+        assertTrue(Color.alpha(bitmap.getPixel(0, 0)) > 0)
+        assertTrue(Color.alpha(bitmap.getPixel(63, 63)) > 0)
+    }
+
     @Test
     fun repositorySnapshotMatchesVisibleLauncherActivitiesAcrossProfiles() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

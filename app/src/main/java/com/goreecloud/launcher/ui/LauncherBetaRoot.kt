@@ -1507,6 +1507,7 @@ fun LauncherBetaRoot(
                     showFolderManager = true
                 },
                 onSetSortOrderName = onSetDrawerSortOrderName,
+                onSetDrawerLayoutMode = onSetDrawerLayoutMode,
                 onOpenSettings = {
                     drawerSearchRequested = false
                     surfaceModeName = LauncherSurfaceMode.SETTINGS.name
@@ -3003,7 +3004,7 @@ private fun InstalledWidgetPickerRow(
                         Image(
                             bitmap = icon,
                             contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.size(36.dp).launcherIconMask(),
                         )
                     } else {
@@ -3578,7 +3579,7 @@ private fun HomeEditorPreviewIcon(app: LauncherActivityInfo) {
         Image(
             bitmap = icon,
             contentDescription = null,
-            contentScale = ContentScale.Fit,
+            contentScale = ContentScale.Crop,
             modifier = Modifier.size(34.dp).launcherIconMask(),
         )
     } else {
@@ -4528,7 +4529,7 @@ internal fun HomeFolderTile(
                                                 Image(
                                                     bitmap = icon,
                                                     contentDescription = null,
-                                                    contentScale = ContentScale.Fit,
+                                                    contentScale = ContentScale.Crop,
                                                     modifier = Modifier
                                                         .fillMaxSize()
                                                         .launcherIconMask(),
@@ -5707,7 +5708,7 @@ private fun HomeFavoriteTile(
                         Image(
                             bitmap = icon,
                             contentDescription = displayLabel,
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize().launcherIconMask(),
                         )
                     } else {
@@ -6697,6 +6698,7 @@ private fun AppDrawerSurface(
     onOpenFolder: (LauncherFolder) -> Unit,
     onManageFolders: (Int) -> Unit,
     onSetSortOrderName: (String?) -> Unit,
+    onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
     onOpenSettings: () -> Unit,
     onHome: () -> Unit,
 ) {
@@ -7028,6 +7030,38 @@ private fun AppDrawerSurface(
                                         } else {
                                             null
                                         },
+                                    )
+                                }
+                            }
+                        }
+                        Surface(
+                            onClick = {
+                                onSetDrawerLayoutMode(
+                                    nextLauncherDrawerLayoutMode(drawerLayoutMode),
+                                )
+                            },
+                            modifier = Modifier
+                                .size(if (useDrawerHeaderIcons) 48.dp else 76.dp)
+                                .testTag("launcher-drawer-layout-mode")
+                                .semantics {
+                                    contentDescription = "Change Apps layout"
+                                    stateDescription = layoutDescription
+                                },
+                            shape = CircleShape,
+                            color = Color.Transparent,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                if (useDrawerHeaderIcons) {
+                                    LauncherDrawerLayoutIcon(
+                                        mode = drawerLayoutMode,
+                                        color = drawerSecondaryColor,
+                                    )
+                                } else {
+                                    Text(
+                                        "Layout",
+                                        color = drawerSecondaryColor,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        maxLines = 1,
                                     )
                                 }
                             }
@@ -10646,7 +10680,7 @@ private fun LauncherAppTile(
                 Image(
                     bitmap = icon,
                     contentDescription = app.label.toString(),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().launcherIconMask(),
                 )
             } else {
@@ -10832,7 +10866,7 @@ private fun LauncherAppListRow(
                 Image(
                     bitmap = icon,
                     contentDescription = app.label.toString(),
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize().launcherIconMask(),
                 )
             } else {
@@ -11064,7 +11098,7 @@ private fun LauncherAppLockManagerSheet(
                                 Image(
                                     bitmap = icon,
                                     contentDescription = null,
-                                    contentScale = ContentScale.Fit,
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier.size(40.dp).launcherIconMask(),
                                 )
                             }
@@ -11185,7 +11219,7 @@ private fun LauncherHiddenAppsManagerSheet(
                                     Image(
                                         bitmap = icon,
                                         contentDescription = null,
-                                        contentScale = ContentScale.Fit,
+                                        contentScale = ContentScale.Crop,
                                         modifier = Modifier.size(42.dp).launcherIconMask(),
                                     )
                                 } else {
@@ -11928,7 +11962,7 @@ internal fun LauncherFolderContentsSheet(
                                                             Image(
                                                                 bitmap = icon,
                                                                 contentDescription = null,
-                                                                contentScale = ContentScale.Fit,
+                                                                contentScale = ContentScale.Crop,
                                                                 modifier = Modifier
                                                                     .size(50.dp)
                                                                     .launcherIconMask(),
@@ -12334,7 +12368,7 @@ internal fun LauncherFolderAppPickerSheet(
                                 Image(
                                     bitmap = icon,
                                     contentDescription = null,
-                                    contentScale = ContentScale.Fit,
+                                    contentScale = ContentScale.Crop,
                                     modifier = Modifier.size(46.dp).launcherIconMask(),
                                 )
                             } else {
@@ -12630,7 +12664,7 @@ private fun AppContextPopup(
                         Image(
                             bitmap = icon,
                             contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.size(42.dp).launcherIconMask(),
                         )
                     }

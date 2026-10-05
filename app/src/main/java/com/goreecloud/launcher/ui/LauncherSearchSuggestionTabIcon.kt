@@ -19,12 +19,6 @@ internal fun launcherSearchSuggestionTabAccessibilityLabel(
     LauncherSearchSuggestionTab.NEW_UPDATED -> "New or updated"
 }
 
-/**
- * Uses one shared outlined visual grammar for all idle Universal Search tabs.
- *
- * The enclosing ring keeps Frequent, Recent, and New/updated visually consistent while the
- * interior mark remains semantic. Accessibility never depends on the icon shape.
- */
 @Composable
 internal fun LauncherSearchSuggestionTabIcon(
     tab: LauncherSearchSuggestionTab,
@@ -32,74 +26,67 @@ internal fun LauncherSearchSuggestionTabIcon(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier.size(22.dp)) {
-        val stroke = 1.8.dp.toPx()
+        val stroke = 2.05.dp.toPx()
+        val cap = StrokeCap.Round
         val center = Offset(size.width / 2f, size.height / 2f)
-        val radius = size.minDimension * 0.39f
-
-        drawCircle(
-            color = color,
-            radius = radius,
-            center = center,
-            style = Stroke(width = stroke),
-        )
-
         when (tab) {
             LauncherSearchSuggestionTab.FREQUENT -> {
                 listOf(
-                    0.35f to 0.55f,
-                    0.50f to 0.43f,
-                    0.65f to 0.31f,
-                ).forEach { (x, top) ->
+                    Triple(0.31f, 0.66f, 0.53f),
+                    Triple(0.50f, 0.66f, 0.38f),
+                    Triple(0.69f, 0.66f, 0.27f),
+                ).forEach { (x, bottom, top) ->
                     drawLine(
                         color = color,
-                        start = Offset(size.width * x, size.height * 0.66f),
+                        start = Offset(size.width * x, size.height * bottom),
                         end = Offset(size.width * x, size.height * top),
                         strokeWidth = stroke,
-                        cap = StrokeCap.Round,
+                        cap = cap,
                     )
                 }
             }
-
             LauncherSearchSuggestionTab.RECENT -> {
-                drawLine(
+                drawCircle(
                     color = color,
-                    start = center,
-                    end = Offset(center.x, center.y - size.height * 0.19f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
+                    radius = size.minDimension * 0.34f,
+                    center = center,
+                    style = Stroke(width = stroke),
                 )
                 drawLine(
                     color = color,
                     start = center,
-                    end = Offset(
-                        center.x + size.width * 0.16f,
-                        center.y + size.height * 0.09f,
-                    ),
+                    end = Offset(center.x, center.y - size.height * 0.18f),
                     strokeWidth = stroke,
-                    cap = StrokeCap.Round,
+                    cap = cap,
+                )
+                drawLine(
+                    color = color,
+                    start = center,
+                    end = Offset(center.x + size.width * 0.15f, center.y + size.height * 0.08f),
+                    strokeWidth = stroke,
+                    cap = cap,
                 )
             }
-
             LauncherSearchSuggestionTab.NEW_UPDATED -> {
-                val arm = size.minDimension * 0.18f
+                val arm = size.minDimension * 0.22f
                 drawLine(
                     color = color,
                     start = Offset(center.x - arm, center.y),
                     end = Offset(center.x + arm, center.y),
                     strokeWidth = stroke,
-                    cap = StrokeCap.Round,
+                    cap = cap,
                 )
                 drawLine(
                     color = color,
                     start = Offset(center.x, center.y - arm),
                     end = Offset(center.x, center.y + arm),
                     strokeWidth = stroke,
-                    cap = StrokeCap.Round,
+                    cap = cap,
                 )
                 drawCircle(
                     color = color,
-                    radius = size.minDimension * 0.045f,
-                    center = Offset(size.width * 0.72f, size.height * 0.29f),
+                    radius = size.minDimension * 0.055f,
+                    center = Offset(size.width * 0.76f, size.height * 0.25f),
                 )
             }
         }

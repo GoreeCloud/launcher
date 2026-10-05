@@ -170,7 +170,13 @@ Choose **Permanent on Home** or **Gesture only**. Permanent mode keeps the Searc
 
 You can choose 4, 5, or 6 columns for the Apps grid.
 
+### Apps layout quick switch
+
+The Apps header includes a Layout quick action. Tap it to cycle Grid → Compact → List → Category → Grid without opening Settings. The selected layout uses the same persisted preference as Launcher settings → App drawer → Layout, so changing it in either place stays synchronized.
+
 ### Icons and labels
+
+Masked adaptive app icons are rendered from their Android background and foreground layers before Launcher applies the selected shape. This lets the icon background fill rounded-square, squircle, circle, and teardrop masks cleanly instead of showing a second baked mask inside the selected shape.
 
 You can choose Small, Medium, or Large icon presentation and turn app labels on or off. These settings apply to the rebuilt primary surface and are also used by the current secondary-page presentation where applicable.
 

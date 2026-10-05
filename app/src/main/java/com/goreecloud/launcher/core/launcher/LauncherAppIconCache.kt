@@ -3,7 +3,12 @@ package com.goreecloud.launcher.core.launcher
 import android.content.ComponentName
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.UserHandle
 import android.util.LruCache
 import androidx.core.graphics.drawable.toBitmap
@@ -17,6 +22,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 internal const val LAUNCHER_ICON_DECODE_SIZE_PX = 144
 internal const val LAUNCHER_ICON_CACHE_MAX_KIB = 12 * 1024
@@ -50,6 +56,31 @@ internal fun <T> firstSuccessfulIconLoad(vararg loaders: () -> T?): T? {
         if (value != null) return value
     }
     return null
+}
+
+/**
+ * Flattens an Android adaptive icon into a square full-bleed bitmap before Launcher applies the
+ * user-selected mask. This avoids carrying Android/OEM's baked mask into transparent corners.
+ */
+internal fun renderLauncherMaskReadyBitmap(
+    drawable: Drawable,
+    sizePx: Int,
+): Bitmap? {
+    if (sizePx <= 0) return null
+    val adaptive = drawable as? AdaptiveIconDrawable ?: return null
+    val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    fun Drawable.render(left: Int, top: Int, right: Int, bottom: Int) {
+        val copy = constantState?.newDrawable()?.mutate() ?: mutate()
+        copy.setBounds(left, top, right, bottom)
+        copy.draw(canvas)
+    }
+
+    adaptive.background.render(0, 0, sizePx, sizePx)
+    val overscan = (sizePx * 0.08f).roundToInt()
+    adaptive.foreground.render(-overscan, -overscan, sizePx + overscan, sizePx + overscan)
+    return bitmap
 }
 
 internal class LauncherIconSingleFlightLoader<K : Any, V>(
@@ -229,6 +260,24 @@ internal object LauncherAppIconCache {
                 null
             } else {
                 val decoded = firstSuccessfulIconLoad(
+                    {
+                        renderLauncherMaskReadyBitmap(
+                            drawable = app.getIcon(0),
+                            sizePx = LAUNCHER_ICON_DECODE_SIZE_PX,
+                        )?.let { maskReady ->
+                            if (packageManager == null) {
+                                maskReady
+                            } else {
+                                packageManager.getUserBadgedIcon(
+                                    BitmapDrawable(Resources.getSystem(), maskReady),
+                                    app.user,
+                                ).toBitmap(
+                                    width = LAUNCHER_ICON_DECODE_SIZE_PX,
+                                    height = LAUNCHER_ICON_DECODE_SIZE_PX,
+                                )
+                            }
+                        }
+                    },
                     {
                         app.getBadgedIcon(0).toBitmap(
                             width = LAUNCHER_ICON_DECODE_SIZE_PX,

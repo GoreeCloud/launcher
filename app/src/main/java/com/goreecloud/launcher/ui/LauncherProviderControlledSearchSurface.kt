@@ -1142,7 +1142,7 @@ private fun LauncherUniversalSearchSuggestionApp(
                 Image(
                     bitmap = icon,
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .size(42.dp)
                         .launcherIconMask(),
@@ -1223,7 +1223,7 @@ private fun LauncherSearchHandoffRow(
                         Image(
                             bitmap = icon,
                             contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.size(24.dp).launcherIconMask(),
                         )
                     } else {
@@ -1511,7 +1511,7 @@ private fun LauncherGlazeSearchAppTile(
                 Image(
                     bitmap = icon,
                     contentDescription = null,
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     modifier = Modifier.size(30.dp).launcherIconMask(),
                 )
             } else {
@@ -2009,7 +2009,7 @@ private fun LauncherGlazeSearchResult(
                         Image(
                             bitmap = appIcon,
                             contentDescription = null,
-                            contentScale = ContentScale.Fit,
+                            contentScale = ContentScale.Crop,
                             modifier = Modifier.size(iconSize).launcherIconMask(),
                         )
                     } else if (isContact) {
@@ -2770,7 +2770,7 @@ private fun LauncherSearchSourceBadge(
                     Image(
                         bitmap = icon,
                         contentDescription = null,
-                        contentScale = ContentScale.Fit,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.size(24.dp).launcherIconMask(),
                     )
                 } else {

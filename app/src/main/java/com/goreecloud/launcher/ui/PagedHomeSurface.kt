@@ -2125,6 +2125,7 @@ private fun PagedAppTile(
             Image(
                 bitmap = icon,
                 contentDescription = displayLabel,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
                 modifier = Modifier
                     .size((54f * iconScale.coerceIn(0.85f, 1.15f)).dp)
                     .launcherIconMask(),
