@@ -1,3 +1,9 @@
+## October 4/5, 2026 — Recently installed sort and alphabetical jump candidate
+
+The stacked App Drawer continuation adds **Recently installed** ordering using Android `LauncherActivityInfo.firstInstallTime`, preserving exact Launcher app/profile identity while avoiding Android Usage Access or a fabricated usage model. In ordinary A-Z **List** layout, Launcher also exposes a horizontally scrollable 48 dp alphabetical jump index that moves directly to the first item in each visible bucket; the control is hidden during search and non-alphabetical sorts.
+
+**Acceptance boundary:** stacked Development candidate only. Fresh exact-head protected build/JVM/lint/runtime validation plus representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, and large-library performance acceptance remain required. Recently updated metadata remains separately planned.
+
 ## October 4/5, 2026 — user-created App Drawer tabs and category-folder grouping candidate
 
 The current Development candidate adds bounded device-local custom App Drawer tabs. Users can create, rename, select, and delete up to eight tabs; exact profile-qualified app identities can belong to one or more tabs through the stationary app context surface. The App Drawer keeps an accessible **All** tab, explicit create/edit controls with a 48 dp interaction floor, and selected-state semantics. Custom tabs filter presentation only and do not alter Android installation, Home placement, Dock placement, folders, hidden state, App Lock, or profile authority.

@@ -6595,6 +6595,12 @@ private fun orderedDrawerVisualEntries(
                     ?.workspaceKey()
                     ?.let(recentRanks::get)
             },
+            installTimeMillis = { entry ->
+                (entry as? LauncherDrawerVisualEntry.Application)
+                    ?.app
+                    ?.firstInstallTime
+                    ?.takeIf { timestamp -> timestamp > 0L }
+            },
             frequency = { entry ->
                 (entry as? LauncherDrawerVisualEntry.Application)
                     ?.app
@@ -8032,41 +8038,92 @@ private fun DrawerAppsContent(
                 canScrollBackward = { listState.canScrollBackward },
                 onDismiss = onDismiss,
             )
-            LazyColumn(
-                state = listState,
-                modifier = modifier
-                    .fillMaxWidth()
-                    .nestedScroll(dismissConnection),
-                contentPadding = PaddingValues(vertical = standardSpacing),
-                verticalArrangement = Arrangement.spacedBy(compactSpacing),
-            ) {
-                lazyItems(entries, key = { it.stableKey }) { entry ->
-                    when (entry) {
-                        is LauncherDrawerVisualEntry.Application -> LauncherAppListRow(
-                            app = entry.app,
-                            iconScale = preferences.iconScale,
-                            pinnedInDrawer = entry.pinned,
-                            lockedByLauncher = entry.app.workspaceKey() in lockedAppKeys,
-                            onClick = { onLaunchApp(entry.app) },
-                            onLongClick = { anchor -> onManageApp(entry.app, anchor) },
-                            dragData = if (preferences.layoutLocked) null else LauncherAppDragData(
-                                appKey = entry.app.workspaceKey(),
-                                origin = LauncherAppDragOrigin.DRAWER,
-                            ),
-                        )
-                        is LauncherDrawerVisualEntry.Folder -> LauncherDrawerVisualTile(
-                            entry = entry,
-                            allApps = apps,
-                            lockedAppKeys = lockedAppKeys,
-                            iconScale = preferences.iconScale,
-                            showLabel = true,
-                            compact = true,
-                            layoutLocked = preferences.layoutLocked,
-                            onLaunchApp = onLaunchApp,
-                            onManageApp = onManageApp,
-                            onOpenFolder = onOpenFolder,
-                            modifier = Modifier.fillMaxWidth().height(78.dp),
-                        )
+            val alphabetTargets = remember(entries, sortOrder, query) {
+                if (
+                    sortOrder == LauncherDrawerSortOrder.ALPHABETICAL &&
+                    query.isBlank()
+                ) {
+                    launcherDrawerAlphabetTargets(entries) { it.label }
+                } else {
+                    emptyList()
+                }
+            }
+            val alphabetScope = rememberCoroutineScope()
+
+            Column(modifier = modifier.fillMaxWidth()) {
+                if (alphabetTargets.size > 1) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .testTag("launcher-drawer-alphabet-index"),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        alphabetTargets.forEach { (bucket, index) ->
+                            Surface(
+                                onClick = {
+                                    alphabetScope.launch {
+                                        listState.animateScrollToItem(index)
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .semantics {
+                                        contentDescription = "Jump to " + bucket
+                                    },
+                                shape = CircleShape,
+                                color = Color.Transparent,
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        bucket,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = secondaryColor,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .nestedScroll(dismissConnection),
+                    contentPadding = PaddingValues(vertical = standardSpacing),
+                    verticalArrangement = Arrangement.spacedBy(compactSpacing),
+                ) {
+                    lazyItems(entries, key = { it.stableKey }) { entry ->
+                        when (entry) {
+                            is LauncherDrawerVisualEntry.Application -> LauncherAppListRow(
+                                app = entry.app,
+                                iconScale = preferences.iconScale,
+                                pinnedInDrawer = entry.pinned,
+                                lockedByLauncher = entry.app.workspaceKey() in lockedAppKeys,
+                                onClick = { onLaunchApp(entry.app) },
+                                onLongClick = { anchor -> onManageApp(entry.app, anchor) },
+                                dragData = if (preferences.layoutLocked) null else LauncherAppDragData(
+                                    appKey = entry.app.workspaceKey(),
+                                    origin = LauncherAppDragOrigin.DRAWER,
+                                ),
+                            )
+                            is LauncherDrawerVisualEntry.Folder -> LauncherDrawerVisualTile(
+                                entry = entry,
+                                allApps = apps,
+                                lockedAppKeys = lockedAppKeys,
+                                iconScale = preferences.iconScale,
+                                showLabel = true,
+                                compact = true,
+                                layoutLocked = preferences.layoutLocked,
+                                onLaunchApp = onLaunchApp,
+                                onManageApp = onManageApp,
+                                onOpenFolder = onOpenFolder,
+                                modifier = Modifier.fillMaxWidth().height(78.dp),
+                            )
+                        }
                     }
                 }
             }

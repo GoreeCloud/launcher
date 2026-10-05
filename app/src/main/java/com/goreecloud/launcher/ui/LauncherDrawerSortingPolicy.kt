@@ -9,6 +9,7 @@ internal enum class LauncherDrawerSortOrder(val displayName: String) {
     ALPHABETICAL("A–Z"),
     REVERSE_ALPHABETICAL("Z–A"),
     MOST_RECENT("Most recent"),
+    RECENTLY_INSTALLED("Recently installed"),
     MOST_FREQUENT("Most frequent"),
     PINNED_FIRST("Pinned first"),
 }
@@ -22,6 +23,34 @@ internal fun nextLauncherDrawerLayoutMode(
     LauncherDrawerLayoutMode.CATEGORY -> LauncherDrawerLayoutMode.GRID
 }
 
+internal fun launcherDrawerAlphabetBucket(label: String): String {
+    val decomposed = Normalizer.normalize(label.trim(), Normalizer.Form.NFD)
+    val base = decomposed.firstOrNull { character ->
+        Character.getType(character) !in setOf(
+            Character.NON_SPACING_MARK.toInt(),
+            Character.COMBINING_SPACING_MARK.toInt(),
+            Character.ENCLOSING_MARK.toInt(),
+        )
+    } ?: return "#"
+    return if (base.isLetter()) {
+        base.uppercaseChar().toString()
+    } else {
+        "#"
+    }
+}
+
+internal fun <T> launcherDrawerAlphabetTargets(
+    entries: List<T>,
+    label: (T) -> String,
+): List<Pair<String, Int>> {
+    val firstIndexByBucket = linkedMapOf<String, Int>()
+    entries.forEachIndexed { index, entry ->
+        val bucket = launcherDrawerAlphabetBucket(label(entry))
+        firstIndexByBucket.putIfAbsent(bucket, index)
+    }
+    return firstIndexByBucket.entries.map { (bucket, index) -> bucket to index }
+}
+
 internal object LauncherDrawerSortingPolicy {
     fun <T> order(
         entries: List<T>,
@@ -29,6 +58,7 @@ internal object LauncherDrawerSortingPolicy {
         key: (T) -> String,
         sortOrder: LauncherDrawerSortOrder = LauncherDrawerSortOrder.ALPHABETICAL,
         recentRank: (T) -> Int? = { null },
+        installTimeMillis: (T) -> Long? = { null },
         frequency: (T) -> Long? = { null },
         pinned: (T) -> Boolean = { false },
         pinnedRank: (T) -> Int? = { null },
@@ -51,6 +81,20 @@ internal object LauncherDrawerSortingPolicy {
                         leftRank.compareTo(rightRank)
                     leftRank != null && rightRank == null -> -1
                     leftRank == null && rightRank != null -> 1
+                    labelOrder != 0 -> labelOrder
+                    else -> keyOrder
+                }
+            }
+            LauncherDrawerSortOrder.RECENTLY_INSTALLED -> {
+                val leftInstallTime = installTimeMillis(left)
+                val rightInstallTime = installTimeMillis(right)
+                when {
+                    leftInstallTime != null &&
+                        rightInstallTime != null &&
+                        leftInstallTime != rightInstallTime ->
+                        rightInstallTime.compareTo(leftInstallTime)
+                    leftInstallTime != null && rightInstallTime == null -> -1
+                    leftInstallTime == null && rightInstallTime != null -> 1
                     labelOrder != 0 -> labelOrder
                     else -> keyOrder
                 }

@@ -1,3 +1,11 @@
+## October 4/5, 2026 — Recently installed ordering and A-Z List jump candidate
+
+- Added **Recently installed** App Drawer ordering using Android `LauncherActivityInfo.firstInstallTime`; no Android Usage Access, fabricated usage history, network source, or package-global profile collapse is introduced.
+- Added a 48 dp alphabetical jump index in ordinary A-Z List layout, hidden while searching or using non-alphabetical sorts.
+- Added deterministic sorting and alphabet-index JVM coverage.
+
+**Status:** stacked Development candidate based on PR #241. Fresh exact-head protected validation and representative-device accessibility/performance acceptance remain required. Recently updated metadata remains planned.
+
 ## October 4/5, 2026 — user-created App Drawer tabs and grouped folders candidate
 
 - Added bounded local custom App Drawer tabs with create, rename, delete, selection, and exact profile-qualified application membership.

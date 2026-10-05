@@ -76,6 +76,23 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun alphabetTargetsExposeFirstStableIndexForFastNavigation() {
+        val entries = listOf(
+            Entry("1Password", "app:one-password"),
+            Entry("Alpha", "app:alpha"),
+            Entry("Alarm", "app:alarm"),
+            Entry("Browser", "app:browser"),
+            Entry("Camera", "app:camera"),
+        )
+
+        assertEquals(
+            listOf("#" to 0, "A" to 1, "B" to 3, "C" to 4),
+            launcherDrawerAlphabetTargets(entries) { it.label },
+        )
+        assertEquals("A", launcherDrawerAlphabetBucket("  alpha "))
+    }
+
+    @Test
     fun reverseAlphabeticalKeepsEquivalentLabelTieBreaksStable() {
         val entries = listOf(
             Entry("Alpha", "folder:alpha"),
@@ -120,6 +137,39 @@ class LauncherDrawerSortingPolicyTest {
 
         assertEquals(
             listOf("app:maps", "app:camera", "app:alarm", "folder:banking"),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
+    fun recentlyInstalledSortsByProfileQualifiedInstallTimeThenAlphabeticalUnknowns() {
+        val entries = listOf(
+            Entry("Camera", "app:user:0:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Maps", "app:user:10:maps"),
+            Entry("Alarm", "app:user:0:alarm"),
+        )
+        val installTimes = mapOf(
+            "app:user:10:maps" to 400L,
+            "app:user:0:camera" to 200L,
+            "app:user:0:alarm" to 300L,
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.RECENTLY_INSTALLED,
+            installTimeMillis = { installTimes[it.stableKey] },
+        )
+
+        assertEquals(
+            listOf(
+                "app:user:10:maps",
+                "app:user:0:alarm",
+                "app:user:0:camera",
+                "folder:banking",
+            ),
             sorted.map { it.stableKey },
         )
     }

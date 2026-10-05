@@ -144,7 +144,7 @@ Current Development source includes:
 - User-created custom tabs with exact profile-qualified app membership.
 - A persistent **All** tab plus bounded create, rename, delete, select, and per-app tab assignment.
 - Deterministic application categories; folders remain grouped under **Folders** in Category mode.
-- A–Z, Z–A, Launcher-local Most recent, Launcher-local Most frequent, and Pinned first sorting.
+- A–Z, Z–A, Launcher-local Most recent, Launcher-local Most frequent, and Pinned first sorting; the stacked Development candidate adds profile-aware Recently installed ordering.
 - Device-local App Drawer pins and manual pinned ordering.
 - Profile-qualified Hidden Apps and Launcher App Lock states.
 - Stationary app context actions for Home/Dock placement, folders, tabs, shortcuts, widgets, App info, visibility, lock, and Android-confirmed uninstall.
@@ -153,8 +153,8 @@ Current Development source includes:
 
 Still planned or acceptance-gated:
 
-- Recently installed and recently updated views with profile-correct metadata.
-- Fast alphabetical jump/navigation beyond ordinary list scrolling.
+- Recently updated views with profile-correct metadata; **Recently installed** ordering is present in the stacked Development candidate.
+- Broader fast alphabetical navigation beyond the stacked A-Z List jump index.
 - Deterministic Smart Folders and richer user-defined category/tag collections.
 - Portable backup/restore policy for custom Drawer organization.
 - Representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile-lifecycle, performance/power, signing/update-continuity, and release acceptance.

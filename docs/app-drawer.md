@@ -24,7 +24,7 @@ The Drawer supports or is required to support:
 - Alphabetical, reverse alphabetical, local most-recent, local most-frequent, and pinned-first ordering.
 - Fast application search.
 
-Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages.
+Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. The stacked recency/navigation candidate adds a profile-aware **Recently installed** sort using Android `LauncherActivityInfo.firstInstallTime` and a 48 dp alphabetical jump index for the ordinary A-Z List view.
 
 ## Universal Search relationship
 

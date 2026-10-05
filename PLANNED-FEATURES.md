@@ -2,7 +2,7 @@
 
 ## October 4/5, 2026 — App Drawer organization and discovery continuation
 
-Development PR #241 now carries user-created App Drawer tabs with profile-qualified membership plus category-mode folder grouping. Remaining App Drawer scope includes representative-device acceptance; portable backup/restore policy for tabs and other Drawer organization; recently installed and recently updated views with profile-correct metadata authority; richer user-defined category/tag/collection organization; deterministic smart folders; fast alphabetical jump/navigation; deeper keyboard/D-pad focus behavior; and complete accessibility, performance/power, signing/update, recovery, and release qualification.
+Development PR #241 carries user-created App Drawer tabs with profile-qualified membership plus category-mode folder grouping. A stacked Development continuation adds profile-aware **Recently installed** ordering and an A-Z List alphabetical jump index. Remaining App Drawer scope includes representative-device acceptance; portable backup/restore policy for tabs and other Drawer organization; **recently updated** views with profile-correct metadata authority; richer user-defined category/tag/collection organization; deterministic smart folders; broader fast-navigation behavior outside the A-Z List path; deeper keyboard/D-pad focus behavior; and complete accessibility, performance/power, signing/update, recovery, and release qualification.
 
 Smart folders and usage-derived discovery must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable. A new installation must not fabricate usage history.
 
