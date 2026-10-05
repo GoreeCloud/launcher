@@ -134,6 +134,9 @@ import com.goreecloud.launcher.core.launcher.launcherDockVirtualPageCount
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
 import com.goreecloud.launcher.core.launcher.LauncherDrawerDiscoveryFilter
 import com.goreecloud.launcher.core.launcher.LauncherDrawerDiscoveryPolicy
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSmartFolder
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSmartFolderKind
+import com.goreecloud.launcher.core.launcher.LauncherDrawerSmartFolderPolicy
 import com.goreecloud.launcher.core.launcher.LauncherDrawerEntryMode
 import com.goreecloud.launcher.core.launcher.LauncherDrawerHeaderPresentation
 import com.goreecloud.launcher.core.launcher.LauncherDrawerLayoutMode
@@ -6684,6 +6687,138 @@ private fun LauncherDrawerVisualTile(
 }
 
 @Composable
+private fun LauncherDrawerSmartFolderTile(
+    folder: LauncherDrawerSmartFolder,
+    allApps: List<LauncherActivityInfo>,
+    iconScale: Float,
+    showLabel: Boolean,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val visualFolder = remember(folder) {
+        LauncherFolder(
+            id = folder.id,
+            name = folder.name,
+            appKeys = folder.memberKeys,
+        )
+    }
+    HomeFolderTile(
+        folder = visualFolder,
+        allApps = allApps,
+        showLabel = showLabel,
+        editMode = false,
+        labelOnWallpaper = false,
+        fixedGridGeometry = true,
+        compact = false,
+        iconScale = iconScale,
+        onOpen = onOpen,
+        modifier = modifier
+            .testTag("launcher-drawer-smart-folder-" + folder.kind.name.lowercase())
+            .semantics {
+                contentDescription =
+                    "Smart folder " + folder.name + ". " + folder.kind.explanation
+            },
+    )
+}
+
+@Composable
+private fun LauncherDrawerSmartFolderSheet(
+    folder: LauncherDrawerSmartFolder,
+    apps: List<LauncherActivityInfo>,
+    lockedAppKeys: Set<String>,
+    onLaunchApp: (LauncherActivityInfo) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(folder.name)
+                Text(
+                    "Smart folder",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+            ) {
+                Text(
+                    folder.kind.explanation,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "Dynamic and local-only. This view does not change manual folders, tabs, Home, or Dock placement.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(GlazeMetrics.space1))
+                apps.forEach { app ->
+                    val icon = rememberLauncherAppIcon(app)
+                    Surface(
+                        onClick = { onLaunchApp(app) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 52.dp)
+                            .semantics {
+                                contentDescription = buildString {
+                                    append(app.label.toString())
+                                    if (app.workspaceKey() in lockedAppKeys) append(", App Lock")
+                                }
+                            },
+                        shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
+                        color = Color.Transparent,
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = GlazeMetrics.space2, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        ) {
+                            if (icon != null) {
+                                Image(
+                                    bitmap = icon,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.size(36.dp).launcherIconMask(),
+                                )
+                            } else {
+                                Spacer(Modifier.size(36.dp))
+                            }
+                            Text(
+                                app.label.toString(),
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (app.workspaceKey() in lockedAppKeys) {
+                                GlazePopupActionGlyph(
+                                    symbol = GlazePopupActionSymbol.LOCK,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    iconSize = 17.dp,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Close") }
+        },
+    )
+}
+
+@Composable
 private fun DrawerAlphabetIndex(
     targets: List<Pair<String, Int>>,
     secondaryColor: Color,
@@ -6888,6 +7023,7 @@ private fun AppDrawerSurface(
     var selectedDrawerTabId by rememberSaveable { mutableStateOf<String?>(null) }
     var showCreateDrawerTabDialog by rememberSaveable { mutableStateOf(false) }
     var editingDrawerTabId by rememberSaveable { mutableStateOf<String?>(null) }
+    var selectedSmartFolderKindName by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedDrawerTab = drawerTabs.firstOrNull { it.id == selectedDrawerTabId }
     LaunchedEffect(drawerTabs.map { it.id }) {
         if (selectedDrawerTabId != null && drawerTabs.none { it.id == selectedDrawerTabId }) {
@@ -6954,6 +7090,41 @@ private fun AppDrawerSurface(
         selectedPage.items.any { app ->
             drawerFreshnessByAppKey[app.workspaceKey()]?.updateMetadataAvailable == true
         }
+    }
+    val selectedProfileSmartFolders = remember(
+        selectedPage.items,
+        pinnedAppKeys,
+        recentAppKeys,
+        localLaunchCounts,
+        drawerFreshnessByAppKey,
+        drawerFreshnessNowMillis,
+        experiencePreferences.useLocalUsageForSuggestions,
+    ) {
+        val availableKeys = selectedPage.items.mapTo(linkedSetOf()) { app -> app.workspaceKey() }
+        LauncherDrawerSmartFolderPolicy.build(
+            availableKeys = availableKeys,
+            pinnedKeys = pinnedAppKeys,
+            recentAppKeys = recentAppKeys,
+            launchCounts = localLaunchCounts,
+            labelByKey = selectedPage.items.associate { app ->
+                app.workspaceKey() to app.label.toString()
+            },
+            freshnessByKey = drawerFreshnessByAppKey,
+            nowMillis = drawerFreshnessNowMillis,
+            includeSuggested = experiencePreferences.useLocalUsageForSuggestions,
+        )
+    }
+    val selectedSmartFolder = remember(
+        selectedSmartFolderKindName,
+        selectedProfileSmartFolders,
+    ) {
+        selectedSmartFolderKindName
+            ?.let { raw -> runCatching { LauncherDrawerSmartFolderKind.valueOf(raw) }.getOrNull() }
+            ?.let { kind -> selectedProfileSmartFolders.firstOrNull { it.kind == kind } }
+    }
+    val selectedSmartFolderApps = remember(selectedSmartFolder, selectedPage.items) {
+        val byKey = selectedPage.items.associateBy { app -> app.workspaceKey() }
+        selectedSmartFolder?.memberKeys?.mapNotNull(byKey::get).orEmpty()
     }
     val drawerVisualPreferencesRepository = remember(drawerContext) {
         LauncherVisualPreferencesRepository(drawerContext)
@@ -7509,9 +7680,31 @@ private fun AppDrawerSurface(
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
                             sortOrder = drawerSortOrder,
+                            smartFolders = if (
+                                drawerQuery.isBlank() &&
+                                discoveryFilter == LauncherDrawerDiscoveryFilter.ALL &&
+                                selectedDrawerTab == null
+                            ) {
+                                val availableKeys = pageApps.mapTo(linkedSetOf()) { app -> app.workspaceKey() }
+                                LauncherDrawerSmartFolderPolicy.build(
+                                    availableKeys = availableKeys,
+                                    pinnedKeys = pinnedAppKeys,
+                                    recentAppKeys = recentAppKeys,
+                                    launchCounts = localLaunchCounts,
+                                    labelByKey = pageApps.associate { app ->
+                                        app.workspaceKey() to app.label.toString()
+                                    },
+                                    freshnessByKey = drawerFreshnessByAppKey,
+                                    nowMillis = drawerFreshnessNowMillis,
+                                    includeSuggested = experiencePreferences.useLocalUsageForSuggestions,
+                                )
+                            } else {
+                                emptyList()
+                            },
                             onLaunchApp = onLaunchApp,
                             onManageApp = onManageApp,
                             onOpenFolder = onOpenFolder,
+                            onOpenSmartFolder = { kind -> selectedSmartFolderKindName = kind.name },
                             onDismiss = onHome,
                             secondaryColor = drawerSecondaryColor,
                             allowHorizontalPaging = profilePages.size == 1,
@@ -7530,6 +7723,19 @@ private fun AppDrawerSurface(
                 }
             }
         }
+    }
+
+    selectedSmartFolder?.let { smartFolder ->
+        LauncherDrawerSmartFolderSheet(
+            folder = smartFolder,
+            apps = selectedSmartFolderApps,
+            lockedAppKeys = lockedAppKeys,
+            onLaunchApp = { app ->
+                selectedSmartFolderKindName = null
+                onLaunchApp(app)
+            },
+            onDismiss = { selectedSmartFolderKindName = null },
+        )
     }
 
     if (showCreateDrawerTabDialog) {
@@ -7946,9 +8152,11 @@ private fun DrawerAppsContent(
     drawerLayoutMode: LauncherDrawerLayoutMode,
     experiencePreferences: LauncherExperiencePreferences,
     sortOrder: LauncherDrawerSortOrder,
+    smartFolders: List<LauncherDrawerSmartFolder>,
     onLaunchApp: (LauncherActivityInfo) -> Unit,
     onManageApp: (LauncherActivityInfo, Rect?) -> Unit,
     onOpenFolder: (LauncherFolder) -> Unit,
+    onOpenSmartFolder: (LauncherDrawerSmartFolderKind) -> Unit,
     onDismiss: () -> Unit,
     secondaryColor: Color,
     allowHorizontalPaging: Boolean = true,
@@ -8302,6 +8510,44 @@ private fun DrawerAppsContent(
                 contentPadding = PaddingValues(vertical = standardSpacing),
                 verticalArrangement = Arrangement.spacedBy(compactSpacing),
             ) {
+                if (smartFolders.isNotEmpty()) {
+                    item(key = "category:smart-folders") {
+                        DrawerCategoryHeader(
+                            label = "Smart folders",
+                            count = smartFolders.size,
+                            secondaryColor = secondaryColor,
+                        )
+                    }
+                    val smartFolderRows = smartFolders.chunked(
+                        preferences.drawerColumns.coerceAtLeast(1),
+                    )
+                    lazyItems(
+                        smartFolderRows,
+                        key = { row -> "category:smart:" + row.first().id },
+                    ) { rowSmartFolders ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(standardSpacing),
+                        ) {
+                            rowSmartFolders.forEach { smartFolder ->
+                                LauncherDrawerSmartFolderTile(
+                                    folder = smartFolder,
+                                    allApps = apps,
+                                    iconScale = preferences.iconScale,
+                                    showLabel = experiencePreferences.showDrawerLabels,
+                                    onOpen = { onOpenSmartFolder(smartFolder.kind) },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(gridTileHeight),
+                                )
+                            }
+                            repeat(preferences.drawerColumns - rowSmartFolders.size) {
+                                Spacer(Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+
                 if (folders.isNotEmpty()) {
                     item(key = "category:folders") {
                         DrawerCategoryHeader(

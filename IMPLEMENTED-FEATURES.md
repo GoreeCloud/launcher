@@ -36,6 +36,12 @@ Apps now has a direct accessible layout quick-switch in its header. It cycles Gr
 
 # GoreeCloud Launcher — Implemented Features
 
+## October 5, 2026 — local Smart Folder candidate
+
+Development source now contains bounded, profile-scoped App Drawer Smart Folder presentation for **Pinned**, optional **Suggested**, **New**, and **Updated** collections. Membership is computed locally from explicit Drawer pins, existing Launcher-local suggestion signals, and the existing install/update freshness metadata. Empty dynamic collections are omitted, Suggested remains user-controllable and deterministic on first use, and the views do not alter manual folders, custom tabs, Home/Dock placement, package state, hidden state, or App Lock.
+
+**Acceptance boundary:** candidate source only until exact-head protected validation and guarded integration. Representative-device profile correctness, TalkBack/Switch Access, keyboard/D-pad, large-text, RTL, form-factor, performance/power, and manual override/exclusion behavior remain open.
+
 ## October 3, 2026 — inset, icon-mask, Search, and widget-gallery correction candidate
 
 Development source now keeps the Launcher widget gallery, full-screen Home editor, and Universal Search inside Android safe-drawing insets so status bars, navigation regions, and display cutouts cannot overlap their primary controls; keyboard-sensitive surfaces additionally retain IME padding. The widget gallery uses an icon-led Android widget-picker handoff and replaces the installed-widget **Add** text pill with a Launcher-owned plus glyph. The Home search capsule likewise uses a first-party vector overflow glyph instead of a font-based ellipsis so its alignment is independent of font metrics. The full-screen Home editor also uses first-party check, add, and trash glyphs for completion, Add Page artwork, and empty-page deletion instead of text-only/literal-symbol controls, while keeping explicit semantics and a stable completion test tag. The shared app-icon mask renderer now places a shape-matched backing plane behind clipped artwork so the default **Rounded square** presentation remains visible for OEM/Android bitmaps that already contain circular transparent masking; Home, Dock, App Drawer, Search, folders, widget-provider rows, hidden apps, and App Lock surfaces share this path.

@@ -52,6 +52,12 @@ Automated coverage includes the deterministic drawer-layout cycle and Android ru
 
 # GoreeCloud Launcher — Changelogs
 
+## October 5, 2026 — local Smart Folder candidate
+
+The active App Drawer continuation adds transparent local Smart Folder views for explicit pins, local suggestions, recently installed apps, and recently updated apps. Membership reuses existing profile-qualified inventory and discovery metadata, remains read-only in this tranche, omits empty collections, and does not introduce new permissions, network access, remote analytics, sponsored ranking, package mutation, or a second organization authority.
+
+**Acceptance boundary:** Development candidate only. Exact-head protected source/build/runtime evidence and representative-device interaction/accessibility/profile acceptance are still required.
+
 ## October 3, 2026 — representative-device inset, icon-mask, Search, and widget-gallery corrections
 
 The current Development continuation directly addresses the latest owner screenshots. The Launcher widget gallery now owns the full screen inside Android's safe-drawing region and above the IME instead of letting the title/search content bleed into status icons, navigation regions, or display cutouts. The same safe-drawing treatment now covers the full-screen Home editor and Universal Search. Its installed-widget add affordance is now a compact first-party plus glyph, and the Android system-widget handoff is an icon-led Glaze action row rather than a generic outlined button. The Home search capsule's trailing overflow mark is now drawn with first-party vector geometry instead of a font ellipsis, avoiding baseline and glyph-metric drift across fonts and densities. The full-screen Home editor now also replaces its remaining text-only **Done**, literal **+**, and empty-page **Delete** controls with semantic check, add, and trash glyphs; the completion control has a stable test tag so Android 16 lifecycle coverage follows the real control instead of text presentation.

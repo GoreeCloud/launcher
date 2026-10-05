@@ -66,6 +66,12 @@ Folder behavior must preserve profile boundaries, explicit user membership, pred
 
 Smart folders remain future work unless explicitly backed by deterministic local rules and clear user control.
 
+## Smart folders
+
+Smart folders provide dynamic App Drawer collections without mutating manual folders, tabs, Home, or Dock placement. The current Development candidate derives bounded local-only **Pinned**, optional **Suggested**, **New**, and **Updated** smart folders from explicit pins, Launcher-local launch signals, and Android freshness metadata already used by Drawer discovery. Empty smart folders are omitted. Suggested smart-folder membership respects the existing Suggested apps control; when truthful usage does not exist, its membership uses the same deterministic A-Z fallback rather than fabricating behavior.
+
+Smart folders are read-only dynamic views in this tranche. Manual override/exclusion rules, custom rule composition, persisted smart-folder ordering/naming, and portable recovery remain planned. Profile identity remains bounded by the currently selected Drawer profile, and unavailable non-primary update metadata continues to fail closed rather than borrowing another profile's state.
+
 ## Hidden applications
 
 Hidden state is a Launcher discovery preference, not package disablement.
