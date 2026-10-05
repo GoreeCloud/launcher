@@ -158,6 +158,9 @@ class LauncherStartupWizardRuntimeTest {
             "Add more favorites than fit in one row, then swipe the Dock independently of Home pages.",
         ).assertIsDisplayed()
         composeRule.onNodeWithText("Organize Apps").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "Use pins for quick priority, or create App Drawer tabs and folders for your own collections.",
+        ).assertIsDisplayed()
     }
 
     @Test

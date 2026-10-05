@@ -56,6 +56,48 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun drawerTabsPersistProfileQualifiedMembershipAndLifecycle() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-tabs.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            repository.createDrawerTab("  Work tools  ").join()
+            var tabs = repository.drawerTabs.first { it.size == 1 }
+            val tab = tabs.single()
+            assertEquals("Work tools", tab.name)
+            assertEquals(emptySet<String>(), tab.memberKeys)
+
+            repository.setDrawerTabMembership(
+                tabId = tab.id,
+                appKey = "user:10/com.example/.Main",
+                enabled = true,
+            ).join()
+            tabs = repository.drawerTabs.first {
+                "user:10/com.example/.Main" in it.single().memberKeys
+            }
+            assertEquals(
+                setOf("user:10/com.example/.Main"),
+                tabs.single().memberKeys,
+            )
+
+            repository.renameDrawerTab(tab.id, "Development").join()
+            assertEquals(
+                "Development",
+                repository.drawerTabs.first { it.single().name == "Development" }.single().name,
+            )
+
+            repository.deleteDrawerTab(tab.id).join()
+            assertEquals(emptyList<LauncherDrawerTab>(), repository.drawerTabs.first())
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun repositoryFallbackKeepsEstablishedHomeCardClock() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

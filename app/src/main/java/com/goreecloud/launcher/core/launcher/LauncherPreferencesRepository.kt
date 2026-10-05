@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 private val Context.launcherPreferencesStore by preferencesDataStore(name = "launcher_preferences")
 
@@ -416,6 +417,7 @@ class LauncherPreferencesRepository(
         val drawerPinnedAppKeys = stringSetPreferencesKey("drawer_pinned_app_keys_v1")
         val drawerPinnedAppOrder = stringPreferencesKey("drawer_pinned_app_order_v1")
         val drawerSortOrderName = stringPreferencesKey("drawer_sort_order_name_v1")
+        val drawerTabs = stringPreferencesKey("drawer_tabs_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -510,6 +512,15 @@ class LauncherPreferencesRepository(
      */
     val drawerSortOrderName: Flow<String?> = dataStore.data
         .map { values -> values[Keys.drawerSortOrderName]?.takeIf(String::isNotBlank) }
+        .distinctUntilChanged()
+
+    /**
+     * User-created App Drawer tabs. Membership keys are exact profile-qualified Launcher app
+     * identities, so the same package installed in User and Work profiles can be organized
+     * independently. This remains device-local presentation state and is outside portable v1.
+     */
+    val drawerTabs: Flow<List<LauncherDrawerTab>> = dataStore.data
+        .map { values -> LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]) }
         .distinctUntilChanged()
 
     /**
@@ -1088,6 +1099,71 @@ class LauncherPreferencesRepository(
                 pinnedKeys = pinnedKeys,
             )
             values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(reconciled)
+        }
+    }
+
+    fun createDrawerTab(name: String): Job {
+        val normalizedName = LauncherDrawerTabsCodec.sanitizeName(name)
+        if (normalizedName.isBlank()) return scope.launch { }
+        val tabId = "tab-" + UUID.randomUUID().toString()
+        return scope.launch {
+            dataStore.edit { values ->
+                val current = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs])
+                if (current.size >= LauncherDrawerTabsCodec.MAX_TABS) return@edit
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(
+                    current + LauncherDrawerTab(
+                        id = tabId,
+                        name = normalizedName,
+                        memberKeys = emptySet(),
+                    ),
+                )
+            }
+        }
+    }
+
+    fun renameDrawerTab(tabId: String, name: String): Job {
+        val normalizedName = LauncherDrawerTabsCodec.sanitizeName(name)
+        if (tabId.isBlank() || normalizedName.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).map { tab ->
+                    if (tab.id == tabId) tab.copy(name = normalizedName) else tab
+                }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
+        }
+    }
+
+    fun deleteDrawerTab(tabId: String): Job {
+        if (tabId.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs])
+                    .filterNot { it.id == tabId }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
+        }
+    }
+
+    fun setDrawerTabMembership(
+        tabId: String,
+        appKey: String,
+        enabled: Boolean,
+    ): Job {
+        if (tabId.isBlank() || appKey.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).map { tab ->
+                    if (tab.id != tabId) {
+                        tab
+                    } else {
+                        val members = tab.memberKeys.toMutableSet()
+                        if (enabled) members += appKey else members -= appKey
+                        tab.copy(memberKeys = members)
+                    }
+                }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
         }
     }
 

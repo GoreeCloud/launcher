@@ -56,6 +56,7 @@ app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpaper
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherConnectedSearchProviders.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherDockPagePolicy.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherDrawerPinnedOrder.kt
+app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherDrawerTabs.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchPreferencesRepository.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFilesSearchProvider.kt
 app/src/main/java/com/goreecloud/launcher/core/launcher/LauncherFolderAppearance.kt
@@ -172,6 +173,7 @@ app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherAppVisibilityPol
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapersTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherDockDragPagePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherDockPagePolicyTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherDrawerTabsTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchRootIsolationTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFolderCodecTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFoldersTest.kt
@@ -242,6 +244,7 @@ docs/ANDROID-UX-REDESIGN-MILESTONE.md
 docs/DEVICE-VISUAL-ACCEPTANCE-2026-09-07.md
 docs/PLATFORM_CONFORMANCE.md
 docs/activated-home-lifecycle-recreation.md
+docs/app-drawer.md
 docs/architecture.md
 docs/authoritative-placement-observation.md
 docs/authoritative-placement-routing.md

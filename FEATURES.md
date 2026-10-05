@@ -132,16 +132,34 @@ The following capability inventory is the approved Launcher product direction. T
 
 ## Application Drawer
 
-- Swipe-up application drawer.
-- Alphabetically organized application library.
-- Independent/custom application-drawer grids.
-- Application-drawer folders and tabs.
-- Automatic categorization, intelligent groups, and smart folders.
-- Suggested, frequently used, recently installed, and recently used applications.
-- Application-drawer search.
-- Hide applications from the drawer.
-- Custom drawer organization, backgrounds, transparency, and vertical scrolling.
-- Context-sensitive application ordering.
+Required App Drawer direction is local-first, profile-aware, offline-capable application discovery and organization rather than a flat package list.
+
+Current Development source includes:
+
+- Swipe-up Apps surface with local installed-application search.
+- Grid, Compact, List, and Category layouts.
+- Configurable columns, spacing, labels, icon presentation, background, and scroll/page navigation.
+- User Apps and Work Apps profile-separated inventory.
+- App Drawer folders with profile-aware membership.
+- User-created custom tabs with exact profile-qualified app membership.
+- A persistent **All** tab plus bounded create, rename, delete, select, and per-app tab assignment.
+- Deterministic application categories; folders remain grouped under **Folders** in Category mode.
+- A–Z, Z–A, Launcher-local Most recent, Launcher-local Most frequent, and Pinned first sorting.
+- Device-local App Drawer pins and manual pinned ordering.
+- Profile-qualified Hidden Apps and Launcher App Lock states.
+- Stationary app context actions for Home/Dock placement, folders, tabs, shortcuts, widgets, App info, visibility, lock, and Android-confirmed uninstall.
+- Direct App Drawer → Home and App Drawer → Dock placement while Home layout is unlocked.
+- Glaze presentation, reduced-transparency policy fallback, fixed icon/label geometry, and Launcher-owned accessibility semantics.
+
+Still planned or acceptance-gated:
+
+- Recently installed and recently updated views with profile-correct metadata.
+- Fast alphabetical jump/navigation beyond ordinary list scrolling.
+- Deterministic Smart Folders and richer user-defined category/tag collections.
+- Portable backup/restore policy for custom Drawer organization.
+- Representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile-lifecycle, performance/power, signing/update-continuity, and release acceptance.
+
+No sponsored, advertising, affiliate, or paid placement is permitted in App Drawer presentation or ranking.
 
 ## Launcher Universal Search with optional GoreeCloud Search and GoreeCloud Index
 

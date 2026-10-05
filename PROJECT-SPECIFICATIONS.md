@@ -2351,3 +2351,18 @@ Acceptance boundary. This closes the secondary-page render/persistence mismatch 
 - [CHANGELOGS.md](CHANGELOGS.md) — release/change-oriented chronology.
 - [FEATURES.md](FEATURES.md) — detailed approved target capability inventory.
 - [LICENSE](LICENSE) — repository license.
+
+
+## Drive Section 68 — Home Dock and App Drawer owner requirements — October 4/5, 2026
+
+Requirement level: Mandatory product direction.
+
+Current authoritative Development main is `05303f2813742a1437d26886ca3f3b5a85836395`. Protected PRs #239 and #240 integrated the expandable Home Dock foundation and active-drag cross-page handoff. The Dock begins from the familiar five-app starter selection but is not capacity-limited to five applications. Current Development supports adaptive page density, independent horizontal Dock pages, optional looping, optional labels, direct Universal Search, Glaze/Clear/Solid/Raised/Edge presentation, Home↔Dock/direct Drawer placement, profile-qualified app identities, layout lock, and 48 dp minimum Launcher-owned interaction targets. Dock folders/non-app Dock item persistence, portable backup/recovery expansion, and representative-device/release acceptance remain open.
+
+The App Drawer is required to remain a local-first, offline-capable, profile-aware application library and action surface. Current integrated Development provides Grid/Compact/List/Category layouts, profile pages, local installed-app filtering, A–Z/Z–A/local recent/local frequency/Pinned-first ordering, profile-qualified pins, hidden apps, App Lock, folders, shortcuts/widgets/context actions, and direct Drawer→Home/Dock placement. Draft PR #241 adds bounded device-local user-created tabs with exact profile-qualified membership and keeps Category application grouping active when Drawer folders exist by assigning folders to a dedicated Folders group.
+
+Launcher-wide Settings must not occupy persistent App Drawer header chrome. The Drawer header remains focused on application organization/search; detailed Launcher configuration remains in Edit Home → Settings. Universal Search remains the broader Launcher-owned resource/action surface and connected sources remain explicit opt-in.
+
+No Drawer or Dock capability may introduce sponsored placement, affiliate ranking, behavioral advertising, required remote analytics, or a mandatory GoreeCloud account. Smart folders, richer categories/tags/collections, recently installed/updated views, fast alphabetical jump navigation, portable custom-organization recovery, and representative-device accessibility/performance/profile/signing/release acceptance remain separately gated.
+
+Exact-head automated validation is necessary but does not establish Production Acceptance, Stable, Seal, or Anchor.

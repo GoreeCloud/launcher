@@ -1,8 +1,14 @@
 # GoreeCloud Launcher — Planned Features
 
+## October 4/5, 2026 — App Drawer organization and discovery continuation
+
+Development PR #241 now carries user-created App Drawer tabs with profile-qualified membership plus category-mode folder grouping. Remaining App Drawer scope includes representative-device acceptance; portable backup/restore policy for tabs and other Drawer organization; recently installed and recently updated views with profile-correct metadata authority; richer user-defined category/tag/collection organization; deterministic smart folders; fast alphabetical jump/navigation; deeper keyboard/D-pad focus behavior; and complete accessibility, performance/power, signing/update, recovery, and release qualification.
+
+Smart folders and usage-derived discovery must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable. A new installation must not fabricate usage history.
+
 ## October 4, 2026 — remaining Home Dock expansion
 
-The adaptive application paging/search/label/material tranche is now represented by Development PR #239. Remaining Dock work includes persistent Dock folders and other non-app item types; active-drag page handoff; deeper padding/edge-position controls; contextual/suggested Dock content; Dock widgets; versioned portable backup/restore of page/folder semantics; and full representative-device accessibility/profile/form-factor/performance/power/recovery/signing/release acceptance.
+Protected PRs #239 and #240 integrated adaptive Dock paging/search/labels/material choices and active-drag cross-page handoff through current main `05303f2813742a1437d26886ca3f3b5a85836395`. Remaining Dock work includes persistent Dock folders and other non-app item types; deeper padding/edge-position controls; contextual/suggested Dock content; Dock widgets; versioned portable backup/restore of page/folder semantics; and full representative-device accessibility/profile/form-factor/performance/power/recovery/signing/release acceptance.
 
 
 ## October 3, 2026 — App Lock acceptance and portability remain

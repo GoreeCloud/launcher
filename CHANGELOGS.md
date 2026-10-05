@@ -1,3 +1,15 @@
+## October 4/5, 2026 — user-created App Drawer tabs and grouped folders candidate
+
+- Added bounded local custom App Drawer tabs with create, rename, delete, selection, and exact profile-qualified application membership.
+- Added an accessible **All** tab plus 48 dp create/edit controls and selected-state semantics.
+- Added an App Drawer context action for assigning one app to one or more custom tabs.
+- Kept custom tabs presentation-only: no package, Home, Dock, folder, hidden-state, App Lock, Search-provider, permission, account, or network authority changes.
+- Updated Category mode so Drawer folders appear in a dedicated **Folders** group without disabling application category grouping.
+- Added versioned tab encoding plus codec and DataStore lifecycle tests.
+- Added `docs/app-drawer.md` as the Mandatory repository-native App Drawer product/implementation record.
+
+**Status:** Development PR #241. Local privacy/manifest/Glaze/Room guards and whitespace checks pass; exact-head protected build/JVM/lint/runtime and representative-device acceptance remain pending.
+
 ## October 4, 2026 — adaptive paged Home Dock integration and drag-handoff continuation
 
 - Added preferred 4/5/6/7 Dock items-per-page density with automatic accessibility-floor clamping.
@@ -8,7 +20,7 @@
 - Added deterministic Dock page-planning tests and persisted preference coverage.
 - Added repository-native `docs/home-dock.md` with Mandatory requirement level and explicit implemented/planned boundaries.
 
-**Status:** Protected PR #239 integrated as main `168e5d04e9fd713444748306f450dc9031e87fc9` after exact-head provenance #979, Foundation #1471, Migrated Android apps CI #1005, and Protected promotion #959 all passed. Draft PR #240 continues Development with active-drag Dock page handoff, loop-aware insertion boundaries, an edge handoff affordance, and non-gesture Move earlier / Move later Dock ordering actions. PR #240 requires fresh exact-head protected validation and representative-device acceptance before integration.
+**Status:** Protected PR #239 integrated as main `168e5d04e9fd713444748306f450dc9031e87fc9` after exact-head provenance #979, Foundation #1471, Migrated Android apps CI #1005, and Protected promotion #959 all passed. Protected PR #240 exact head `bb6fe0d748f361b3d5141be87fa81cab902238ea` then passed provenance #992, Foundation #1484, Migrated Android apps CI #1018, and Protected promotion #972 before merging as current main `05303f2813742a1437d26886ca3f3b5a85836395`. Representative-device Dock acceptance remains open.
 
 ## October 4, 2026 — full-bleed icon masks, consistent glyphs, and quick Apps layout switching
 

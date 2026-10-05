@@ -499,6 +499,9 @@ class MainActivity : ComponentActivity() {
             val drawerSortOrderName by launcherPreferencesRepository.drawerSortOrderName.collectAsStateWithLifecycle(
                 initialValue = null,
             )
+            val drawerTabs by launcherPreferencesRepository.drawerTabs.collectAsStateWithLifecycle(
+                initialValue = emptyList(),
+            )
             val folders by folderRepository.folders.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
             )
@@ -1165,6 +1168,7 @@ class MainActivity : ComponentActivity() {
                             drawerPinnedAppKeys = drawerPinnedAppKeys,
                             drawerPinnedAppOrder = drawerPinnedAppOrder,
                             drawerSortOrderName = drawerSortOrderName,
+                            drawerTabs = drawerTabs,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
@@ -1566,6 +1570,26 @@ class MainActivity : ComponentActivity() {
                             onMoveDrawerPinnedApp = launcherPreferencesRepository::moveDrawerPinnedApp,
                             onSetDrawerPinnedAppOrder = launcherPreferencesRepository::setDrawerPinnedAppOrder,
                             onSetDrawerSortOrderName = launcherPreferencesRepository::setDrawerSortOrderName,
+                            onCreateDrawerTab = { name ->
+                                launcherPreferencesRepository.createDrawerTab(name)
+                                Unit
+                            },
+                            onRenameDrawerTab = { tabId, name ->
+                                launcherPreferencesRepository.renameDrawerTab(tabId, name)
+                                Unit
+                            },
+                            onDeleteDrawerTab = { tabId ->
+                                launcherPreferencesRepository.deleteDrawerTab(tabId)
+                                Unit
+                            },
+                            onSetDrawerTabMembership = { tabId, appKey, enabled ->
+                                launcherPreferencesRepository.setDrawerTabMembership(
+                                    tabId = tabId,
+                                    appKey = appKey,
+                                    enabled = enabled,
+                                )
+                                Unit
+                            },
                             onRequestUninstall = ::requestUninstall,
                             onOpenWallpaperPicker = ::openWallpaperPicker,
                             onSurfaceModeChanged = { mode ->

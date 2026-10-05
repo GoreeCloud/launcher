@@ -146,9 +146,21 @@ Long-press an app to open the compact Glaze context menu. A stationary hold open
 
 The App Drawer sort control provides **A–Z**, **Z–A**, **Most recent**, **Most frequent**, and **Pinned first**. Long-press an app in Apps to **Pin in Apps / Unpin in Apps**. Pinned apps can be moved earlier or later in their manual pinned order, and when more than one app is pinned the same context menu exposes **Reset pinned order A–Z**. The pin control in the Apps header can temporarily show pinned apps only for the active User/Work page. Pin membership and ordering are profile-qualified, device-local presentation state; they do not move Home, Dock, or folder placements. The two usage-based sorts use only the Launcher's local privacy-bounded launch history described above; they do not request Android Usage Access. User Apps and Work Apps remain separate profile views.
 
+### Custom App Drawer tabs
+
+Apps includes an **All** tab and supports up to eight device-local custom tabs. Use the **+** tab action to create one. Select a custom tab to filter the current User/Work profile page to that collection, and use the adjacent edit action to rename or delete the selected custom tab.
+
+To add or remove an application from custom tabs, long-press the application and choose **App drawer tabs**, then toggle the applicable collections. One application can belong to more than one custom tab. Membership uses the exact Android-profile-qualified Launcher identity, so the same package in User and Work profiles is not silently treated as one object.
+
+Custom tabs are organization only. Changing tab membership does not install/uninstall an app, move or remove a Home/Dock placement, change folder membership, hide an app, or enable App Lock. Tab state currently remains device-local and is not yet included in the strict portable-v1 recovery format.
+
+### Categories and App Drawer folders
+
+Choose **Category** layout to group applications by deterministic Launcher/Android category metadata. If App Drawer folders exist, they remain available under a dedicated **Folders** group while application categories continue below it; folders no longer force Category mode back to one flat grid. Drawer folders and custom tabs are independent organization mechanisms.
+
 ## Launcher settings
 
-The current Development Settings experience opens on a searchable category home and persists supported choices locally. It is available from **Edit Home → Settings** and from the gear at the top of **Apps**. If GoreeCloud Launcher is not the active HOME application, the overview shows a direct default-Home status/action banner near the top.
+The current Development Settings experience opens on a searchable category home and persists supported choices locally. It is available from **Edit Home → Settings**. The Apps header stays focused on application discovery and organization rather than exposing Launcher-wide Settings there. If GoreeCloud Launcher is not the active HOME application, the overview shows a direct default-Home status/action banner near the top.
 
 ### Settings categories
 
@@ -251,7 +263,7 @@ Naming a platform system does not mean every integration is currently implemente
 
 ## Current limitations
 
-Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; folders and smart folders; pinned/dynamic shortcut placement beyond current Search support; advanced widget resizing/stacking and portable widget rebinding/recovery; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze UI 2.1 acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
+Still incomplete or separately gated include mature cross-page drag/drop editing; primary↔secondary spatial movement; Smart Folders and richer automated Drawer organization; recently installed/updated Drawer views and fast alphabetical jump navigation; portable backup/recovery for custom Drawer tabs and newer organization state; pinned/dynamic shortcut placement beyond current Search support; advanced widget resizing/stacking and portable widget rebinding/recovery; complete Theme Manager/icon-pack/masking behavior; additional gesture types and registered-command/provider targets beyond the initial configurable Home-gesture set; broader Launcher Universal Search providers for device/GoreeCloud/third-party content; optional GoreeCloud Search/Index provider-backend integration; fully polished Glaze UI Universal Search presentation and complete Launcher Glaze consumer acceptance; layout-lock coverage for future placeable item types plus representative-device five-second-hold acceptance; production visual-identity acceptance; full Glaze Theme Engine behavior; versioned backup/restore; cross-device continuity; complete platform-system integration acceptance; Android OS process-death/schema-upgrade recovery acceptance; representative physical-device default-HOME acceptance; signed release packaging; and Stable qualification.
 
 # Approved future product direction — not currently available
 
@@ -263,7 +275,7 @@ Future Launcher releases are intended to deepen customizable Home pages and grid
 
 ## Application drawer
 
-The intended Apps/application-drawer experience includes folders/tabs, categories, smart groups, suggested/recent/frequent applications, hiding, richer visual customization, and context-sensitive ordering in addition to the current local Apps filter.
+The current Development candidate already includes folders, deterministic categories, custom tabs, hidden apps, pinning, local recent/frequent ordering, and configurable layouts. Future App Drawer work deepens Smart Folders, richer user-defined tags/collections, recently installed/updated views, fast alphabetical jump navigation, optional truthful local suggestions, portable organization backup/recovery, and representative-device accessibility/performance acceptance.
 
 ## Launcher Universal Search, GoreeCloud Search, and GoreeCloud Index
 
