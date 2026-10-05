@@ -304,6 +304,7 @@ data class LauncherExperiencePreferences(
     val drawerSpacing: LauncherDrawerSpacing = LauncherDrawerSpacing.STANDARD,
     val drawerPageRows: Int = 5,
     val showDrawerAppCount: Boolean = false,
+    val showDrawerSuggestions: Boolean = false,
     val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
     val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
     val homeSearchStyle: LauncherHomeSearchStyle = LauncherHomeSearchStyle.GLASS,
@@ -384,6 +385,7 @@ class LauncherPreferencesRepository(
         val drawerSpacing = stringPreferencesKey("drawer_spacing")
         val drawerPageRows = intPreferencesKey("drawer_page_rows")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
+        val showDrawerSuggestions = booleanPreferencesKey("show_drawer_suggestions_v1")
         val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
         val homeSearchPlacement = stringPreferencesKey("home_search_placement")
         val homeSearchStyle = stringPreferencesKey("home_search_style")
@@ -552,6 +554,7 @@ class LauncherPreferencesRepository(
                 drawerSpacing = LauncherDrawerSpacing.fromStorage(values[Keys.drawerSpacing]),
                 drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
+                showDrawerSuggestions = values[Keys.showDrawerSuggestions] ?: false,
                 homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
                 homeSearchPlacement = LauncherHomeSearchPlacement.fromStorage(values[Keys.homeSearchPlacement]),
                 homeSearchStyle = LauncherHomeSearchStyle.fromStorage(values[Keys.homeSearchStyle]),
@@ -795,6 +798,14 @@ class LauncherPreferencesRepository(
         scope.launch {
             dataStore.edit { values ->
                 values[Keys.showDrawerAppCount] = show
+            }
+        }
+    }
+
+    fun setShowDrawerSuggestions(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerSuggestions] = show
             }
         }
     }

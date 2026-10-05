@@ -291,16 +291,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
                 roleManager.isRoleHeld(RoleManager.ROLE_HOME)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         val fallbackSecondaryPageId = "home:test:horizontal-swipe"
         val repository = WorkspaceRepository(context)
@@ -758,16 +749,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) &&
                 roleManager.isRoleHeld(RoleManager.ROLE_HOME)
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         val fallbackSecondaryPageId = "home:test:secondary-widget"
         val widgetItemId = "widget:builtin:secondary-render"
@@ -912,16 +894,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousSwipeUp = preferencesRepository.experiencePreferences.first().swipeUpAction
         val appsAction = LauncherGestureAction.builtIn(LauncherGestureActionType.APPS)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -1102,16 +1075,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val searchAction =
             LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -1385,16 +1349,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             val apps = withTimeout(10_000) {
@@ -1590,16 +1545,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val alreadyDefaultHome =
             roleManager.isRoleAvailable(RoleManager.ROLE_HOME) && roleManager.isRoleHeld(RoleManager.ROLE_HOME)
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             val apps = withTimeout(10_000) {
@@ -1672,16 +1618,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousTapAndHold =
             preferencesRepository.experiencePreferences.first().tapAndHoldAction
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -1796,16 +1733,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousTapAndHold =
             preferencesRepository.experiencePreferences.first().tapAndHoldAction
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -1927,16 +1855,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         val previousTapAndHold =
             preferencesRepository.experiencePreferences.first().tapAndHoldAction
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -2095,16 +2014,7 @@ class ActivatedHomeLifecycleRuntimeTest {
             LauncherGestureAction.builtIn(LauncherGestureActionType.LAUNCHER_SETTINGS)
         val renderedGestureTag = "launcher-home-swipe-up-launcher_settings"
 
-        if (!alreadyDefaultHome) {
-            runShellCommand(
-                "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
-            )
-            withTimeout(10_000) {
-                while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                    delay(100)
-                }
-            }
-        }
+        ensureHomeRoleHeld(roleManager, context.packageName)
 
         try {
             preferencesRepository.setGestureAction(
@@ -2489,6 +2399,24 @@ class ActivatedHomeLifecycleRuntimeTest {
             y = endY.toFloat(),
             eventTime = SystemClock.uptimeMillis(),
         )
+    }
+
+    private suspend fun ensureHomeRoleHeld(
+        roleManager: RoleManager,
+        packageName: String,
+    ) {
+        // RoleManager can transiently report this package as HOME while a preceding test's
+        // remove-role-holder transition is still settling back to Quickstep. Reassert the
+        // desired holder idempotently before each HOME-dependent case, then let the caller's
+        // pre-test ownership snapshot decide whether teardown removes it.
+        runShellCommand(
+            "cmd role add-role-holder ${RoleManager.ROLE_HOME} $packageName",
+        )
+        withTimeout(10_000) {
+            while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                delay(100)
+            }
+        }
     }
 
     private suspend fun removeHomeRoleAndAwait(

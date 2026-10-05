@@ -845,6 +845,7 @@ fun LauncherBetaRoot(
     onSetDrawerSpacing: (LauncherDrawerSpacing) -> Unit,
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetShowDrawerSuggestions: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
@@ -1578,6 +1579,7 @@ fun LauncherBetaRoot(
                         apps = apps,
                         preferences = preferences,
                         drawerLayoutMode = drawerLayoutMode,
+                        drawerSortOrderName = drawerSortOrderName,
                         experiencePreferences = experiencePreferences,
                         availableIconPacks = availableIconPacks,
                         themeMode = themeMode,
@@ -1595,6 +1597,7 @@ fun LauncherBetaRoot(
                         onSetHomeGrid = onSetHomeGrid,
                         onSetDrawerColumns = onSetDrawerColumns,
                         onSetDrawerLayoutMode = onSetDrawerLayoutMode,
+                        onSetDrawerSortOrderName = onSetDrawerSortOrderName,
                         onSetShowLabels = onSetShowLabels,
                         onSetIconScale = onSetIconScale,
                         onSetIconShape = onSetIconShape,
@@ -1619,6 +1622,7 @@ fun LauncherBetaRoot(
                         onSetDrawerSpacing = onSetDrawerSpacing,
                         onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
+                        onSetShowDrawerSuggestions = onSetShowDrawerSuggestions,
                         onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
                         onSetHomeSearchPlacement = onSetHomeSearchPlacement,
                         onSetHomeSearchStyle = onSetHomeSearchStyle,
@@ -7111,7 +7115,7 @@ private fun AppDrawerSurface(
             },
             freshnessByKey = drawerFreshnessByAppKey,
             nowMillis = drawerFreshnessNowMillis,
-            includeSuggested = experiencePreferences.useLocalUsageForSuggestions,
+            includeSuggested = experiencePreferences.showDrawerSuggestions,
         )
     }
     val selectedSmartFolder = remember(
@@ -7523,9 +7527,21 @@ private fun AppDrawerSurface(
                     secondaryColor = drawerSecondaryColor,
                 )
                 Spacer(Modifier.height(GlazeMetrics.space1))
+                LaunchedEffect(
+                    experiencePreferences.showDrawerSuggestions,
+                    discoveryFilter,
+                ) {
+                    if (
+                        !experiencePreferences.showDrawerSuggestions &&
+                        discoveryFilter == LauncherDrawerDiscoveryFilter.SUGGESTED
+                    ) {
+                        discoveryFilterName = LauncherDrawerDiscoveryFilter.ALL.name
+                    }
+                }
                 LauncherDrawerDiscoveryFiltersRow(
                     selectedFilter = discoveryFilter,
                     pinnedAvailable = pinnedAppKeys.isNotEmpty(),
+                    suggestionsEnabled = experiencePreferences.showDrawerSuggestions,
                     secondaryColor = drawerSecondaryColor,
                     chooseFilter = { filter -> discoveryFilterName = filter.name },
                 )
@@ -7696,7 +7712,7 @@ private fun AppDrawerSurface(
                                     },
                                     freshnessByKey = drawerFreshnessByAppKey,
                                     nowMillis = drawerFreshnessNowMillis,
-                                    includeSuggested = experiencePreferences.useLocalUsageForSuggestions,
+                                    includeSuggested = experiencePreferences.showDrawerSuggestions,
                                 )
                             } else {
                                 emptyList()
@@ -8801,49 +8817,69 @@ private enum class LauncherSettingsCategory(
     val keywords: String,
 ) {
     HOME(
-        "Home screen",
-        "Grid, Glance, pages, Dock and Home behavior",
-        "grid glance clock date weather dock pages page transition labels automatic apps lock layout hints spacing quick actions dock labels dock search items per page capacity loop looping glaze clear solid raised edge",
+        "Home",
+        "Grid, pages, labels, Glance and workspace behavior",
+        "home grid pages default page looping indicators labels padding new apps lock layout wallpaper glance quick actions hints",
     ),
     DRAWER(
-        "App drawer",
-        "Layout, profiles, hidden apps, density and labels",
-        "apps drawer grid compact list category work profile user profile hidden hide visibility privacy columns rows spacing sort folder header labels count search placement backdrop",
+        "App Drawer",
+        "Layout, organization, profiles and local discovery",
+        "apps drawer grid compact list category density icon size sorting pinned tabs folders smart hidden work profile recent updated suggested search",
+    ),
+    DOCK(
+        "Dock",
+        "Favorites, Dock pages, Search and Glaze presentation",
+        "dock favorites apps pages overflow icon size spacing search glaze clear solid raised edge loop labels",
     ),
     FOLDERS(
         "Folders",
-        "Create, organize and customize folder presentation",
-        "folder preview shape size surface outline add apps rename organize",
+        "Home and App Drawer folder organization and presentation",
+        "folders folder grid ordering preview background opacity corner radius large smart create rename membership",
     ),
     SEARCH(
-        "Search",
-        "Home access, Universal Search and source behavior",
-        "universal search sources providers files contacts calls messages shortcuts online drive brave bar placement gesture",
+        "Universal Search",
+        "Search sources, connected providers, history and Home entry",
+        "universal search sources providers files contacts calls messages shortcuts online connected history recent frequent suggestions categories home dock",
     ),
-    LOOK_AND_FEEL(
-        "Look & feel",
-        "Icons, wallpaper treatment and Glaze theme",
-        "icons icon pack shape size appearance glaze theme wallpaper shade light dark deep dark",
+    WIDGETS(
+        "Widgets & Glaze Cards",
+        "Android widgets and Launcher-owned information surfaces",
+        "widgets glaze cards calendar weather glance search quick actions battery date month clock status tasks contacts media",
     ),
     GESTURES(
-        "Gestures & inputs",
-        "Swipe and double-tap actions",
-        "gesture gestures input swipe up down left right double tap hold actions apps search editor wallpaper theme",
+        "Gestures & Actions",
+        "Assign Home gestures to Launcher actions or installed apps",
+        "gestures actions swipe up down left right double tap hold pinch two finger home button notifications quick settings search app shortcut editor lock",
+    ),
+    APPEARANCE(
+        "Appearance",
+        "Glaze theme, icons, typography and visual effects",
+        "appearance theme glaze system light dark scheduled wallpaper colors accent icons shape adaptive mask themed typography drawer dock folder search effects blur translucency gradients shadows motion reduced",
     ),
     BADGES(
-        "Notification badges",
-        "Local unread indicators and privacy controls",
-        "notification badge badges unread dots numeric access privacy size corner",
+        "Notifications & Badges",
+        "Optional Launcher-owned notification indicators",
+        "notifications badges unread dots numeric notification listener access privacy style size corner",
     ),
-    SECURITY(
-        "Privacy & security",
-        "App Lock, hidden apps and protected launch controls",
-        "security privacy app lock locked authentication credential protect hidden apps",
+    PRIVACY(
+        "Privacy & Permissions",
+        "Local data, permissions, providers, hidden apps and App Lock",
+        "privacy permissions app lock hidden apps local history suggestions contacts calls messages files providers diagnostics network advertising tracking",
     ),
-    SYSTEM(
-        "System & setup",
-        "Default Home, onboarding and Development status",
-        "default home role setup onboarding startup wizard development build channel",
+    BACKUP(
+        "Backup & Restore",
+        "Versioned local Launcher configuration recovery",
+        "backup restore export import local workspace preferences search theme validation reset recovery portable",
+    ),
+    ADVANCED(
+        "Advanced",
+        "Default Home, onboarding, compatibility and diagnostics",
+        "advanced default home role setup onboarding startup wizard compatibility diagnostics import export developer experimental",
+    ),
+    ABOUT(
+        "About",
+        "Build, lifecycle, license, privacy and product information",
+        "about version build development release lifecycle license open source privacy security documentation",
     ),
 }
 
@@ -8853,203 +8889,201 @@ private fun LauncherSettingsCategoryIcon(
     color: Color,
 ) {
     Canvas(Modifier.size(26.dp)) {
-        val stroke = 2.dp.toPx()
+        val u = size.minDimension
+        val stroke = 1.9.dp.toPx()
+        val outline = Stroke(
+            width = stroke,
+            cap = StrokeCap.Round,
+            join = androidx.compose.ui.graphics.StrokeJoin.Round,
+        )
+        fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
+            drawLine(
+                color = color,
+                start = Offset(u * x1, u * y1),
+                end = Offset(u * x2, u * y2),
+                strokeWidth = stroke,
+                cap = StrokeCap.Round,
+            )
+        }
+
         when (category) {
             LauncherSettingsCategory.HOME -> {
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.16f, size.height * 0.48f),
-                    end = Offset(size.width * 0.50f, size.height * 0.18f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.50f, size.height * 0.18f),
-                    end = Offset(size.width * 0.84f, size.height * 0.48f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                )
+                val roof = Path().apply {
+                    moveTo(u * .16f, u * .46f)
+                    lineTo(u * .50f, u * .17f)
+                    lineTo(u * .84f, u * .46f)
+                }
+                drawPath(roof, color, style = outline)
                 drawRoundRect(
                     color = color,
-                    topLeft = Offset(size.width * 0.25f, size.height * 0.44f),
-                    size = androidx.compose.ui.geometry.Size(
-                        size.width * 0.50f,
-                        size.height * 0.38f,
-                    ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                        size.minDimension * 0.08f,
-                    ),
-                    style = Stroke(stroke),
+                    topLeft = Offset(u * .26f, u * .42f),
+                    size = Size(u * .48f, u * .39f),
+                    cornerRadius = CornerRadius(u * .07f),
+                    style = outline,
                 )
             }
             LauncherSettingsCategory.DRAWER -> {
-                repeat(3) { row ->
-                    repeat(3) { column ->
-                        drawCircle(
-                            color = color,
-                            radius = size.minDimension * 0.075f,
-                            center = Offset(
-                                size.width * (0.27f + (column * 0.23f)),
-                                size.height * (0.27f + (row * 0.23f)),
-                            ),
-                        )
-                    }
+                listOf(
+                    .20f to .20f,
+                    .56f to .20f,
+                    .20f to .56f,
+                    .56f to .56f,
+                ).forEach { (x, y) ->
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(u * x, u * y),
+                        size = Size(u * .24f, u * .24f),
+                        cornerRadius = CornerRadius(u * .06f),
+                        style = outline,
+                    )
+                }
+            }
+            LauncherSettingsCategory.DOCK -> {
+                line(.14f, .76f, .86f, .76f)
+                listOf(.29f, .50f, .71f).forEach { x ->
+                    drawRoundRect(
+                        color = color,
+                        topLeft = Offset(u * (x - .075f), u * .37f),
+                        size = Size(u * .15f, u * .15f),
+                        cornerRadius = CornerRadius(u * .04f),
+                        style = outline,
+                    )
                 }
             }
             LauncherSettingsCategory.FOLDERS -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(size.width * 0.14f, size.height * 0.31f),
-                    size = androidx.compose.ui.geometry.Size(
-                        size.width * 0.72f,
-                        size.height * 0.49f,
-                    ),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                        size.minDimension * 0.09f,
-                    ),
-                    style = Stroke(stroke),
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.19f, size.height * 0.31f),
-                    end = Offset(size.width * 0.42f, size.height * 0.31f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                )
+                val folder = Path().apply {
+                    moveTo(u * .13f, u * .31f)
+                    lineTo(u * .38f, u * .31f)
+                    lineTo(u * .47f, u * .22f)
+                    lineTo(u * .64f, u * .22f)
+                    lineTo(u * .70f, u * .31f)
+                    lineTo(u * .87f, u * .31f)
+                    lineTo(u * .87f, u * .79f)
+                    lineTo(u * .13f, u * .79f)
+                    close()
+                }
+                drawPath(folder, color, style = outline)
             }
             LauncherSettingsCategory.SEARCH -> {
                 drawCircle(
                     color = color,
-                    radius = size.minDimension * 0.27f,
-                    center = Offset(size.width * 0.43f, size.height * 0.42f),
-                    style = Stroke(stroke),
+                    radius = u * .255f,
+                    center = Offset(u * .42f, u * .42f),
+                    style = outline,
                 )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.62f, size.height * 0.62f),
-                    end = Offset(size.width * 0.83f, size.height * 0.83f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                )
+                line(.61f, .61f, .83f, .83f)
             }
-            LauncherSettingsCategory.LOOK_AND_FEEL -> {
-                drawCircle(
+            LauncherSettingsCategory.WIDGETS -> {
+                drawRoundRect(
                     color = color,
-                    radius = size.minDimension * 0.32f,
-                    center = Offset(size.width * 0.48f, size.height * 0.50f),
-                    style = Stroke(stroke),
+                    topLeft = Offset(u * .14f, u * .16f),
+                    size = Size(u * .31f, u * .31f),
+                    cornerRadius = CornerRadius(u * .07f),
+                    style = outline,
                 )
-                listOf(
-                    Offset(size.width * 0.36f, size.height * 0.37f),
-                    Offset(size.width * 0.58f, size.height * 0.34f),
-                    Offset(size.width * 0.35f, size.height * 0.59f),
-                ).forEach { point ->
-                    drawCircle(color = color, radius = size.minDimension * 0.055f, center = point)
-                }
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(u * .55f, u * .16f),
+                    size = Size(u * .31f, u * .52f),
+                    cornerRadius = CornerRadius(u * .07f),
+                    style = outline,
+                )
+                drawRoundRect(
+                    color = color,
+                    topLeft = Offset(u * .14f, u * .57f),
+                    size = Size(u * .31f, u * .27f),
+                    cornerRadius = CornerRadius(u * .07f),
+                    style = outline,
+                )
             }
             LauncherSettingsCategory.GESTURES -> {
+                line(.22f, .72f, .67f, .27f)
+                line(.67f, .27f, .67f, .49f)
+                line(.67f, .27f, .45f, .27f)
+                line(.16f, .54f, .34f, .54f)
+                line(.13f, .70f, .30f, .70f)
+            }
+            LauncherSettingsCategory.APPEARANCE -> {
+                drawOval(
+                    color = color,
+                    topLeft = Offset(u * .15f, u * .20f),
+                    size = Size(u * .70f, u * .60f),
+                    style = outline,
+                )
+                drawCircle(color, radius = u * .052f, center = Offset(u * .34f, u * .39f))
+                drawCircle(color, radius = u * .052f, center = Offset(u * .53f, u * .33f))
+                drawCircle(color, radius = u * .052f, center = Offset(u * .66f, u * .49f))
                 drawCircle(
                     color = color,
-                    radius = size.minDimension * 0.10f,
-                    center = Offset(size.width * 0.30f, size.height * 0.33f),
-                    style = Stroke(stroke),
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.10f,
-                    center = Offset(size.width * 0.70f, size.height * 0.67f),
-                    style = Stroke(stroke),
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.38f, size.height * 0.41f),
-                    end = Offset(size.width * 0.62f, size.height * 0.59f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
+                    radius = u * .08f,
+                    center = Offset(u * .43f, u * .62f),
+                    style = outline,
                 )
             }
             LauncherSettingsCategory.BADGES -> {
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.32f,
-                    center = Offset(size.width * 0.45f, size.height * 0.53f),
-                    style = Stroke(stroke),
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.10f,
-                    center = Offset(size.width * 0.73f, size.height * 0.27f),
-                )
+                val bell = Path().apply {
+                    moveTo(u * .28f, u * .66f)
+                    quadraticBezierTo(u * .34f, u * .58f, u * .34f, u * .46f)
+                    quadraticBezierTo(u * .34f, u * .27f, u * .50f, u * .24f)
+                    quadraticBezierTo(u * .66f, u * .27f, u * .66f, u * .46f)
+                    quadraticBezierTo(u * .66f, u * .58f, u * .72f, u * .66f)
+                    lineTo(u * .28f, u * .66f)
+                }
+                drawPath(bell, color, style = outline)
+                line(.43f, .76f, .57f, .76f)
+                drawCircle(color = color, radius = u * .095f, center = Offset(u * .73f, u * .27f))
             }
-            LauncherSettingsCategory.SECURITY -> {
-                val p = Path().apply {
-                    moveTo(size.width * 0.50f, size.height * 0.12f)
-                    lineTo(size.width * 0.80f, size.height * 0.24f)
-                    lineTo(size.width * 0.76f, size.height * 0.58f)
-                    quadraticBezierTo(
-                        size.width * 0.70f,
-                        size.height * 0.78f,
-                        size.width * 0.50f,
-                        size.height * 0.88f,
-                    )
-                    quadraticBezierTo(
-                        size.width * 0.30f,
-                        size.height * 0.78f,
-                        size.width * 0.24f,
-                        size.height * 0.58f,
-                    )
-                    lineTo(size.width * 0.20f, size.height * 0.24f)
+            LauncherSettingsCategory.PRIVACY -> {
+                val shield = Path().apply {
+                    moveTo(u * .50f, u * .12f)
+                    lineTo(u * .78f, u * .23f)
+                    lineTo(u * .74f, u * .58f)
+                    quadraticBezierTo(u * .69f, u * .77f, u * .50f, u * .87f)
+                    quadraticBezierTo(u * .31f, u * .77f, u * .26f, u * .58f)
+                    lineTo(u * .22f, u * .23f)
                     close()
                 }
-                drawPath(p, color = color, style = Stroke(stroke))
+                drawPath(shield, color, style = outline)
+                drawCircle(color = color, radius = u * .055f, center = Offset(u * .50f, u * .48f))
+                line(.50f, .54f, .50f, .66f)
+            }
+            LauncherSettingsCategory.BACKUP -> {
                 drawRoundRect(
                     color = color,
-                    topLeft = Offset(size.width * 0.38f, size.height * 0.46f),
-                    size = Size(size.width * 0.24f, size.height * 0.20f),
-                    cornerRadius = CornerRadius(size.minDimension * 0.04f),
-                    style = Stroke(stroke),
+                    topLeft = Offset(u * .18f, u * .44f),
+                    size = Size(u * .64f, u * .36f),
+                    cornerRadius = CornerRadius(u * .08f),
+                    style = outline,
                 )
                 drawArc(
                     color = color,
-                    startAngle = 180f,
-                    sweepAngle = 180f,
+                    startAngle = 205f,
+                    sweepAngle = 235f,
                     useCenter = false,
-                    topLeft = Offset(size.width * 0.40f, size.height * 0.32f),
-                    size = Size(size.width * 0.20f, size.height * 0.24f),
-                    style = Stroke(stroke),
+                    topLeft = Offset(u * .28f, u * .12f),
+                    size = Size(u * .44f, u * .44f),
+                    style = outline,
                 )
+                line(.27f, .20f, .27f, .39f)
+                line(.27f, .20f, .45f, .20f)
             }
-            LauncherSettingsCategory.SYSTEM -> {
+            LauncherSettingsCategory.ADVANCED -> {
+                line(.18f, .30f, .82f, .30f)
+                line(.18f, .50f, .82f, .50f)
+                line(.18f, .70f, .82f, .70f)
+                drawCircle(color = color, radius = u * .075f, center = Offset(u * .37f, u * .30f), style = outline)
+                drawCircle(color = color, radius = u * .075f, center = Offset(u * .63f, u * .50f), style = outline)
+                drawCircle(color = color, radius = u * .075f, center = Offset(u * .45f, u * .70f), style = outline)
+            }
+            LauncherSettingsCategory.ABOUT -> {
                 drawCircle(
                     color = color,
-                    radius = size.minDimension * 0.27f,
-                    center = Offset(size.width / 2f, size.height / 2f),
-                    style = Stroke(stroke),
+                    radius = u * .34f,
+                    center = Offset(u * .50f, u * .50f),
+                    style = outline,
                 )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.07f,
-                    center = Offset(size.width / 2f, size.height / 2f),
-                )
-                repeat(4) { index ->
-                    val horizontal = index % 2 == 0
-                    drawLine(
-                        color = color,
-                        start = if (horizontal) {
-                            Offset(size.width * 0.12f, size.height * 0.50f)
-                        } else {
-                            Offset(size.width * 0.50f, size.height * 0.12f)
-                        },
-                        end = if (horizontal) {
-                            Offset(size.width * 0.88f, size.height * 0.50f)
-                        } else {
-                            Offset(size.width * 0.50f, size.height * 0.88f)
-                        },
-                        strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                    )
-                }
+                drawCircle(color = color, radius = u * .035f, center = Offset(u * .50f, u * .34f))
+                line(.50f, .48f, .50f, .68f)
             }
         }
     }
@@ -9205,6 +9239,7 @@ private fun LauncherSettingsRootSurface(
     apps: List<LauncherActivityInfo>,
     preferences: LauncherPreferences,
     drawerLayoutMode: LauncherDrawerLayoutMode,
+    drawerSortOrderName: String?,
     experiencePreferences: LauncherExperiencePreferences,
     availableIconPacks: List<LauncherIconPackDescriptor>,
     themeMode: GlazeThemeMode,
@@ -9218,6 +9253,7 @@ private fun LauncherSettingsRootSurface(
     onSetHomeGrid: (Int, Int) -> Unit,
     onSetDrawerColumns: (Int) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
+    onSetDrawerSortOrderName: (String?) -> Unit,
     onSetShowLabels: (Boolean) -> Unit,
     onSetIconScale: (Float) -> Unit,
     onSetIconShape: (LauncherIconShape) -> Unit,
@@ -9242,6 +9278,7 @@ private fun LauncherSettingsRootSurface(
     onSetDrawerSpacing: (LauncherDrawerSpacing) -> Unit,
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
+    onSetShowDrawerSuggestions: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
@@ -9329,7 +9366,7 @@ private fun LauncherSettingsRootSurface(
                     )
                     Text(
                         selectedSettingsCategory?.summary
-                            ?: "Home, apps, search, appearance and privacy in one place.",
+                            ?: "Home, App Drawer, Dock, Search, appearance, privacy and recovery in one place.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -9451,8 +9488,8 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
-                "Home screen",
-                "Layout and glance content",
+                "Home",
+                "Workspace layout, pages, labels and Glance",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.HOME,
             ) {
                 Text(
@@ -9589,22 +9626,10 @@ private fun LauncherSettingsRootSurface(
                         )
                     },
                 )
-                GlazeSettingsAction(
-                    title = "Local app activity",
-                    summary = "Recent and most-used modes store only Launcher launch counts and a bounded recent order on this device; no timestamps, dwell time, or Android Usage Access.",
-                    value = "Clear",
-                    onClick = onClearLocalUsage,
-                )
                 SettingSwitch(
                     "Launcher hints",
                     !experiencePreferences.homeHintsDismissed,
                     onSetHintsEnabled,
-                )
-                GlazeSettingsAction(
-                    title = "Review Launcher setup",
-                    summary = "Replay first-use guidance without clearing Home layout, Search, appearance, or hint choices.",
-                    value = "Open",
-                    onClick = onReplayStartupWizard,
                 )
                 SettingSwitch(
                     "Add new apps to Home",
@@ -9616,8 +9641,8 @@ private fun LauncherSettingsRootSurface(
 
             SettingsSection(
                 "Dock",
-                "Persistent favorites, pages and material",
-                visible = selectedSettingsCategory == LauncherSettingsCategory.HOME,
+                "Persistent favorites, pages, Search and material",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.DOCK,
             ) {
                 Text(
                     "Dock style",
@@ -9681,8 +9706,8 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
-                "Search",
-                "Home access and Launcher Universal Search",
+                "Universal Search",
+                "Home access, local sources and connected-provider boundaries",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.SEARCH,
             ) {
                 ChoiceRow(
@@ -9759,13 +9784,50 @@ private fun LauncherSettingsRootSurface(
                         )
                     }
                 }
-                SettingsReadOnlyRow("Home gestures", "Configured in Gestures")
+                SettingsReadOnlyRow("Home gestures", "Configured in Gestures & Actions")
                 SettingsReadOnlyRow("Core provider", "Installed apps · Launcher")
+                SettingsReadOnlyRow(
+                    "Sensitive local sources",
+                    "Opt-in and permission-gated",
+                )
+                SettingsReadOnlyRow(
+                    "Connected providers",
+                    "Explicit enablement and authorization only",
+                )
             }
 
             SettingsSection(
-                "App drawer",
-                "Profiles, layout, density and background",
+                "Widgets & Glaze Cards",
+                "Android widgets and Launcher-owned information surfaces",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.WIDGETS,
+            ) {
+                SettingsReadOnlyRow("Android widgets", "Supported through Android AppWidgetHost")
+                SettingsReadOnlyRow(
+                    "GoreeCloud widgets",
+                    WorkspaceWidgetCatalog.builtInTypeIds.size.toString() + " built-in types",
+                )
+                SettingsReadOnlyRow(
+                    "Current utilities",
+                    "Glance · Search · Quick actions · Battery · Calendar/time · Status",
+                )
+                Text(
+                    "Add and manage current widgets through Edit Home → Widgets. " +
+                        "Third-party widgets remain governed by Android widget-hosting contracts.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SettingsReadOnlyRow("Glaze Cards", "Planned expansion · optional")
+                Text(
+                    "Glaze Cards are reserved for Launcher-owned, local-first information surfaces. " +
+                        "They must never become advertising, sponsorship, affiliate-placement, or paid-ranking surfaces.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SettingsSection(
+                "App Drawer",
+                "Profiles, layout, density, organization and local discovery",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.DRAWER,
             ) {
                 SettingsReadOnlyRow("Profiles", "User Apps · Work Apps when available")
@@ -9786,6 +9848,27 @@ private fun LauncherSettingsRootSurface(
                                 else -> LauncherDrawerLayoutMode.GRID
                             },
                         )
+                    },
+                )
+                Text(
+                    "Sorting",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                val settingsDrawerSortOrder = remember(drawerSortOrderName) {
+                    runCatching {
+                        drawerSortOrderName
+                            ?.let(LauncherDrawerSortOrder::valueOf)
+                            ?: LauncherDrawerSortOrder.ALPHABETICAL
+                    }.getOrDefault(LauncherDrawerSortOrder.ALPHABETICAL)
+                }
+                ChoiceRow(
+                    choices = LauncherDrawerSortOrder.entries.map { it.displayName },
+                    selected = settingsDrawerSortOrder.displayName,
+                    onChoice = { choice ->
+                        LauncherDrawerSortOrder.entries
+                            .firstOrNull { it.displayName == choice }
+                            ?.let { onSetDrawerSortOrderName(it.name) }
                     },
                 )
                 Text(
@@ -9950,6 +10033,23 @@ private fun LauncherSettingsRootSurface(
                     experiencePreferences.showDrawerAppCount,
                     onSetShowDrawerAppCount,
                 )
+                SettingSwitch(
+                    "Suggested apps",
+                    experiencePreferences.showDrawerSuggestions,
+                    onSetShowDrawerSuggestions,
+                )
+                Text(
+                    "Suggested apps use only Launcher-local recent/frequent launch signals. " +
+                        "They are off by default, require no Android Usage Access, and fall back " +
+                        "to deterministic A–Z when there is no truthful local history.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SettingsReadOnlyRow(
+                    "Discovery",
+                    "Pinned · New · Updated" +
+                        if (experiencePreferences.showDrawerSuggestions) " · Suggested" else "",
+                )
                 GlazeSettingsAction(
                     title = "Hidden apps",
                     summary = "Hide apps from App Drawer and Universal Search. Home, Dock and folders stay unchanged.",
@@ -10080,7 +10180,7 @@ private fun LauncherSettingsRootSurface(
             SettingsSection(
                 "Icons",
                 "Shape, size and icon packs",
-                visible = selectedSettingsCategory == LauncherSettingsCategory.LOOK_AND_FEEL,
+                visible = selectedSettingsCategory == LauncherSettingsCategory.APPEARANCE,
             ) {
                 Text(
                     "Icon shape",
@@ -10137,8 +10237,8 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
-                "Notification badges",
-                "Local unread indicators and privacy",
+                "Notifications & Badges",
+                "Optional local unread indicators and Android notification access",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.BADGES,
             ) {
                 Text(
@@ -10332,7 +10432,7 @@ private fun LauncherSettingsRootSurface(
             SettingsSection(
                 "Appearance",
                 "Glaze theme and wallpaper treatment",
-                visible = selectedSettingsCategory == LauncherSettingsCategory.LOOK_AND_FEEL,
+                visible = selectedSettingsCategory == LauncherSettingsCategory.APPEARANCE,
             ) {
                 GlazeSettingsAction(
                     title = "Theme Manager",
@@ -10365,7 +10465,7 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
-                "Gestures",
+                "Gestures & Actions",
                 "Assign Home gestures to Launcher actions or installed apps",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.GESTURES,
             ) {
@@ -10407,9 +10507,9 @@ private fun LauncherSettingsRootSurface(
             }
 
             SettingsSection(
-                "Privacy & security",
-                "Protected Launcher actions",
-                visible = selectedSettingsCategory == LauncherSettingsCategory.SECURITY,
+                "Privacy & Permissions",
+                "Local data, permissions and protected Launcher actions",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.PRIVACY,
             ) {
                 GlazeSettingsAction(
                     title = "App Lock",
@@ -10430,24 +10530,87 @@ private fun LauncherSettingsRootSurface(
                     value = if (hiddenAppCount == 0) "None" else hiddenAppCount.toString(),
                     onClick = onManageHiddenApps,
                 )
+                GlazeSettingsAction(
+                    title = "Local app activity",
+                    summary = "Clear Launcher-local launch counts and bounded recency used by local suggestions and usage-based ordering.",
+                    value = "Clear",
+                    onClick = onClearLocalUsage,
+                )
+                SettingsReadOnlyRow(
+                    "Suggested apps",
+                    if (experiencePreferences.showDrawerSuggestions) "Enabled · local only" else "Off",
+                )
+                SettingsReadOnlyRow("Core operation", "No account or network required")
+                Text(
+                    "GoreeCloud Launcher does not use advertising networks, sponsored application placement, " +
+                        "affiliate ranking, behavioral tracking, or remote analytics for core Launcher behavior.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             SettingsSection(
-                "System",
-                "Default HOME and Development status",
-                visible = selectedSettingsCategory == LauncherSettingsCategory.SYSTEM,
+                "Backup & Restore",
+                "Versioned local Launcher recovery foundations",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.BACKUP,
+            ) {
+                SettingsReadOnlyRow("Preference format", "goreecloud-launcher-preferences/1")
+                SettingsReadOnlyRow("Validation", "Strict · fail closed")
+                SettingsReadOnlyRow("Startup recovery", "Journaled local reconciliation")
+                Text(
+                    "Current Development source contains versioned preference/workspace portability and " +
+                        "restore-recovery foundations. A complete end-user create/export/import workflow for " +
+                        "all newer Dock, Drawer, folder, widget, Search and Glaze state remains acceptance-gated.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                SettingsReadOnlyRow("Full configuration export/import", "Development · not yet complete")
+            }
+
+            SettingsSection(
+                "Advanced",
+                "Default Home, onboarding, compatibility and Development tools",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.ADVANCED,
             ) {
                 if (!isDefaultHome) {
                     GlazeSettingsAction(
                         title = "Default Home app",
-                        summary = "Use GoreeCloud Launcher for the Home gesture",
+                        summary = "Use GoreeCloud Launcher for the Android Home gesture.",
                         value = "Set Home",
                         onClick = onRequestHomeRole,
                     )
                 } else {
                     SettingsReadOnlyRow("Default Home app", "GoreeCloud Launcher")
                 }
+                GlazeSettingsAction(
+                    title = "Review Launcher setup",
+                    summary = "Replay first-use guidance without clearing Home, Search, appearance or privacy choices.",
+                    value = "Open",
+                    onClick = onReplayStartupWizard,
+                )
+                SettingsReadOnlyRow("Diagnostics", "Local-first Development diagnostics")
+                Text(
+                    "Experimental or compatibility controls must remain clearly identified and do not imply Stable support.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            SettingsSection(
+                "About",
+                "GoreeCloud Launcher product and lifecycle information",
+                visible = selectedSettingsCategory == LauncherSettingsCategory.ABOUT,
+            ) {
+                SettingsReadOnlyRow("Product", "GoreeCloud Launcher")
                 SettingsReadOnlyRow("Build channel", "Development")
+                SettingsReadOnlyRow("License", "GPL-3.0-only")
+                SettingsReadOnlyRow("Privacy", "GoreeCloud Privacy Shield")
+                SettingsReadOnlyRow("Security", "Wardveil Security by GoreeCloud")
+                Text(
+                    "Development status does not imply Release Candidate, Production, Stable, Seal or Anchor acceptance.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

@@ -441,6 +441,7 @@ class LauncherPreferencesTest {
         assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
         assertEquals(LauncherDrawerSpacing.STANDARD, defaults.drawerSpacing)
         assertEquals(5, defaults.drawerPageRows)
+        assertFalse(defaults.showDrawerSuggestions)
         assertEquals(LauncherHomeGlanceAlignment.LEFT, defaults.homeGlanceAlignment)
         assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
         assertEquals(LauncherHomeSearchStyle.GLASS, defaults.homeSearchStyle)

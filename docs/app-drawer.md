@@ -24,7 +24,7 @@ The Drawer supports or is required to support:
 - Alphabetical, reverse alphabetical, local most-recent, local most-frequent, and pinned-first ordering.
 - Fast application search.
 
-Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. Protected PR #243 integrated profile-aware **Recently installed** ordering using Android LauncherActivityInfo first-install time plus a 48 dp alphabetical jump index for the ordinary A-Z List view. The current Development continuation adds **Recently updated** ordering and a compact discovery-filter row for **All / Pinned / Suggested / New / Updated**.
+Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. Protected PR #243 integrated profile-aware **Recently installed** ordering using Android LauncherActivityInfo first-install time plus a 48 dp alphabetical jump index for the ordinary A-Z List view. Protected PR #245 integrated **Recently updated** ordering and the compact discovery-filter row for **All / Pinned / Suggested / New / Updated**. The current Settings architecture candidate makes **Suggested** explicitly opt-in and disabled by default while leaving Pinned/New/Updated available without usage-derived ranking.
 
 ## Universal Search relationship
 
@@ -44,7 +44,7 @@ Future category work may add richer local classification when the source is tran
 
 Users can create named App Drawer tabs for collections such as Work, Games, Media, or Development.
 
-Current Development candidate behavior:
+Current Development behavior:
 
 - Up to eight device-local custom tabs.
 - Bounded names.
@@ -64,11 +64,11 @@ Drawer folders are supported as organizational entries and remain distinct from 
 
 Folder behavior must preserve profile boundaries, explicit user membership, predictable ordering, Glaze folder presentation, accessible open/manage behavior, and compatibility with Home/Dock placement rules.
 
-Smart folders remain future work unless explicitly backed by deterministic local rules and clear user control.
+Current Development includes the bounded local Smart Folder views described below; richer editable rule-based folders remain gated by deterministic local rules and clear user control.
 
 ## Smart folders
 
-Smart folders provide dynamic App Drawer collections without mutating manual folders, tabs, Home, or Dock placement. The current Development candidate derives bounded local-only **Pinned**, optional **Suggested**, **New**, and **Updated** smart folders from explicit pins, Launcher-local launch signals, and Android freshness metadata already used by Drawer discovery. Empty smart folders are omitted. Suggested smart-folder membership respects the existing Suggested apps control; when truthful usage does not exist, its membership uses the same deterministic A-Z fallback rather than fabricating behavior.
+Smart folders provide dynamic App Drawer collections without mutating manual folders, tabs, Home, or Dock placement. Current Development derives bounded local-only **Pinned**, optional **Suggested**, **New**, and **Updated** smart folders from explicit pins, Launcher-local launch signals, and Android freshness metadata already used by Drawer discovery. Empty smart folders are omitted. Suggested smart-folder membership respects the existing Suggested apps control; when truthful usage does not exist, its membership uses the same deterministic A-Z fallback rather than fabricating behavior.
 
 Smart folders are read-only dynamic views in this tranche. Manual override/exclusion rules, custom rule composition, persisted smart-folder ordering/naming, and portable recovery remain planned. Profile identity remains bounded by the currently selected Drawer profile, and unavailable non-primary update metadata continues to fail closed rather than borrowing another profile's state.
 
@@ -92,17 +92,17 @@ The Drawer separates User Apps and Work Apps when applicable. Organizational sta
 
 Local **Most recent** and **Most frequent** ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.
 
-The current Development continuation adds a compact discovery row:
+Current Development includes a compact discovery row:
 
 - **All** — the current profile/tab inventory.
 - **Pinned** — exact profile-qualified Launcher pins.
-- **Suggested** — bounded local ordering from Launcher-local recent/frequent use; when no truthful usage exists, the fallback is deterministic A-Z rather than fabricated personalization.
+- **Suggested** — explicit opt-in; bounded local ordering from Launcher-local recent/frequent use; when no truthful usage exists, the fallback is deterministic A-Z rather than fabricated personalization. Disabling the setting removes the Suggested discovery filter and returns an active Suggested view to All.
 - **New** — applications whose profile-qualified first-install timestamp is within the bounded freshness window.
 - **Updated** — applications with a materially later package update timestamp than first install, when Android exposes package metadata for that profile.
 
 For non-primary profiles, first-install time continues to come from profile-qualified LauncherActivityInfo. Android's public LauncherApps surface does not expose profile-qualified last-update time, so **Updated** currently fails closed for Work and other non-primary profiles instead of borrowing primary-user metadata for a same-package app. Primary-profile update time comes from PackageManager.
 
-Full Smart Folders remain future work. Any later rule-based folder membership must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable.
+The bounded **Pinned / Suggested / New / Updated** Smart Folder views above are implemented Development behavior. Richer editable rule-based membership remains future work and must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable.
 
 A fresh installation must not fabricate prior usage.
 

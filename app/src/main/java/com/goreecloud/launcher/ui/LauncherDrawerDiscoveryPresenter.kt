@@ -26,11 +26,13 @@ import com.goreecloud.launcher.ui.theme.GlazeMetrics
 internal fun LauncherDrawerDiscoveryFiltersRow(
     selectedFilter: LauncherDrawerDiscoveryFilter,
     pinnedAvailable: Boolean,
+    suggestionsEnabled: Boolean,
     secondaryColor: androidx.compose.ui.graphics.Color,
     chooseFilter: (LauncherDrawerDiscoveryFilter) -> Unit,
 ) {
-    val filters = LauncherDrawerDiscoveryFilter.entries.filter {
-        it != LauncherDrawerDiscoveryFilter.PINNED || pinnedAvailable
+    val filters = LauncherDrawerDiscoveryFilter.entries.filter { filter ->
+        (filter != LauncherDrawerDiscoveryFilter.PINNED || pinnedAvailable) &&
+            (filter != LauncherDrawerDiscoveryFilter.SUGGESTED || suggestionsEnabled)
     }
     Row(
         modifier = Modifier.horizontalScroll(rememberScrollState()),
