@@ -70,7 +70,7 @@ Dock navigation and management must support minimum target sizes, TalkBack seman
 
 ## Development checkpoint — October 4, 2026
 
-Draft PR #239 implements the first adaptive paged-Dock tranche on authoritative main `33c7a995e4d47f497f9fdbf569618c33dc521a77`:
+Protected PR #239 integrated the first adaptive paged-Dock tranche as authoritative main `168e5d04e9fd713444748306f450dc9031e87fc9` from exact validated head `92d8ed137c00baba671c311c95cad396a336319c`:
 
 - unbounded ordered application Dock remains the workspace authority;
 - preferred 4/5/6/7 items-per-page density with automatic earlier paging when the interaction floor would be violated;
@@ -83,8 +83,12 @@ Draft PR #239 implements the first adaptive paged-Dock tranche on authoritative 
 - existing Home↔Dock drag/reorder, layout-lock, icon-mask, profile, and local persistence paths are retained;
 - focused page-planning and preference tests are included.
 
-This checkpoint is Development source only until exact-head protected build/JVM/lint/schema, Android 16 runtime, transition-performance, migration-provenance, Foundation, required-gate, and protected-promotion evidence succeeds. Representative-device visual/accessibility/form-factor acceptance also remains open.
+PR #239 exact head passed Mandatory app migration provenance #979, Android Development Foundation #1471, Migrated Android apps CI #1005, and Protected promotion #959 before merge. This establishes integrated Development CI/runtime evidence only; representative-device visual/accessibility/form-factor acceptance and stronger release-state claims remain open.
+
+### Stacked active-drag page-handoff candidate
+
+The current `launcher/dock-drag-handoff-v2` Development branch adds edge-dwell page handoff while an application drag is active, preserves flat Dock ordering across page boundaries with a following-page insertion sentinel, supports loop-aware boundary insertion, and shows an edge affordance while a handoff target is active. It remains unintegrated until its own exact-head protected validation succeeds.
 
 ## Remaining Dock work
 
-Dock folders and other non-app Dock item persistence; direct cross-page drag handoff while a drag is active; deeper Dock padding/edge-position controls; context-aware or suggested Dock content; Dock widgets; versioned portable backup/restore expansion; and complete representative-device accessibility, profile, performance/power, recovery, protected Development signing/update continuity, and release qualification remain planned or gated.
+Dock folders and other non-app Dock item persistence; deeper Dock padding/edge-position controls; context-aware or suggested Dock content; Dock widgets; versioned portable backup/restore expansion; and complete representative-device accessibility, profile, performance/power, recovery, protected Development signing/update continuity, and release qualification remain planned or gated.

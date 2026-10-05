@@ -56,7 +56,7 @@ Current Development source includes:
 - a separate **Apps** surface with local label/package filtering and launching;
 - a separate scrollable **Launcher Settings** surface;
 - locally persisted Home grid presets, Apps-grid columns, app-label visibility, icon-size preference, System / Light / Dark appearance, Home layout-lock state, and Launcher Universal Search Home-entry mode;
-- ordered persisted Home Favorites, authoritative primary-Home grid coordinates after guarded spatial activation, and a five-item Dock;
+- ordered persisted Home Favorites, authoritative primary-Home grid coordinates after guarded spatial activation, and an expandable paged Dock whose five-app starter is not a capacity limit;
 - long-press placement management with accessible earlier/later controls and direct primary-Home drag placement into occupied or empty configured cells;
 - a persisted **Lock Home screen layout** policy that blocks current Favorite, Dock, secondary-app, Home-page create/delete/reorder, and secondary spatial mutation callbacks while leaving app launching and page selection available;
 - a visible locked-state Home control that can unlock the layout after an intentional five-second hold with progress feedback, while the Settings switch remains the deterministic accessible unlock path;

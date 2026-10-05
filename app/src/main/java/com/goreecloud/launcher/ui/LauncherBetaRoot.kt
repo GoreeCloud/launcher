@@ -122,10 +122,12 @@ import com.goreecloud.launcher.core.launcher.LauncherAppVisibilityPolicy
 import com.goreecloud.launcher.core.launcher.LauncherUniversalSearchHomeMode
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherDockDragPageDirection
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.launcherDockInitialVirtualPage
 import com.goreecloud.launcher.core.launcher.launcherDockLogicalPage
 import com.goreecloud.launcher.core.launcher.launcherDockLoopBoundaryTarget
+import com.goreecloud.launcher.core.launcher.launcherDockNextPageInsertionKey
 import com.goreecloud.launcher.core.launcher.launcherDockPagePlan
 import com.goreecloud.launcher.core.launcher.launcherDockVirtualPageCount
 import com.goreecloud.launcher.core.launcher.LauncherDrawerBackdrop
@@ -1634,6 +1636,7 @@ fun LauncherBetaRoot(
         selectedAppAnchor?.let { anchor ->
             val appKey = app.workspaceKey()
             val pinnedIndex = drawerPinnedAppOrder.indexOf(appKey)
+            val dockIndex = workspace.dockKeys.indexOf(appKey)
             AppContextPopup(
                 app = app,
                 anchor = anchor,
@@ -1650,6 +1653,12 @@ fun LauncherBetaRoot(
                 canResetDrawerPinnedOrder =
                     selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
                         drawerPinnedAppKeys.size > 1,
+                canMoveDockEarlier =
+                    selectedAppContextOrigin == LauncherAppContextOrigin.DOCK && dockIndex > 0,
+                canMoveDockLater =
+                    selectedAppContextOrigin == LauncherAppContextOrigin.DOCK &&
+                        dockIndex >= 0 &&
+                        dockIndex < workspace.dockKeys.lastIndex,
                 hiddenFromLauncher = appKey in hiddenAppKeys,
                 lockedByLauncher = appKey in lockedAppKeys,
                 availableAndroidWidgets = availableAndroidWidgets,
@@ -1695,6 +1704,16 @@ fun LauncherBetaRoot(
                 },
                 onMoveDrawerPinnedLater = {
                     onMoveDrawerPinnedApp(appKey, 1)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onMoveDockEarlier = {
+                    onMoveDock(app, WorkspaceMoveDirection.EARLIER)
+                    selectedApp = null
+                    selectedAppAnchor = null
+                },
+                onMoveDockLater = {
+                    onMoveDock(app, WorkspaceMoveDirection.LATER)
                     selectedApp = null
                     selectedAppAnchor = null
                 },
@@ -10525,6 +10544,7 @@ internal fun GlazeDock(
     }
     val dockForeground = MaterialTheme.colorScheme.onSurface
     var measuredBounds by remember { mutableStateOf<Rect?>(null) }
+    var pagerBounds by remember { mutableStateOf<Rect?>(null) }
     val dockHovered = activeDrag != null &&
         dragPoint?.let { point -> measuredBounds?.contains(point) } == true
     // Clear may float directly on wallpaper in the normal case, but reduced-transparency or
@@ -10641,11 +10661,32 @@ internal fun GlazeDock(
             )
             val visibleApps = dockPages.getOrElse(logicalCurrentPage) { emptyList() }
             val visibleKeys = remember(visibleApps) { visibleApps.map { it.workspaceKey() }.toSet() }
-            LaunchedEffect(visibleKeys) {
+            val dockPageKeys = remember(dockPages) { dockPages.map { page -> page.map { it.workspaceKey() } } }
+            val nextPageInsertionKey = if (activeDrag == null) {
+                null
+            } else {
+                launcherDockNextPageInsertionKey(
+                    dockPageKeys,
+                    logicalCurrentPage,
+                    activeDrag.appKey,
+                    loop = loopingDockPages,
+                )
+            }
+            LaunchedEffect(visibleKeys, nextPageInsertionKey, measuredBounds) {
+                val retainedKeys = visibleKeys + listOfNotNull(nextPageInsertionKey)
                 dockItemBounds.keys
-                    .filterNot(visibleKeys::contains)
+                    .filterNot(retainedKeys::contains)
                     .toList()
                     .forEach(dockItemBounds::remove)
+                val dock = measuredBounds
+                if (nextPageInsertionKey != null && dock != null) {
+                    dockItemBounds[nextPageInsertionKey] = Rect(
+                        dock.right + 1f,
+                        dock.top,
+                        dock.right + 2f,
+                        dock.bottom,
+                    )
+                }
             }
 
             val slotSize = (
@@ -10658,6 +10699,7 @@ internal fun GlazeDock(
             val previousDockPageAvailable = loopingDockPages || logicalCurrentPage > 0
             val nextDockPageAvailable =
                 loopingDockPages || logicalCurrentPage < dockPages.lastIndex
+            val dragPageDirection = LauncherDockDragPageHandoff(activeDrag, dragPoint, pagerBounds, pagerState, previousDockPageAvailable, nextDockPageAvailable)
 
             Row(
                 modifier = Modifier
@@ -10670,6 +10712,7 @@ internal fun GlazeDock(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
+                        .onGloballyPositioned { pagerBounds = it.boundsInRoot() }
                         .semantics {
                             stateDescription =
                                 "Dock page ${logicalCurrentPage + 1} of ${dockPages.size}"
@@ -10788,6 +10831,25 @@ internal fun GlazeDock(
                         }
                     }
                 }
+            }
+
+            if (activeDrag != null && dragPageDirection != null) {
+                val previous = dragPageDirection == LauncherDockDragPageDirection.PREVIOUS
+                Box(
+                    modifier = Modifier
+                        .align(if (previous) Alignment.CenterStart else Alignment.CenterEnd)
+                        .padding(
+                            start = if (previous) horizontalPadding else 0.dp,
+                            end = if (previous) 0.dp else horizontalPadding + searchReservation,
+                        )
+                        .width(5.dp)
+                        .height(34.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.72f),
+                            CircleShape,
+                        )
+                        .testTag("launcher-dock-drag-page-edge"),
+                )
             }
 
             if (dockPages.size > 1) {
@@ -12837,6 +12899,8 @@ private fun AppContextPopup(
     canMoveDrawerPinnedEarlier: Boolean,
     canMoveDrawerPinnedLater: Boolean,
     canResetDrawerPinnedOrder: Boolean,
+    canMoveDockEarlier: Boolean,
+    canMoveDockLater: Boolean,
     hiddenFromLauncher: Boolean,
     lockedByLauncher: Boolean,
     availableAndroidWidgets: List<LauncherWidgetProviderDescriptor>,
@@ -12847,6 +12911,8 @@ private fun AppContextPopup(
     onToggleDrawerPinned: () -> Unit,
     onMoveDrawerPinnedEarlier: () -> Unit,
     onMoveDrawerPinnedLater: () -> Unit,
+    onMoveDockEarlier: () -> Unit,
+    onMoveDockLater: () -> Unit,
     onResetDrawerPinnedOrder: () -> Unit,
     onToggleHidden: () -> Unit,
     onToggleLocked: () -> Unit,
@@ -13048,6 +13114,10 @@ private fun AppContextPopup(
                         )
                     }
                 }
+                if (contextOrigin == LauncherAppContextOrigin.DOCK) {
+                    GlazeLauncherPopupAction(label = "Move earlier in Dock", symbol = GlazePopupActionSymbol.BACK, onClick = onMoveDockEarlier, enabled = canMoveDockEarlier && !layoutLocked)
+                    GlazeLauncherPopupAction(label = "Move later in Dock", symbol = GlazePopupActionSymbol.FORWARD, onClick = onMoveDockLater, enabled = canMoveDockLater && !layoutLocked)
+                }
                 GlazeLauncherPopupAction(
                     label = "Add to folder",
                     symbol = GlazePopupActionSymbol.FOLDER,
@@ -13131,6 +13201,7 @@ private enum class GlazePopupActionSymbol {
     SETTINGS,
     CHECK,
     BACK,
+    FORWARD,
     CLOSE,
     INFO,
     LOCK,
@@ -13296,6 +13367,10 @@ private fun GlazePopupActionGlyph(
             GlazePopupActionSymbol.BACK -> {
                 segment(.68f, .18f, .34f, .50f)
                 segment(.34f, .50f, .68f, .82f)
+            }
+            GlazePopupActionSymbol.FORWARD -> {
+                segment(.32f, .18f, .66f, .50f)
+                segment(.66f, .50f, .32f, .82f)
             }
             GlazePopupActionSymbol.CLOSE -> {
                 segment(.24f, .24f, .76f, .76f)

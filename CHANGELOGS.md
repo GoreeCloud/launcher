@@ -1,4 +1,4 @@
-## October 4, 2026 — adaptive paged Home Dock candidate
+## October 4, 2026 — adaptive paged Home Dock integration and drag-handoff continuation
 
 - Added preferred 4/5/6/7 Dock items-per-page density with automatic accessibility-floor clamping.
 - Replaced unsafe unlimited single-row compression/scroll dependence with independent horizontal Dock pages, compact page indicators, explicit Previous/Next accessibility actions, and an opt-in loop-pages mode with deterministic wraparound.
@@ -8,7 +8,7 @@
 - Added deterministic Dock page-planning tests and persisted preference coverage.
 - Added repository-native `docs/home-dock.md` with Mandatory requirement level and explicit implemented/planned boundaries.
 
-**Status:** Draft PR #239 / Development candidate. Exact-head protected validation and representative-device acceptance remain required.
+**Status:** Protected PR #239 integrated as main `168e5d04e9fd713444748306f450dc9031e87fc9` after exact-head provenance #979, Foundation #1471, Migrated Android apps CI #1005, and Protected promotion #959 all passed. Draft PR #240 continues Development with active-drag Dock page handoff, loop-aware insertion boundaries, an edge handoff affordance, and non-gesture Move earlier / Move later Dock ordering actions. PR #240 requires fresh exact-head protected validation and representative-device acceptance before integration.
 
 ## October 4, 2026 — full-bleed icon masks, consistent glyphs, and quick Apps layout switching
 

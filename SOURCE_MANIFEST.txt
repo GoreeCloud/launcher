@@ -126,6 +126,7 @@ app/src/main/java/com/goreecloud/launcher/core/workspace/db/WorkspaceWidgetRepos
 app/src/main/java/com/goreecloud/launcher/ui/LauncherAppIcon.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBadgeMark.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherBetaRoot.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherDockDragPageHandoff.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherDrawerHeaderIcons.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherDrawerSortingPolicy.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherDrawerViewportPolicy.kt
@@ -169,6 +170,7 @@ app/src/main/res/xml/data_extraction_rules.xml
 app/src/test/java/com/goreecloud/launcher/LauncherHomeIntentPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherAppVisibilityPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherBuiltInWallpapersTest.kt
+app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherDockDragPagePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherDockPagePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFileSearchRootIsolationTest.kt
 app/src/test/java/com/goreecloud/launcher/core/launcher/LauncherFolderCodecTest.kt
