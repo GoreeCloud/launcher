@@ -144,7 +144,19 @@ Use the **Search apps** field to search the installed-application inventory loca
 
 Long-press an app to open the compact Glaze context menu. A stationary hold opens that menu; keep holding and move to drag the app directly toward Home or the Dock when the layout is unlocked. The same context surface provides Home/Remove, Dock/Undock, app-specific Widgets when available, App info, folder assignment, supported app shortcuts, **Hide from Apps & Search / Show in Apps & Search**, and **Uninstall**. Hiding affects only the exact profile-qualified app identity in Apps and Universal Search; it does not disable or uninstall the package, and existing Home, Dock, folder, widget, or Room placement remains unchanged. There is no second **More options** placement dialog. **Remove** only removes or suppresses the Home icon; it does not uninstall the application. **Uninstall** delegates to Android's system confirmation, and Launcher never silently removes packages. Placement-changing actions are disabled while the Home layout is locked.
 
-The integrated App Drawer sort control provides **A–Z**, **Z–A**, **Most recent**, **Most frequent**, and **Pinned first**. The stacked Development candidate adds **Recently installed**, using Android LauncherActivityInfo install time rather than usage history. In ordinary **A–Z + List** presentation, the same candidate adds a 48 dp alphabetical jump index for direct navigation to visible letter buckets. Long-press an app in Apps to **Pin in Apps / Unpin in Apps**. Pinned apps can be moved earlier or later in their manual pinned order, and when more than one app is pinned the same context menu exposes **Reset pinned order A–Z**. The pin control in the Apps header can temporarily show pinned apps only for the active User/Work page. Pin membership and ordering are profile-qualified, device-local presentation state; they do not move Home, Dock, or folder placements. The two usage-based sorts use only the Launcher's local privacy-bounded launch history described above; they do not request Android Usage Access. User Apps and Work Apps remain separate profile views.
+The App Drawer sort control provides **A–Z**, **Z–A**, **Most recent**, **Recently installed**, **Recently updated**, **Most frequent**, and **Pinned first**. **Recently installed** uses exact Launcher activity/profile first-install time rather than usage history. **Recently updated** uses Android PackageManager update metadata for the primary profile. Work and other non-primary profiles currently fail closed because Android's public launcher API does not expose a profile-qualified last-update timestamp. In ordinary **A–Z + List** presentation, a 48 dp alphabetical jump index provides direct navigation to visible letter buckets. Long-press an app in Apps to **Pin in Apps / Unpin in Apps**. Pinned apps can be moved earlier or later in their manual pinned order, and when more than one app is pinned the same context menu exposes **Reset pinned order A–Z**. Pin membership and ordering are profile-qualified, device-local presentation state; they do not move Home, Dock, or folder placements. The usage-based sorts use only the Launcher's local privacy-bounded launch history described above; they do not request Android Usage Access. User Apps and Work Apps remain separate profile views.
+
+### Discovery filters
+
+Below the custom App Drawer tabs, the Development discovery row provides **All**, **Pinned**, **Suggested**, **New**, and **Updated**:
+
+- **All** shows the current profile/tab inventory.
+- **Pinned** shows exact profile-qualified Launcher pins.
+- **Suggested** uses only Launcher-local recent/frequent launch signals. When there is no truthful usage history, Launcher explicitly uses a deterministic A-Z fallback instead of pretending to know your preferences.
+- **New** shows applications inside the bounded freshness window using profile-qualified first-install timestamps.
+- **Updated** shows applications with a materially later Android package update timestamp when profile-correct metadata is available.
+
+These controls filter Launcher presentation only. They do not install, disable, uninstall, hide, lock, or move applications. For a Work or managed profile where Android does not expose package update metadata to Launcher, **Updated** returns no fabricated match rather than borrowing primary-profile metadata.
 
 ### Custom App Drawer tabs
 
@@ -275,7 +287,7 @@ Future Launcher releases are intended to deepen customizable Home pages and grid
 
 ## Application drawer
 
-The current Development candidate already includes folders, deterministic categories, custom tabs, hidden apps, pinning, local recent/frequent ordering, and configurable layouts. Future App Drawer work deepens Smart Folders, richer user-defined tags/collections, recently installed/updated views, fast alphabetical jump navigation, optional truthful local suggestions, portable organization backup/recovery, and representative-device accessibility/performance acceptance.
+The current Development line already includes folders, deterministic categories, custom tabs, hidden apps, pinning, local recent/frequent ordering, Recently installed ordering, A-Z List jump navigation, and configurable layouts. The active continuation adds Recently updated ordering plus All/Pinned/Suggested/New/Updated discovery filters with local-only truthful suggestion ranking. Future App Drawer work deepens Smart Folders with transparent editable rules, richer user-defined tags/collections, broader fast navigation outside the A-Z List path, portable organization backup/recovery, and representative-device accessibility/profile/performance acceptance.
 
 ## Launcher Universal Search, GoreeCloud Search, and GoreeCloud Index
 

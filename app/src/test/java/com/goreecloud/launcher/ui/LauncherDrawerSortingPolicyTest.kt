@@ -175,6 +175,39 @@ class LauncherDrawerSortingPolicyTest {
     }
 
     @Test
+    fun recentlyUpdatedSortsKnownUpdatesBeforeAlphabeticalUnknowns() {
+        val entries = listOf(
+            Entry("Camera", "app:user:0:camera"),
+            Entry("Banking", "folder:banking"),
+            Entry("Maps", "app:user:10:maps"),
+            Entry("Alarm", "app:user:0:alarm"),
+        )
+        val updateTimes = mapOf(
+            "app:user:10:maps" to 900L,
+            "app:user:0:camera" to 500L,
+            "app:user:0:alarm" to 700L,
+        )
+
+        val sorted = LauncherDrawerSortingPolicy.order(
+            entries = entries,
+            label = { it.label },
+            key = { it.stableKey },
+            sortOrder = LauncherDrawerSortOrder.RECENTLY_UPDATED,
+            updateTimeMillis = { updateTimes[it.stableKey] },
+        )
+
+        assertEquals(
+            listOf(
+                "app:user:10:maps",
+                "app:user:0:alarm",
+                "app:user:0:camera",
+                "folder:banking",
+            ),
+            sorted.map { it.stableKey },
+        )
+    }
+
+    @Test
     fun mostFrequentSortsDescendingThenUsesAlphabeticalTieBreaks() {
         val entries = listOf(
             Entry("Camera", "app:camera"),

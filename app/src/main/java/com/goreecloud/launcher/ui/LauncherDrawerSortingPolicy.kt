@@ -10,6 +10,7 @@ internal enum class LauncherDrawerSortOrder(val displayName: String) {
     REVERSE_ALPHABETICAL("Z–A"),
     MOST_RECENT("Most recent"),
     RECENTLY_INSTALLED("Recently installed"),
+    RECENTLY_UPDATED("Recently updated"),
     MOST_FREQUENT("Most frequent"),
     PINNED_FIRST("Pinned first"),
 }
@@ -59,6 +60,7 @@ internal object LauncherDrawerSortingPolicy {
         sortOrder: LauncherDrawerSortOrder = LauncherDrawerSortOrder.ALPHABETICAL,
         recentRank: (T) -> Int? = { null },
         installTimeMillis: (T) -> Long? = { null },
+        updateTimeMillis: (T) -> Long? = { null },
         frequency: (T) -> Long? = { null },
         pinned: (T) -> Boolean = { false },
         pinnedRank: (T) -> Int? = { null },
@@ -95,6 +97,20 @@ internal object LauncherDrawerSortingPolicy {
                         rightInstallTime.compareTo(leftInstallTime)
                     leftInstallTime != null && rightInstallTime == null -> -1
                     leftInstallTime == null && rightInstallTime != null -> 1
+                    labelOrder != 0 -> labelOrder
+                    else -> keyOrder
+                }
+            }
+            LauncherDrawerSortOrder.RECENTLY_UPDATED -> {
+                val leftUpdateTime = updateTimeMillis(left)
+                val rightUpdateTime = updateTimeMillis(right)
+                when {
+                    leftUpdateTime != null &&
+                        rightUpdateTime != null &&
+                        leftUpdateTime != rightUpdateTime ->
+                        rightUpdateTime.compareTo(leftUpdateTime)
+                    leftUpdateTime != null && rightUpdateTime == null -> -1
+                    leftUpdateTime == null && rightUpdateTime != null -> 1
                     labelOrder != 0 -> labelOrder
                     else -> keyOrder
                 }

@@ -144,7 +144,9 @@ Current Development source includes:
 - User-created custom tabs with exact profile-qualified app membership.
 - A persistent **All** tab plus bounded create, rename, delete, select, and per-app tab assignment.
 - Deterministic application categories; folders remain grouped under **Folders** in Category mode.
-- A–Z, Z–A, Launcher-local Most recent, Launcher-local Most frequent, and Pinned first sorting; the stacked Development candidate adds profile-aware Recently installed ordering.
+- A–Z, Z–A, Launcher-local Most recent, profile-aware Recently installed, profile-aware Recently updated, Launcher-local Most frequent, and Pinned first sorting.
+- Compact **All / Pinned / Suggested / New / Updated** discovery filters; Suggested uses only Launcher-local signals and a deterministic A-Z first-use fallback.
+- A 48 dp alphabetical jump index in ordinary A-Z List presentation.
 - Device-local App Drawer pins and manual pinned ordering.
 - Profile-qualified Hidden Apps and Launcher App Lock states.
 - Stationary app context actions for Home/Dock placement, folders, tabs, shortcuts, widgets, App info, visibility, lock, and Android-confirmed uninstall.
@@ -153,8 +155,8 @@ Current Development source includes:
 
 Still planned or acceptance-gated:
 
-- Recently updated views with profile-correct metadata; **Recently installed** ordering is present in the stacked Development candidate.
-- Broader fast alphabetical navigation beyond the stacked A-Z List jump index.
+- Broader fast alphabetical navigation beyond the implemented A-Z List jump index.
+- Representative-device validation of profile-scoped **Updated** metadata, especially managed/Work-profile contexts where Android may intentionally deny package timestamp access.
 - Deterministic Smart Folders and richer user-defined category/tag collections.
 - Portable backup/restore policy for custom Drawer organization.
 - Representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile-lifecycle, performance/power, signing/update-continuity, and release acceptance.

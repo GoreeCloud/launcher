@@ -1,10 +1,22 @@
-## October 4/5, 2026 — Recently installed ordering and A-Z List jump candidate
+## October 5, 2026 — local App Drawer discovery and update-recency candidate
 
-- Added **Recently installed** App Drawer ordering using Android `LauncherActivityInfo.firstInstallTime`; no Android Usage Access, fabricated usage history, network source, or package-global profile collapse is introduced.
+- Added a compact **All / Pinned / Suggested / New / Updated** discovery row below App Drawer tabs.
+- Kept **Suggested** entirely device-local using truthful Launcher recent/frequent launch signals; a fresh install with no history receives deterministic A-Z fallback ordering rather than simulated personalization.
+- Kept **New** keyed by exact profile-qualified Launcher activity identity and Android first-install time.
+- Added authoritative primary-profile Android package metadata for **Updated**; non-primary profiles fail closed because the public launcher API does not expose a profile-qualified last-update timestamp, so same-package primary-user metadata is never borrowed.
+- Added **Recently updated** sort order with stable alphabetical fallback.
+- Removed the redundant pinned-only header button because Pinned is now part of the discoverability row.
+- Preserved custom tabs, User/Work separation, local Apps search, Hidden Apps/App Lock authority, Drawer-to-Home/Dock placement, no-new-permission behavior, and the no-sponsored/no-remote-analytics boundary.
+
+**Status:** Development candidate only. Fresh exact-head protected validation and representative-device accessibility/profile/performance acceptance remain required.
+
+## October 4/5, 2026 — Recently installed ordering and A-Z List jump integration
+
+- Protected PR #243 added **Recently installed** App Drawer ordering using Android `LauncherActivityInfo.firstInstallTime`; no Android Usage Access, fabricated usage history, network source, or package-global profile collapse was introduced.
 - Added a 48 dp alphabetical jump index in ordinary A-Z List layout, hidden while searching or using non-alphabetical sorts.
 - Added deterministic sorting and alphabet-index JVM coverage.
 
-**Status:** stacked Development candidate based on PR #241. Fresh exact-head protected validation and representative-device accessibility/performance acceptance remain required. Recently updated metadata remains planned.
+**Integration evidence:** exact head `54490234fa303d30b18ca7707126f531c32ac996` passed Mandatory app migration provenance #998, Android Development Foundation #1490, Migrated Android apps CI #1024, and Protected promotion #978 before expected-head-protected squash merge as `66c0778e6c0b0b386d1865ec76b539c4774c5da1`. **Acceptance boundary:** Development integration only; representative-device accessibility/performance/profile lifecycle and release gates remain open.
 
 ## October 4/5, 2026 — user-created App Drawer tabs and grouped folders candidate
 

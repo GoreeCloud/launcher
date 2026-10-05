@@ -24,7 +24,7 @@ The Drawer supports or is required to support:
 - Alphabetical, reverse alphabetical, local most-recent, local most-frequent, and pinned-first ordering.
 - Fast application search.
 
-Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. The stacked recency/navigation candidate adds a profile-aware **Recently installed** sort using Android `LauncherActivityInfo.firstInstallTime` and a 48 dp alphabetical jump index for the ordinary A-Z List view.
+Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. Protected PR #243 integrated profile-aware **Recently installed** ordering using Android LauncherActivityInfo first-install time plus a 48 dp alphabetical jump index for the ordinary A-Z List view. The current Development continuation adds **Recently updated** ordering and a compact discovery-filter row for **All / Pinned / Suggested / New / Updated**.
 
 ## Universal Search relationship
 
@@ -82,11 +82,21 @@ Android remains authority for application/profile identity.
 
 The Drawer separates User Apps and Work Apps when applicable. Organizational state including hidden apps, pins, and custom-tab membership uses profile-qualified identities so identical package/component names in different profiles are not treated as one item.
 
-## Suggestions and local ordering
+## Suggestions, freshness, and local ordering
 
-Local Most recent and Most frequent ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.
+Local **Most recent** and **Most frequent** ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.
 
-Future suggestions or smart groups must remain local-first, truthful, explainable, user-controllable, and free from sponsored or affiliate ranking.
+The current Development continuation adds a compact discovery row:
+
+- **All** — the current profile/tab inventory.
+- **Pinned** — exact profile-qualified Launcher pins.
+- **Suggested** — bounded local ordering from Launcher-local recent/frequent use; when no truthful usage exists, the fallback is deterministic A-Z rather than fabricated personalization.
+- **New** — applications whose profile-qualified first-install timestamp is within the bounded freshness window.
+- **Updated** — applications with a materially later package update timestamp than first install, when Android exposes package metadata for that profile.
+
+For non-primary profiles, first-install time continues to come from profile-qualified LauncherActivityInfo. Android's public LauncherApps surface does not expose profile-qualified last-update time, so **Updated** currently fails closed for Work and other non-primary profiles instead of borrowing primary-user metadata for a same-package app. Primary-profile update time comes from PackageManager.
+
+Full Smart Folders remain future work. Any later rule-based folder membership must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable.
 
 A fresh installation must not fabricate prior usage.
 
@@ -130,7 +140,7 @@ The Drawer must support:
 - Non-gesture alternatives for important organization actions.
 - Phone/tablet/foldable compositions.
 
-Current Development candidate tab controls expose selected-state semantics and explicit create/edit actions. Representative-device accessibility acceptance remains open.
+Current Development tab and discovery controls expose selected-state semantics, explicit create/edit actions, and a 48 dp interaction floor. Representative-device TalkBack/Switch Access, keyboard/D-pad, large-text, RTL, and form-factor acceptance remains open.
 
 ## Privacy and commercial neutrality
 

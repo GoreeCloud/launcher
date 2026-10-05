@@ -1,8 +1,16 @@
-## October 4/5, 2026 — Recently installed sort and alphabetical jump candidate
+## October 5, 2026 — App Drawer local discovery and update-recency candidate
 
-The stacked App Drawer continuation adds **Recently installed** ordering using Android `LauncherActivityInfo.firstInstallTime`, preserving exact Launcher app/profile identity while avoiding Android Usage Access or a fabricated usage model. In ordinary A-Z **List** layout, Launcher also exposes a horizontally scrollable 48 dp alphabetical jump index that moves directly to the first item in each visible bucket; the control is hidden during search and non-alphabetical sorts.
+The current Development continuation adds a compact **All / Pinned / Suggested / New / Updated** discovery row below App Drawer tabs. **Suggested** uses only Launcher-local recent/frequent launch signals and falls back deterministically to A-Z on a true first install rather than fabricating history. **New** uses the exact profile-qualified Android launcher activity first-install timestamp. **Updated** uses Android PackageManager update metadata for the primary profile only; Work and other non-primary profiles fail closed because the public launcher API does not expose profile-qualified last-update time, preventing same-package primary-user timestamps from being borrowed.
 
-**Acceptance boundary:** stacked Development candidate only. Fresh exact-head protected build/JVM/lint/runtime validation plus representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, and large-library performance acceptance remain required. Recently updated metadata remains separately planned.
+The same candidate adds **Recently updated** sort order, keeps discovery filters composable with custom tabs, User/Work profile pages and local Apps search, moves Pinned into the same explicit filter family instead of a competing header control, and preserves the 48 dp Launcher interaction floor.
+
+**Acceptance boundary:** Development candidate only. Fresh exact-head protected build/JVM/lint/runtime validation plus representative-device TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, Work/managed-profile metadata behavior, and large-library performance/power acceptance remain required.
+
+## October 4/5, 2026 — Recently installed sort and alphabetical jump integration
+
+Protected PR #243 integrated **Recently installed** ordering using Android `LauncherActivityInfo.firstInstallTime`, preserving exact Launcher app/profile identity while avoiding Android Usage Access or a fabricated usage model. Ordinary A-Z **List** layout also exposes a horizontally scrollable 48 dp alphabetical jump index that moves directly to the first item in each visible bucket; the control is hidden during search and non-alphabetical sorts.
+
+Exact head `54490234fa303d30b18ca7707126f531c32ac996` passed Mandatory app migration provenance #998, Android Development Foundation #1490, Migrated Android apps CI #1024, and Protected promotion #978 before expected-head-protected squash merge as `66c0778e6c0b0b386d1865ec76b539c4774c5da1`. **Acceptance boundary:** Development integration only; representative-device accessibility, form-factor, large-library performance/power, profile lifecycle, signing/update continuity, and release gates remain open.
 
 ## October 4/5, 2026 — user-created App Drawer tabs and category-folder grouping candidate
 
