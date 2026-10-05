@@ -24,7 +24,7 @@ Current source includes:
 - Persisted Small/Medium/Large icon presentation and app-label visibility.
 - Persisted System / Light / Dark appearance selection.
 - Persisted Home layout-lock state and Launcher Universal Search Home-entry mode. The strict v1 persistence/backup wire key remains `index_home_mode` only for backward compatibility.
-- Locally persisted Favorites and a bounded five-item Dock.
+- Locally persisted Favorites and an ordered Dock whose five-item first-run starter is not a capacity limit; the current Development candidate pages larger app collections while preserving the resolved minimum interaction target.
 - Long-press app placement management with accessible earlier/later controls, plus direct primary-Home long-press drag placement into occupied or empty configured grid cells.
 - Current layout-lock gating for implemented Favorite, Dock, primary/secondary spatial, and Home-page mutation callbacks while ordinary app launching and page selection remain usable.
 - A five-second locked-state Home hold control with progressive feedback, with the Launcher Settings switch retained as the deterministic non-gesture unlock path.
@@ -267,10 +267,12 @@ The following capability inventory is the approved Launcher product direction. T
 
 ## Dock
 
-- Custom dock size and adjustable application count.
-- Multiple dock pages and scrolling.
-- Dock background, transparency, and padding customization.
-- Search placement within the dock.
+- Five-app starter configuration without treating five items as a capacity limit.
+- Custom Dock page density and adjustable application count.
+- Multiple Dock pages with horizontal navigation independent from Home pages and an optional disabled-by-default loop mode.
+- Accessibility-floor-aware adaptive paging before target-size compression.
+- Clear, Glaze, Solid, Raised, Edge, transparency, and future padding customization.
+- Optional labels and Launcher Universal Search placement within the Dock.
 - Dock widgets.
 - Optional dock removal.
 - Suggested/context-aware dock applications.

@@ -15,6 +15,47 @@ import org.junit.rules.TemporaryFolder
 
 class LauncherPreferencesTest {
     @Test
+    fun dockPresentationPreferencesPersistAndClampDensity() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("dock-presentation.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            var experience = repository.experiencePreferences.first()
+            assertEquals(LauncherDockStyle.GLASS, experience.dockStyle)
+            assertEquals(5, experience.dockPageSize)
+            assertFalse(experience.dockLoopPages)
+            assertFalse(experience.showDockLabels)
+            assertFalse(experience.showDockSearch)
+
+            repository.setDockStyle(LauncherDockStyle.RAISED)
+            repository.setDockPageSize(99)
+            repository.setDockLoopPages(true)
+            repository.setShowDockLabels(true)
+            repository.setShowDockSearch(true)
+
+            experience = repository.experiencePreferences.first {
+                it.dockStyle == LauncherDockStyle.RAISED &&
+                    it.dockPageSize == 7 &&
+                    it.dockLoopPages &&
+                    it.showDockLabels &&
+                    it.showDockSearch
+            }
+            assertEquals(7, experience.dockPageSize)
+            assertEquals(true, experience.dockLoopPages)
+
+            repository.setDockPageSize(1)
+            experience = repository.experiencePreferences.first { it.dockPageSize == 4 }
+            assertEquals(4, experience.dockPageSize)
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun repositoryFallbackKeepsEstablishedHomeCardClock() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

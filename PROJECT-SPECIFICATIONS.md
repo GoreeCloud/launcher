@@ -917,10 +917,12 @@ Home Screen
 - Application contextual shortcuts
 - Resizable widgets
 - Searchable widget picker
-- Favorite-application dock
-- Customizable dock layouts
-- Multiple dock pages
-- Scrollable dock
+- Favorite-application Dock with a five-app starter configuration that is not a capacity limit
+- Customizable Dock page density, labels, materials, and optional Launcher Universal Search affordance
+- Multiple Dock pages with horizontal navigation independent from Home-page navigation and an optional disabled-by-default looping mode
+- Accessibility-floor-aware adaptive Dock layout that pages before shrinking interaction targets below the resolved minimum
+- Application and folder/shortcut/action Dock expansion according to the authoritative workspace model; non-app Dock persistence remains planned until separately verified
+- Detailed Dock requirements and implementation boundaries are maintained in `docs/home-dock.md`
 - Home-screen page scrolling
 - Optional infinite page scrolling
 - Wallpaper scrolling

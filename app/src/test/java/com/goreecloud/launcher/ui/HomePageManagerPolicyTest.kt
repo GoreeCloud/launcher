@@ -455,6 +455,14 @@ class HomePageManagerPolicyTest {
                 activeDrag = false,
             ),
         )
+        assertTrue(
+            primaryHomeShouldRenderDock(
+                contentOnly = false,
+                dockAppCount = 0,
+                activeDrag = false,
+                persistentAffordance = true,
+            ),
+        )
         assertTrue(primaryHomeShouldHandleHorizontalPaging(contentOnly = false))
     }
 

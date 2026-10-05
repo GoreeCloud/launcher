@@ -153,6 +153,10 @@ class LauncherStartupWizardRuntimeTest {
         composeRule.onNodeWithText(
             "Keep holding at a page edge to switch pages, then release on the target.",
         ).assertIsDisplayed()
+        composeRule.onNodeWithText("Use Dock pages").assertIsDisplayed()
+        composeRule.onNodeWithText(
+            "Add more favorites than fit in one row, then swipe the Dock independently of Home pages.",
+        ).assertIsDisplayed()
         composeRule.onNodeWithText("Organize Apps").assertIsDisplayed()
     }
 

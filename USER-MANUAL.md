@@ -53,7 +53,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Long-press empty Home space to enter **Edit Home**, then use its **Settings** action to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search preferences. Pressing Android **Home** while Edit Home is open exits the editor and returns to the ordinary primary Home surface. You can also open the same Launcher Settings surface from the gear at the top of **Apps**.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - The first-run setup can seed the five-item Dock from common app roles when available. Automatic Home apps are controlled separately by the selected No automatic apps / 10 most recent apps / 10 most used apps mode.
-- Five apps remain the first-run Dock default, not a capacity limit. You can add more apps; the Dock tightens item presentation while preserving at least a 48 dp touch slot, then scrolls horizontally when more items are present than fit safely at once.
+- Five apps remain the first-run Dock default, not a capacity limit. In the current Development candidate you can add substantially more apps and organize them across horizontally swipeable Dock pages. Launcher preserves the resolved 48 dp interaction floor by paging earlier instead of shrinking touch targets below that floor. Under **Launcher settings → Home screen → Dock**, you can choose a preferred 4, 5, 6, or 7 items per page, optionally loop from the last Dock page back to the first, show Dock labels, expose a direct Universal Search button, and choose Glaze, Clear, Solid, Raised, or Edge presentation. The Search button can keep the Dock available even when no app placements are present. Narrow layouts may display fewer apps per page than the preference so interaction targets remain safe.
 
 The launcher discovers launchable activities through Android `LauncherApps` across available profiles. The manifest uses a scoped `MAIN` + `LAUNCHER` package-visibility query without requesting broad `QUERY_ALL_PACKAGES` access; core search no longer requires the legacy GoreeCloud Index search-action query.
 
@@ -61,7 +61,7 @@ The primary Home page remains the protected HOME rank-zero page. Under terminal 
 
 ### Built-in Launcher hints
 
-After startup, Launcher can show a short dismissible Home hint using the same compact visual language as onboarding: a gesture strip for **Apps**, **Search**, and **Edit Home**, followed by three short cues for precise placement, cross-page movement, and keeping pinned apps easy to reach. The hint remains instructional only; it does not change placement, provider, or gesture authority.
+After startup, Launcher can show a short dismissible Home hint using the same compact visual language as onboarding: a gesture strip for **Apps**, **Search**, and **Edit Home**, followed by four short cues for precise placement, cross-page movement, independent Dock-page navigation, and keeping pinned apps easy to reach. The hint remains instructional only; it does not change placement, provider, or gesture authority.
 
 You can disable hints during startup, dismiss the Home hint with **Got it**, and later turn **Launcher hints** back on from Launcher Settings. Use **Review Launcher setup → Open** to replay the three-step first-use guidance without clearing the Home layout, Search, appearance, or hint choices. Hint and setup-progress state stay local and are not telemetry.
 
@@ -259,7 +259,7 @@ The long-term Launcher product scope is substantially broader than the current D
 
 ## Home and organization
 
-Future Launcher releases are intended to support deeply customizable Home pages and grids, margins/padding, folders, shortcuts, widgets, multiple dock pages, page indicators, wallpaper behavior, precise placement, lock enforcement across all supported placeable item types, overlapping supported elements, and adaptive layouts for different form factors.
+Future Launcher releases are intended to deepen customizable Home pages and grids, margins/padding, Dock folders and other non-app Dock item types, shortcuts, widgets, richer page indicators, wallpaper behavior, precise placement, lock enforcement across all supported placeable item types, overlapping supported elements, and adaptive layouts for different form factors. Multiple application Dock pages are already present in the current Development candidate and are not listed here as future-only scope.
 
 ## Application drawer
 

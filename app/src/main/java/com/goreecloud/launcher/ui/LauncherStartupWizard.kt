@@ -932,6 +932,11 @@ fun LauncherHomeHintCard(
                 symbol = WizardVisualSymbol.GESTURE,
             )
             WizardHintRow(
+                title = "Use Dock pages",
+                summary = "Add more favorites than fit in one row, then swipe the Dock independently of Home pages.",
+                symbol = WizardVisualSymbol.GESTURE,
+            )
+            WizardHintRow(
                 title = "Organize Apps",
                 summary = "Pin important apps and use Pinned first when you want them together.",
                 symbol = WizardVisualSymbol.APPS,

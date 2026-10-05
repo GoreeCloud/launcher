@@ -1,3 +1,15 @@
+## October 4, 2026 — adaptive paged Home Dock candidate
+
+- Added preferred 4/5/6/7 Dock items-per-page density with automatic accessibility-floor clamping.
+- Replaced unsafe unlimited single-row compression/scroll dependence with independent horizontal Dock pages, compact page indicators, explicit Previous/Next accessibility actions, and an opt-in loop-pages mode with deterministic wraparound.
+- Added optional Dock labels and an optional direct Launcher Universal Search button, including Search-only Dock rendering when no app placements are present.
+- Expanded Dock material choices to Glaze, Clear, Solid, Raised, and Edge.
+- Preserved existing ordered Dock workspace authority, Home↔Dock movement, profile identity, layout lock, and local-only persistence.
+- Added deterministic Dock page-planning tests and persisted preference coverage.
+- Added repository-native `docs/home-dock.md` with Mandatory requirement level and explicit implemented/planned boundaries.
+
+**Status:** Draft PR #239 / Development candidate. Exact-head protected validation and representative-device acceptance remain required.
+
 ## October 4, 2026 — full-bleed icon masks, consistent glyphs, and quick Apps layout switching
 
 Current Development source corrects the owner-reported icon-mask presentation defect by flattening Android adaptive-icon background/foreground layers into a full-bleed square before applying the selected Launcher mask. The mask no longer paints a visible gray backing plate, and masked app/provider artwork uses crop presentation so adaptive backgrounds fill the selected rounded-square, squircle, circle, or teardrop boundary instead of looking like an icon floating inside another shape. The shared cache keeps its existing profile badging, retry, invalidation, stale-while-revalidate, and bounded-memory behavior.
