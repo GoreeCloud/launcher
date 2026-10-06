@@ -384,8 +384,10 @@ The application drawer will support:
 - Alphabetical application list and grid modes.
 - Configurable grid density and icon size.
 - Search-first drawer behavior.
-- The App Drawer header must not contain Settings, close, or other top action buttons.
-- The App Drawer is dismissed by the supported downward gesture; Launcher-owned Settings is not opened from the drawer header.
+- The App Drawer header must provide five consistent, accessible icon actions: **Launcher Settings**, **Sort**, **Filter**, **New folder**, and **Layout**. These controls must preserve the 48 dp Launcher interaction floor, maintain a clean hierarchy, and avoid redundant text/chip rows.
+- The App Drawer is dismissed by the supported downward gesture. A separate close button is unnecessary; Launcher Settings is directly reachable from the header Settings action.
+- Discovery choices such as All, Pinned, Suggested, New, and Updated belong in the Filter menu rather than a permanent secondary chip row.
+- Alphabet navigation is optional, disabled by default, and shown only when explicitly enabled in App Drawer settings.
 - Application categories and user-created tabs.
 - User-created folders.
 - Smart folders implemented locally from deterministic rules and optional local usage signals.

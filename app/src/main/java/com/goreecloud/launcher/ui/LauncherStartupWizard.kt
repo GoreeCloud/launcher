@@ -761,52 +761,52 @@ private fun WizardGestureStrip() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusLarge),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.16f),
-        border = null,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f),
+        ),
     ) {
         Row(
-            modifier = Modifier.padding(6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             listOf(
                 Triple("Swipe up", "Apps", WizardVisualSymbol.APPS),
                 Triple("Swipe down", "Search", WizardVisualSymbol.SEARCH),
                 Triple("Hold", "Edit", WizardVisualSymbol.EDIT),
             ).forEach { (gesture, destination, symbol) ->
-                Surface(
+                Row(
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 44.dp),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
-                        GlazeMetrics.radiusMedium,
-                    ),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.76f),
+                        .heightIn(min = 48.dp)
+                        .padding(horizontal = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    WizardVisualGlyph(
+                        symbol = symbol,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(1.dp),
                     ) {
-                        WizardVisualGlyph(
-                            symbol = symbol,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp),
+                        Text(
+                            gesture,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
                         )
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                gesture,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                            Text(
-                                destination,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                            )
-                        }
+                        Text(
+                            destination,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -846,43 +846,55 @@ fun LauncherHomeHintCard(
     Surface(
         modifier = modifier.widthIn(max = 560.dp),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.97f),
         border = BorderStroke(
             1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.70f),
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.38f),
         ),
-        shadowElevation = 4.dp,
+        shadowElevation = 2.dp,
     ) {
         Column(
-            modifier = Modifier.padding(GlazeMetrics.space3),
-            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+            modifier = Modifier.padding(GlazeMetrics.space4),
+            verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
         ) {
-            Text(
-                "Launcher hints",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    "Launcher hints",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    "Core gestures and organization",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             WizardGestureStrip()
-            WizardHintRow(
-                title = "Place precisely",
-                summary = "Hold an app, widget, or folder and drag it to a Home cell or Dock position.",
-                symbol = WizardVisualSymbol.EDIT,
-            )
-            WizardHintRow(
-                title = "Move across pages",
-                summary = "Keep holding at a page edge to switch pages, then release on the target.",
-                symbol = WizardVisualSymbol.GESTURE,
-            )
-            WizardHintRow(
-                title = "Use Dock pages",
-                summary = "Add more favorites than fit in one row, then swipe the Dock independently of Home pages.",
-                symbol = WizardVisualSymbol.GESTURE,
-            )
-            WizardHintRow(
-                title = "Organize Apps",
-                summary = "Use pins, tabs, folders, and local Smart Folders to organize larger app libraries.",
-                symbol = WizardVisualSymbol.APPS,
-            )
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space3),
+            ) {
+                WizardHintRow(
+                    title = "Place precisely",
+                    summary = "Hold an app, widget, or folder and drag it to a Home cell or Dock position.",
+                    symbol = WizardVisualSymbol.EDIT,
+                )
+                WizardHintRow(
+                    title = "Move across pages",
+                    summary = "Keep holding at a page edge to switch pages, then release on the target.",
+                    symbol = WizardVisualSymbol.GESTURE,
+                )
+                WizardHintRow(
+                    title = "Use Dock pages",
+                    summary = "Add more favorites than fit in one row, then swipe the Dock independently of Home pages.",
+                    symbol = WizardVisualSymbol.GESTURE,
+                )
+                WizardHintRow(
+                    title = "Organize Apps",
+                    summary = "Use pins, tabs, folders, and local Smart Folders to organize larger app libraries.",
+                    symbol = WizardVisualSymbol.APPS,
+                )
+            }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End,
@@ -901,44 +913,39 @@ private fun WizardHintRow(
     summary: String,
     symbol: WizardVisualSymbol,
 ) {
-    Surface(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusMedium),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        Surface(
+            modifier = Modifier.size(36.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
         ) {
-            Surface(
-                modifier = Modifier.size(28.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusPill),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    WizardVisualGlyph(
-                        symbol = symbol,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-            }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(1.dp),
-            ) {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    summary,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(contentAlignment = Alignment.Center) {
+                WizardVisualGlyph(
+                    symbol = symbol,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
                 )
             }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                summary,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

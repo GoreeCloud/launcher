@@ -24,7 +24,7 @@ The Drawer supports or is required to support:
 - Alphabetical, reverse alphabetical, local most-recent, local most-frequent, and pinned-first ordering.
 - Fast application search.
 
-Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. Protected PR #243 integrated profile-aware **Recently installed** ordering using Android LauncherActivityInfo first-install time plus a 48 dp alphabetical jump index for the ordinary A-Z List view. Protected PR #245 integrated **Recently updated** ordering and the compact discovery-filter row for **All / Pinned / Suggested / New / Updated**. The current Settings architecture candidate makes **Suggested** explicitly opt-in and disabled by default while leaving Pinned/New/Updated available without usage-derived ranking.
+Current Development source implements Grid, Compact, List, Category, persisted presentation settings, sort controls, local app search, page/scroll navigation, stable grid geometry, and profile pages. Protected PR #243 integrated profile-aware **Recently installed** ordering using Android LauncherActivityInfo first-install time plus a 48 dp alphabetical jump index for the ordinary A-Z List view. Protected PR #245 integrated **Recently updated** ordering and bounded discovery filters. The current Development continuation moves **All / Pinned / Suggested / New / Updated** into a dedicated Filter menu in the App Drawer header so the app grid remains the visual focus. **Suggested** remains explicitly opt-in and disabled by default while Pinned/New/Updated remain available without usage-derived ranking.
 
 ## Universal Search relationship
 
@@ -92,7 +92,7 @@ The Drawer separates User Apps and Work Apps when applicable. Organizational sta
 
 Local **Most recent** and **Most frequent** ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.
 
-Current Development includes a compact discovery row:
+Current Development exposes these choices from the header **Filter** action:
 
 - **All** — the current profile/tab inventory.
 - **Pinned** — exact profile-qualified Launcher pins.
@@ -172,11 +172,19 @@ The Drawer uses GoreeCloud Glaze rather than imitating another launcher. Rounded
 
 ## Header philosophy
 
-The primary Drawer surface is for applications, organization, and search. General Launcher configuration belongs in Edit Home or Launcher Settings.
+The primary Drawer surface remains focused on applications, organization, and search, but the owner-directed header provides a compact five-action toolbar with equal accessible targets:
+
+- **Launcher Settings** — opens Launcher Settings directly.
+- **Sort** — opens ordering choices.
+- **Filter** — opens All/Pinned/Suggested/New/Updated choices without a permanent chip row.
+- **New folder** — starts profile-appropriate Drawer folder management when available.
+- **Layout** — cycles the supported Drawer layouts.
+
+A separate close button is unnecessary because the supported downward gesture dismisses Apps. Alphabet navigation is not shown by default; users may explicitly enable it from App Drawer settings.
 
 Hierarchy:
 
-App Drawer -> applications and organization
+App Drawer -> applications, organization, and compact Drawer controls
 
 Universal Search -> broad search and actions
 

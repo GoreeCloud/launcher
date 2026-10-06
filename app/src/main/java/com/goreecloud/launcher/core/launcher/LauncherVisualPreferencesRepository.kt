@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -49,6 +50,7 @@ enum class LauncherDrawerHeaderPresentation(
 
 data class LauncherVisualPreferences(
     val starterDockSize: Int = 5,
+    val showDrawerAlphabetIndex: Boolean = false,
     val homePageTransition: LauncherHomePageTransition = LauncherHomePageTransition.SLIDE,
     val drawerHeaderPresentation: LauncherDrawerHeaderPresentation =
         LauncherDrawerHeaderPresentation.ICONS,
@@ -61,6 +63,7 @@ class LauncherVisualPreferencesRepository(
 
     private object Keys {
         val starterDockSize = intPreferencesKey("starter_dock_size_v1")
+        val drawerAlphabetIndex = booleanPreferencesKey("drawer_alphabet_index_v1")
         val homePageTransition = stringPreferencesKey("home_page_transition_v1")
         val drawerHeaderPresentation = stringPreferencesKey("drawer_header_presentation_v1")
     }
@@ -71,6 +74,7 @@ class LauncherVisualPreferencesRepository(
         .map { values ->
             LauncherVisualPreferences(
                 starterDockSize = (values[Keys.starterDockSize] ?: 5).coerceIn(4, 6),
+                showDrawerAlphabetIndex = values[Keys.drawerAlphabetIndex] ?: false,
                 homePageTransition =
                     LauncherHomePageTransition.fromStorage(values[Keys.homePageTransition]),
                 drawerHeaderPresentation =
@@ -84,6 +88,12 @@ class LauncherVisualPreferencesRepository(
     suspend fun setStarterDockSize(size: Int) {
         dataStore.edit { values ->
             values[Keys.starterDockSize] = size.coerceIn(4, 6)
+        }
+    }
+
+    fun setDrawerAlphabetIndex(enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { values -> values[Keys.drawerAlphabetIndex] = enabled }
         }
     }
 

@@ -98,13 +98,13 @@ class LauncherHomeTilePresentationPolicyTest {
 
     @Test
     fun `Dock width stays compact while preserving room for common densities`() {
-        assertEquals(0.38f, launcherDockWidthFraction(appCount = 1, showSearch = false))
-        assertEquals(0.48f, launcherDockWidthFraction(appCount = 2, showSearch = false))
-        assertEquals(0.60f, launcherDockWidthFraction(appCount = 3, showSearch = false))
-        assertEquals(0.72f, launcherDockWidthFraction(appCount = 4, showSearch = false))
-        assertEquals(0.84f, launcherDockWidthFraction(appCount = 5, showSearch = false))
-        assertEquals(0.90f, launcherDockWidthFraction(appCount = 6, showSearch = false))
-        assertEquals(0.90f, launcherDockWidthFraction(appCount = 2, showSearch = true))
+        assertEquals(0.32f, launcherDockWidthFraction(appCount = 1, showSearch = false))
+        assertEquals(0.40f, launcherDockWidthFraction(appCount = 2, showSearch = false))
+        assertEquals(0.50f, launcherDockWidthFraction(appCount = 3, showSearch = false))
+        assertEquals(0.62f, launcherDockWidthFraction(appCount = 4, showSearch = false))
+        assertEquals(0.72f, launcherDockWidthFraction(appCount = 5, showSearch = false))
+        assertEquals(0.82f, launcherDockWidthFraction(appCount = 6, showSearch = false))
+        assertEquals(0.82f, launcherDockWidthFraction(appCount = 2, showSearch = true))
     }
 
     @Test

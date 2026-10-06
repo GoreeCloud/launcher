@@ -884,7 +884,7 @@ class ActivatedHomeLifecycleRuntimeTest {
     }
 
     @Test
-    fun swipeUpOpensDrawerAndSwipeDownDismissesWithoutHeaderActions() = runBlocking {
+    fun swipeUpOpensDrawerWithFiveHeaderActionsAndSwipeDownDismisses() = runBlocking {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val context = instrumentation.targetContext
         val roleManager = context.getSystemService(RoleManager::class.java)
@@ -1011,16 +1011,17 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .fetchSemanticsNodes()
                         .isEmpty(),
                 )
-                check(
-                    composeRule.onAllNodesWithText("⚙", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isEmpty(),
-                )
-                check(
-                    composeRule.onAllNodesWithText("⌄", useUnmergedTree = true)
-                        .fetchSemanticsNodes()
-                        .isEmpty(),
-                )
+                listOf(
+                    "launcher-drawer-settings",
+                    "launcher-drawer-sort-order",
+                    "launcher-drawer-filter",
+                    "launcher-drawer-new-folder",
+                    "launcher-drawer-layout-mode",
+                ).forEach { tag ->
+                    composeRule
+                        .onNodeWithTag(tag, useUnmergedTree = true)
+                        .assertIsDisplayed()
+                }
 
                 // The Drawer intentionally leaves composition as soon as its downward
                 // dismissal threshold is crossed. Inject this gesture at the Android input layer
@@ -2409,8 +2410,11 @@ class ActivatedHomeLifecycleRuntimeTest {
         // remove-role-holder transition is still settling back to Quickstep. Reassert the
         // desired holder idempotently before each HOME-dependent case, then let the caller's
         // pre-test ownership snapshot decide whether teardown removes it.
+        // Bound the shell-side role mutation itself. A stalled RoleManager shell service can
+        // otherwise keep FileInputStream.readBytes() waiting for EOF until the outer CI watchdog,
+        // hiding the real test and preventing the remaining runtime suite from executing.
         runShellCommand(
-            "cmd role add-role-holder ${RoleManager.ROLE_HOME} $packageName",
+            "toybox timeout 8 cmd role add-role-holder ${RoleManager.ROLE_HOME} $packageName",
         )
         withTimeout(10_000) {
             while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
@@ -2424,7 +2428,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         packageName: String,
     ) {
         runShellCommand(
-            "cmd role remove-role-holder ${RoleManager.ROLE_HOME} $packageName",
+            "toybox timeout 8 cmd role remove-role-holder ${RoleManager.ROLE_HOME} $packageName",
         )
         withTimeout(10_000) {
             while (roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {

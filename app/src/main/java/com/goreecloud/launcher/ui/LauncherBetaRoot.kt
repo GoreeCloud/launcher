@@ -308,13 +308,13 @@ internal fun launcherDockWidthFraction(
     appCount: Int,
     showSearch: Boolean,
 ): Float = when {
-    showSearch -> 0.90f
-    appCount.coerceAtLeast(0) <= 1 -> 0.38f
-    appCount == 2 -> 0.48f
-    appCount == 3 -> 0.60f
-    appCount == 4 -> 0.72f
-    appCount == 5 -> 0.84f
-    else -> 0.90f
+    showSearch -> 0.82f
+    appCount.coerceAtLeast(0) <= 1 -> 0.32f
+    appCount == 2 -> 0.40f
+    appCount == 3 -> 0.50f
+    appCount == 4 -> 0.62f
+    appCount == 5 -> 0.72f
+    else -> 0.82f
 }
 
 internal fun launcherHomeSearchHeightDp(
@@ -1580,6 +1580,10 @@ fun LauncherBetaRoot(
                 },
                 onSetSortOrderName = onSetDrawerSortOrderName,
                 onSetDrawerLayoutMode = onSetDrawerLayoutMode,
+                onOpenSettings = {
+                    drawerSearchRequested = false
+                    surfaceModeName = LauncherSurfaceMode.SETTINGS.name
+                },
                 onCreateDrawerTab = onCreateDrawerTab,
                 onRenameDrawerTab = onRenameDrawerTab,
                 onDeleteDrawerTab = onDeleteDrawerTab,
@@ -5932,7 +5936,7 @@ private fun GlazeActionChip(
         color = when (resolvedPresentation.materialRole) {
             GlazeV16MaterialRole.SOLID -> MaterialTheme.colorScheme.surface
             GlazeV16MaterialRole.RAISED -> MaterialTheme.colorScheme.surface.copy(alpha = 0.97f)
-            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.64f)
+            else -> MaterialTheme.colorScheme.surface.copy(alpha = 0.52f)
         },
         border = BorderStroke(
             1.dp,
@@ -7026,6 +7030,7 @@ private fun AppDrawerSurface(
     onManageFolders: (Int) -> Unit,
     onSetSortOrderName: (String?) -> Unit,
     onSetDrawerLayoutMode: (LauncherDrawerLayoutMode) -> Unit,
+    onOpenSettings: () -> Unit,
     onCreateDrawerTab: (String) -> Unit,
     onRenameDrawerTab: (String, String) -> Unit,
     onDeleteDrawerTab: (String) -> Unit,
@@ -7155,9 +7160,6 @@ private fun AppDrawerSurface(
     val drawerVisualPreferences by drawerVisualPreferencesRepository.preferences.collectAsState(
         initial = LauncherVisualPreferences(),
     )
-    val useDrawerHeaderIcons =
-        drawerVisualPreferences.drawerHeaderPresentation ==
-            LauncherDrawerHeaderPresentation.ICONS
     LaunchedEffect(
         selectedPage.kind,
         selectedPage.items.map { it.workspaceKey() },
@@ -7180,7 +7182,7 @@ private fun AppDrawerSurface(
         MaterialTheme.colorScheme.background
     }
     val drawerSecondaryColor = if (glass) {
-        Color.White.copy(alpha = 0.68f)
+        Color.White.copy(alpha = 0.84f)
     } else {
         MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -7346,12 +7348,11 @@ private fun AppDrawerSurface(
                     Spacer(Modifier.height(GlazeMetrics.space2))
                 }
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                    verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Column {
                         Text(
                             if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
                                 "Apps"
@@ -7376,9 +7377,25 @@ private fun AppDrawerSurface(
                         )
                     }
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("launcher-drawer-header-actions"),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Surface(
+                            onClick = onOpenSettings,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .testTag("launcher-drawer-settings")
+                                .semantics { contentDescription = "Launcher settings" },
+                            shape = CircleShape,
+                            color = Color.Transparent,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                LauncherDrawerSettingsIcon(color = drawerSecondaryColor)
+                            }
+                        }
                         Box {
                             Surface(
                                 onClick = { showDrawerSortMenu = true },
@@ -7393,21 +7410,12 @@ private fun AppDrawerSurface(
                                 color = Color.Transparent,
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
-                                    if (useDrawerHeaderIcons) {
-                                        LauncherDrawerSortIcon(
-                                            ascending =
-                                                drawerSortOrder !=
-                                                    LauncherDrawerSortOrder.REVERSE_ALPHABETICAL,
-                                            color = drawerSecondaryColor,
-                                        )
-                                    } else {
-                                        Text(
-                                            drawerSortOrder.displayName,
-                                            color = drawerSecondaryColor,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            maxLines = 1,
-                                        )
-                                    }
+                                    LauncherDrawerSortIcon(
+                                        ascending =
+                                            drawerSortOrder !=
+                                                LauncherDrawerSortOrder.REVERSE_ALPHABETICAL,
+                                        color = drawerSecondaryColor,
+                                    )
                                 }
                             }
                             DropdownMenu(
@@ -7457,6 +7465,40 @@ private fun AppDrawerSurface(
                                 }
                             }
                         }
+                        LauncherDrawerDiscoveryFiltersRow(
+                            selectedFilter = discoveryFilter,
+                            pinnedAvailable = pinnedAppKeys.isNotEmpty(),
+                            suggestionsEnabled = experiencePreferences.showDrawerSuggestions,
+                            secondaryColor = drawerSecondaryColor,
+                            chooseFilter = { filter -> discoveryFilterName = filter.name },
+                            modifier = Modifier.size(48.dp),
+                        )
+                        val newFolderEnabled =
+                            drawerQuery.isBlank() && folderCreationProfileId != null
+                        Surface(
+                            onClick = {
+                                folderCreationProfileId?.let(onManageFolders)
+                            },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .testTag("launcher-drawer-new-folder")
+                                .semantics {
+                                    contentDescription = "New folder"
+                                    stateDescription =
+                                        if (newFolderEnabled) "Available" else "Unavailable"
+                                },
+                            enabled = newFolderEnabled,
+                            shape = CircleShape,
+                            color = Color.Transparent,
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                LauncherDrawerNewFolderIcon(
+                                    color = drawerSecondaryColor.copy(
+                                        alpha = if (newFolderEnabled) 1f else 0.40f,
+                                    ),
+                                )
+                            }
+                        }
                         Surface(
                             onClick = {
                                 onSetDrawerLayoutMode(
@@ -7464,7 +7506,7 @@ private fun AppDrawerSurface(
                                 )
                             },
                             modifier = Modifier
-                                .size(if (useDrawerHeaderIcons) 48.dp else 76.dp)
+                                .size(48.dp)
                                 .testTag("launcher-drawer-layout-mode")
                                 .semantics {
                                     contentDescription = "Change Apps layout"
@@ -7474,45 +7516,10 @@ private fun AppDrawerSurface(
                             color = Color.Transparent,
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                if (useDrawerHeaderIcons) {
-                                    LauncherDrawerLayoutIcon(
-                                        mode = drawerLayoutMode,
-                                        color = drawerSecondaryColor,
-                                    )
-                                } else {
-                                    Text(
-                                        "Layout",
-                                        color = drawerSecondaryColor,
-                                        style = MaterialTheme.typography.labelLarge,
-                                        maxLines = 1,
-                                    )
-                                }
-                            }
-                        }
-                        if (
-                            drawerQuery.isBlank() &&
-                            folderCreationProfileId != null
-                        ) {
-                            Surface(
-                                onClick = { onManageFolders(folderCreationProfileId) },
-                                modifier = Modifier
-                                    .size(if (useDrawerHeaderIcons) 48.dp else 92.dp)
-                                    .semantics { contentDescription = "New folder" },
-                                shape = CircleShape,
-                                color = Color.Transparent,
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    if (useDrawerHeaderIcons) {
-                                        LauncherDrawerNewFolderIcon(color = drawerSecondaryColor)
-                                    } else {
-                                        Text(
-                                            "New folder",
-                                            color = drawerSecondaryColor,
-                                            style = MaterialTheme.typography.labelLarge,
-                                            maxLines = 1,
-                                        )
-                                    }
-                                }
+                                LauncherDrawerLayoutIcon(
+                                    mode = drawerLayoutMode,
+                                    color = drawerSecondaryColor,
+                                )
                             }
                         }
                     }
@@ -7557,13 +7564,6 @@ private fun AppDrawerSurface(
                         discoveryFilterName = LauncherDrawerDiscoveryFilter.ALL.name
                     }
                 }
-                LauncherDrawerDiscoveryFiltersRow(
-                    selectedFilter = discoveryFilter,
-                    pinnedAvailable = pinnedAppKeys.isNotEmpty(),
-                    suggestionsEnabled = experiencePreferences.showDrawerSuggestions,
-                    secondaryColor = drawerSecondaryColor,
-                    chooseFilter = { filter -> discoveryFilterName = filter.name },
-                )
                 if (
                     discoveryFilter == LauncherDrawerDiscoveryFilter.SUGGESTED &&
                     recentAppKeys.isEmpty() &&
@@ -7742,6 +7742,7 @@ private fun AppDrawerSurface(
                             onOpenSmartFolder = { kind -> selectedSmartFolderKindName = kind.name },
                             onDismiss = onHome,
                             secondaryColor = drawerSecondaryColor,
+                            showAlphabetIndex = drawerVisualPreferences.showDrawerAlphabetIndex,
                             allowHorizontalPaging = profilePages.size == 1,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -8194,6 +8195,7 @@ private fun DrawerAppsContent(
     onOpenSmartFolder: (LauncherDrawerSmartFolderKind) -> Unit,
     onDismiss: () -> Unit,
     secondaryColor: Color,
+    showAlphabetIndex: Boolean = false,
     allowHorizontalPaging: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
@@ -8367,7 +8369,7 @@ private fun DrawerAppsContent(
             }
             Column(modifier = modifier.fillMaxWidth()) {
                 DrawerAlphabetIndex(
-                    targets = alphabetTargets,
+                    targets = if (showAlphabetIndex) alphabetTargets else emptyList(),
                     secondaryColor = secondaryColor,
                     onJumpToIndex = { index ->
                         alphabetJumpRequest = index to ((alphabetJumpRequest?.second ?: 0) + 1)
@@ -8409,7 +8411,7 @@ private fun DrawerAppsContent(
             val alphabetScope = rememberCoroutineScope()
             Column(modifier = modifier.fillMaxWidth()) {
                 DrawerAlphabetIndex(
-                    targets = alphabetTargets,
+                    targets = if (showAlphabetIndex) alphabetTargets else emptyList(),
                     secondaryColor = secondaryColor,
                     onJumpToIndex = { index ->
                         alphabetScope.launch { gridState.animateScrollToItem(index) }
@@ -8473,7 +8475,7 @@ private fun DrawerAppsContent(
 
             Column(modifier = modifier.fillMaxWidth()) {
                 DrawerAlphabetIndex(
-                    targets = alphabetTargets,
+                    targets = if (showAlphabetIndex) alphabetTargets else emptyList(),
                     secondaryColor = secondaryColor,
                     onJumpToIndex = { index ->
                         alphabetScope.launch { listState.animateScrollToItem(index) }
@@ -9276,9 +9278,18 @@ private fun LauncherSettingsRootSurface(
                         category.summary.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
                         category.keywords.lowercase(Locale.getDefault()).contains(normalizedQuery)
                 }
-                Column(
+                Surface(
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.92f),
+                    border = BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.34f),
+                    ),
+                    tonalElevation = 0.dp,
+                    shadowElevation = 1.dp,
                 ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         visibleCategories.forEachIndexed { index, category ->
                             LauncherSettingsOverviewRow(
                                 category = category,
@@ -9290,7 +9301,7 @@ private fun LauncherSettingsRootSurface(
                             if (index != visibleCategories.lastIndex) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = GlazeMetrics.space3),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.40f),
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.32f),
                                 )
                             }
                         }
@@ -9303,6 +9314,7 @@ private fun LauncherSettingsRootSurface(
                             )
                         }
                     }
+                }
             }
 
             SettingsSection(
@@ -9689,23 +9701,10 @@ private fun LauncherSettingsRootSurface(
                             ?.let { onSetDrawerSortOrderName(it.name) }
                     },
                 )
-                Text(
-                    "Header actions",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                ChoiceRow(
-                    choices = listOf("Icons", "Words"),
-                    selected = settingsVisualPreferences.drawerHeaderPresentation.displayName,
-                    onChoice = { choice ->
-                        settingsVisualPreferencesRepository.setDrawerHeaderPresentation(
-                            if (choice == "Words") {
-                                LauncherDrawerHeaderPresentation.WORDS
-                            } else {
-                                LauncherDrawerHeaderPresentation.ICONS
-                            },
-                        )
-                    },
+                SettingSwitch(
+                    "Alphabet navigation",
+                    settingsVisualPreferences.showDrawerAlphabetIndex,
+                    settingsVisualPreferencesRepository::setDrawerAlphabetIndex,
                 )
                 Text(
                     "Columns",
@@ -11403,8 +11402,8 @@ internal fun GlazeDock(
                     .height(
                         when {
                             showLabels -> 96.dp
-                            style == LauncherDockStyle.EDGE -> 84.dp
-                            else -> 76.dp
+                            style == LauncherDockStyle.EDGE -> 80.dp
+                            else -> 72.dp
                         },
                     ),
             ) {
