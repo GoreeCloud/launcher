@@ -1,3 +1,13 @@
+## October 5/6, 2026 — legacy/adaptive icon optical-fill refinement candidate
+
+- Extended the shared Launcher icon rasterizer so padded legacy artwork is optically enlarged only when its visible alpha bounds occupy less than 84% of the decode canvas, targets 90% fill, and is capped at 1.24× to avoid destructive cropping.
+- Increased adaptive foreground overscan through the same mask-ready pipeline so adaptive artwork fills the selected Launcher shape without reintroducing Android/OEM mask geometry.
+- Replaced per-pixel bitmap reads in legacy alpha-bound detection with one bounded bulk pixel read plus an in-memory scan, reducing decode/preload JNI overhead without changing icon identity or cache authority.
+- Added focused JVM coverage for threshold, target-fill, invalid-geometry, and maximum-scale behavior plus Android runtime coverage proving padded legacy artwork expands while transparent corners stay transparent.
+- Preserved profile badging, icon-pack fallback, package/profile invalidation, stale-while-revalidate caching, single-flight loading, bounded memory, local-only operation, and the no-new-permission/no-network boundary.
+
+**Status:** Current-main Development candidate. Fresh exact-head protected validation and representative-device OEM/profile icon-mask visual acceptance remain required.
+
 ## October 5, 2026 — configurable vertical Home swipe sensitivity candidate
 
 The Development candidate adds **Responsive / Standard / Deliberate** sensitivity under **Settings → Gestures & Actions**. Standard preserves the current 56 dp primary/paged and 42 dp secondary compatibility thresholds. Responsive requires 25% less vertical travel; Deliberate requires 25% more.

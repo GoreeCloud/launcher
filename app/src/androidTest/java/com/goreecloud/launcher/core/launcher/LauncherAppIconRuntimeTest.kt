@@ -2,8 +2,12 @@ package com.goreecloud.launcher.core.launcher
 
 import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
 import android.graphics.Color
 import android.graphics.drawable.AdaptiveIconDrawable
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -29,6 +33,48 @@ class LauncherAppIconRuntimeTest {
         requireNotNull(bitmap)
         assertTrue(Color.alpha(bitmap.getPixel(0, 0)) > 0)
         assertTrue(Color.alpha(bitmap.getPixel(63, 63)) > 0)
+    }
+
+    @Test
+    fun paddedLegacyArtworkIsOpticallyExpandedWithoutFillingTransparentCorners() {
+        val source = Bitmap.createBitmap(64, 64, Bitmap.Config.ARGB_8888)
+        Canvas(source).drawRect(
+            16f,
+            16f,
+            48f,
+            48f,
+            Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(210, 48, 48) },
+        )
+
+        val rendered = renderLauncherMaskReadyBitmap(
+            drawable = BitmapDrawable(
+                InstrumentationRegistry.getInstrumentation().targetContext.resources,
+                source,
+            ),
+            sizePx = 64,
+        )
+        requireNotNull(rendered)
+
+        fun alphaWidth(bitmap: Bitmap): Int {
+            var left = bitmap.width
+            var right = -1
+            for (y in 0 until bitmap.height) {
+                for (x in 0 until bitmap.width) {
+                    if (Color.alpha(bitmap.getPixel(x, y)) > 8) {
+                        if (x < left) left = x
+                        if (x > right) right = x
+                    }
+                }
+            }
+            return if (right < left) 0 else right - left + 1
+        }
+
+        assertEquals(32, alphaWidth(source))
+        val normalizedWidth = alphaWidth(rendered)
+        assertTrue(normalizedWidth > 32)
+        assertTrue(normalizedWidth <= 42)
+        assertEquals(0, Color.alpha(rendered.getPixel(0, 0)))
+        assertEquals(0, Color.alpha(rendered.getPixel(63, 63)))
     }
 
     @Test

@@ -1,3 +1,13 @@
+## October 5, 2026 — legacy/adaptive icon optical-fill refinement candidate
+
+Development source extends the shared mask-ready icon pipeline to cover both adaptive and legacy artwork. Adaptive foregrounds receive bounded overscan before the selected Launcher mask is applied. Legacy drawables are rasterized to the bounded decode canvas, inspected by alpha bounds, and enlarged only when unusually padded; the normalization targets 90% visible fill below an 84% threshold and caps enlargement at 1.24×.
+
+Legacy alpha-bound inspection now performs one bounded bulk bitmap read followed by an in-memory scan instead of repeated per-pixel bitmap calls. The refinement preserves the existing profile-badged identity, icon-pack fallback, single-flight loading, package/profile invalidation, stale-while-revalidate behavior, bounded caches, and local-only privacy boundary.
+
+Focused JVM tests cover invalid/full artwork, target fill, and the safety cap. Android runtime coverage verifies synthetic padded legacy artwork grows optically without turning transparent corners opaque.
+
+**Acceptance boundary:** Development candidate only. Fresh exact-head protected source/build/runtime validation and representative-device OEM/profile icon-mask visual acceptance remain required before integration or lifecycle promotion.
+
 ## October 5, 2026 — App Drawer local discovery and update-recency candidate
 
 The current Development continuation adds a compact **All / Pinned / Suggested / New / Updated** discovery row below App Drawer tabs. **Suggested** uses only Launcher-local recent/frequent launch signals and falls back deterministically to A-Z on a true first install rather than fabricating history. **New** uses the exact profile-qualified Android launcher activity first-install timestamp. **Updated** uses Android PackageManager update metadata for the primary profile only; Work and other non-primary profiles fail closed because the public launcher API does not expose profile-qualified last-update time, preventing same-package primary-user timestamps from being borrowed.

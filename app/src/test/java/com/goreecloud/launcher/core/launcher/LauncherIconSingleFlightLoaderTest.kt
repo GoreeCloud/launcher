@@ -88,6 +88,50 @@ class LauncherIconSingleFlightLoaderTest {
     }
 
     @Test
+    fun legacyIconNormalizationLeavesInvalidOrAlreadyFullArtworkUnscaled() {
+        assertEquals(
+            1f,
+            launcherLegacyIconNormalizationScale(
+                contentWidth = 0,
+                contentHeight = 64,
+                canvasSize = 100,
+            ),
+            0.0001f,
+        )
+        assertEquals(
+            1f,
+            launcherLegacyIconNormalizationScale(
+                contentWidth = 84,
+                contentHeight = 60,
+                canvasSize = 100,
+            ),
+            0.0001f,
+        )
+    }
+
+    @Test
+    fun legacyIconNormalizationTargetsPaddedArtworkWithoutExceedingSafetyCap() {
+        assertEquals(
+            1.125f,
+            launcherLegacyIconNormalizationScale(
+                contentWidth = 80,
+                contentHeight = 60,
+                canvasSize = 100,
+            ),
+            0.0001f,
+        )
+        assertEquals(
+            1.24f,
+            launcherLegacyIconNormalizationScale(
+                contentWidth = 40,
+                contentHeight = 40,
+                canvasSize = 100,
+            ),
+            0.0001f,
+        )
+    }
+
+    @Test
     fun concurrentWaitersShareOneDecode() = runBlocking {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val loader = LauncherIconSingleFlightLoader<String, String>(scope)
