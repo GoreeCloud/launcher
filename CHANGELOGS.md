@@ -1,3 +1,9 @@
+## October 5, 2026 — configurable vertical Home swipe sensitivity candidate
+
+The Development candidate adds **Responsive / Standard / Deliberate** sensitivity under **Settings → Gestures & Actions**. Standard preserves the current 56 dp primary/paged and 42 dp secondary compatibility thresholds. Responsive requires 25% less vertical travel; Deliberate requires 25% more.
+
+The same existing Home gesture observers remain authoritative: no new gesture recognizer, action type, application-launch authority, network access, telemetry, or portable-preference field is introduced. The device-local setting only scales activation distance before the already-configured swipe-up/down action is dispatched. Focused repository coverage verifies default/fail-safe decoding, persistence, and threshold scaling. Exact-head CI and representative-device ergonomics/accessibility remain required before integration or any broader maturity claim.
+
 ## October 5, 2026 — local App Drawer discovery and update-recency candidate
 
 - Added a compact **All / Pinned / Suggested / New / Updated** discovery row below App Drawer tabs.

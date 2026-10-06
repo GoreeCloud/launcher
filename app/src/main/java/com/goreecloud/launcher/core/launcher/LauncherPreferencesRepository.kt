@@ -236,6 +236,28 @@ enum class LauncherHomeGesture(val displayName: String) {
     TAP_AND_HOLD("Tap and hold"),
 }
 
+enum class LauncherGestureSensitivity(
+    val storageValue: String,
+    val displayName: String,
+    val activationDistanceMultiplier: Float,
+) {
+    RESPONSIVE("responsive", "Responsive", 0.75f),
+    STANDARD("standard", "Standard", 1.0f),
+    DELIBERATE("deliberate", "Deliberate", 1.25f);
+
+    fun activationDistancePx(baseDistancePx: Float): Float =
+        if (baseDistancePx.isFinite() && baseDistancePx > 0f) {
+            baseDistancePx * activationDistanceMultiplier
+        } else {
+            baseDistancePx
+        }
+
+    companion object {
+        fun fromStorage(value: String?): LauncherGestureSensitivity =
+            entries.firstOrNull { it.storageValue == value } ?: STANDARD
+    }
+}
+
 enum class LauncherGestureActionType(
     val storageValue: String,
     val displayName: String,
@@ -317,6 +339,7 @@ data class LauncherExperiencePreferences(
     val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
     val iconShape: LauncherIconShape = LauncherIconShape.ROUNDED_SQUARE,
     val iconPackPackage: String? = null,
+    val gestureSensitivity: LauncherGestureSensitivity = LauncherGestureSensitivity.STANDARD,
     val swipeUpAction: LauncherGestureAction =
         LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
     val swipeDownAction: LauncherGestureAction =
@@ -398,6 +421,7 @@ class LauncherPreferencesRepository(
         val wallpaperShade = stringPreferencesKey("wallpaper_shade")
         val iconShape = stringPreferencesKey("icon_shape")
         val iconPackPackage = stringPreferencesKey("icon_pack_package")
+        val gestureSensitivity = stringPreferencesKey("gesture_sensitivity_v1")
         val gestureSwipeUpAction = stringPreferencesKey("gesture_swipe_up_action")
         val gestureSwipeDownAction = stringPreferencesKey("gesture_swipe_down_action")
         val gestureSwipeLeftAction = stringPreferencesKey("gesture_swipe_left_action")
@@ -567,6 +591,7 @@ class LauncherPreferencesRepository(
                 wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
                 iconShape = LauncherIconShape.fromStorage(values[Keys.iconShape]),
                 iconPackPackage = values[Keys.iconPackPackage]?.takeIf { it.isNotBlank() },
+                gestureSensitivity = LauncherGestureSensitivity.fromStorage(values[Keys.gestureSensitivity]),
                 swipeUpAction = LauncherGestureAction.fromStorage(
                     values[Keys.gestureSwipeUpAction],
                     LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
@@ -900,6 +925,12 @@ class LauncherPreferencesRepository(
                     values[Keys.iconPackPackage] = normalized
                 }
             }
+        }
+    }
+
+    fun setGestureSensitivity(value: LauncherGestureSensitivity): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.gestureSensitivity] = value.storageValue
         }
     }
 

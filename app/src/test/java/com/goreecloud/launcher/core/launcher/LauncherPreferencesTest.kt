@@ -446,6 +446,7 @@ class LauncherPreferencesTest {
         assertEquals(LauncherHomeSearchPlacement.BOTTOM, defaults.homeSearchPlacement)
         assertEquals(LauncherHomeSearchStyle.GLASS, defaults.homeSearchStyle)
         assertEquals(LauncherHomeSpacing.BALANCED, defaults.homeSpacing)
+        assertEquals(LauncherGestureSensitivity.STANDARD, defaults.gestureSensitivity)
         assertEquals(
             LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
             defaults.swipeUpAction,
@@ -616,6 +617,82 @@ class LauncherPreferencesTest {
 
         assertEquals("b", LauncherHomeDragPolicy.nearestTargetKey("a", 90f, 4f, targets))
         assertEquals(null, LauncherHomeDragPolicy.nearestTargetKey("a", 4f, 3f, targets))
+    }
+
+    @Test
+    fun gestureSensitivityPersistsAndStandardPreservesCurrentThresholds() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("gesture-sensitivity.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            assertEquals(
+                LauncherGestureSensitivity.STANDARD,
+                repository.experiencePreferences.first().gestureSensitivity,
+            )
+
+            repository.setGestureSensitivity(LauncherGestureSensitivity.RESPONSIVE).join()
+            assertEquals(
+                LauncherGestureSensitivity.RESPONSIVE,
+                repository.experiencePreferences.first {
+                    it.gestureSensitivity == LauncherGestureSensitivity.RESPONSIVE
+                }.gestureSensitivity,
+            )
+
+            repository.setGestureSensitivity(LauncherGestureSensitivity.DELIBERATE).join()
+            assertEquals(
+                LauncherGestureSensitivity.DELIBERATE,
+                repository.experiencePreferences.first {
+                    it.gestureSensitivity == LauncherGestureSensitivity.DELIBERATE
+                }.gestureSensitivity,
+            )
+        } finally {
+            dataStoreScope.cancel()
+        }
+
+        assertEquals(
+            56f,
+            LauncherGestureSensitivity.STANDARD.activationDistancePx(56f),
+            0f,
+        )
+        assertEquals(
+            42f,
+            LauncherGestureSensitivity.RESPONSIVE.activationDistancePx(56f),
+            0f,
+        )
+        assertEquals(
+            70f,
+            LauncherGestureSensitivity.DELIBERATE.activationDistancePx(56f),
+            0f,
+        )
+    }
+
+    @Test
+    fun gestureSensitivityStorageAndInvalidGeometryFailSafe() {
+        assertEquals(
+            LauncherGestureSensitivity.RESPONSIVE,
+            LauncherGestureSensitivity.fromStorage("responsive"),
+        )
+        assertEquals(
+            LauncherGestureSensitivity.STANDARD,
+            LauncherGestureSensitivity.fromStorage("unknown"),
+        )
+        assertEquals(
+            LauncherGestureSensitivity.STANDARD,
+            LauncherGestureSensitivity.fromStorage(null),
+        )
+        assertEquals(
+            Float.NaN,
+            LauncherGestureSensitivity.RESPONSIVE.activationDistancePx(Float.NaN),
+        )
+        assertEquals(
+            -1f,
+            LauncherGestureSensitivity.DELIBERATE.activationDistancePx(-1f),
+            0f,
+        )
     }
 
     @Test

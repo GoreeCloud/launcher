@@ -158,6 +158,7 @@ import com.goreecloud.launcher.core.launcher.launcherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
 import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.launcher.LauncherGestureAction
+import com.goreecloud.launcher.core.launcher.LauncherGestureSensitivity
 import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherFolder
 import com.goreecloud.launcher.core.launcher.LauncherFolderProfilePolicy
@@ -558,13 +559,14 @@ internal fun launcherHomePagerVerticalSwipe(
 
 internal fun Modifier.launcherHomePagerVerticalGestureNavigation(
     enabled: Boolean,
+    sensitivity: LauncherGestureSensitivity = LauncherGestureSensitivity.STANDARD,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ): Modifier {
     if (!enabled) return this
 
-    return pointerInput(enabled, onSwipeUp, onSwipeDown) {
-        val minimumDistancePx = 56.dp.toPx()
+    return pointerInput(enabled, sensitivity, onSwipeUp, onSwipeDown) {
+        val minimumDistancePx = sensitivity.activationDistancePx(56.dp.toPx())
 
         // Observe before the HorizontalPager/child gesture stack arbitrates the stream.
         // This observer never consumes changes; it only dispatches a configured Home action
@@ -856,6 +858,7 @@ fun LauncherBetaRoot(
     onSetShowDockLabels: (Boolean) -> Unit,
     onSetShowDockSearch: (Boolean) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
+    onSetGestureSensitivity: (LauncherGestureSensitivity) -> Unit = {},
     onSetGestureAction: (LauncherHomeGesture, LauncherGestureAction) -> Unit,
     onOpenWallpaperPicker: () -> Unit,
     onSurfaceModeChanged: (LauncherSurfaceMode) -> Unit,
@@ -1358,6 +1361,7 @@ fun LauncherBetaRoot(
                                 )
                                 .launcherHomePagerVerticalGestureNavigation(
                                     enabled = activeDrag == null,
+                                    sensitivity = experiencePreferences.gestureSensitivity,
                                     onSwipeUp = {
                                         dispatchPagerBoundaryGesture(
                                             experiencePreferences.swipeUpAction,
@@ -1633,6 +1637,7 @@ fun LauncherBetaRoot(
                         onSetShowDockLabels = onSetShowDockLabels,
                         onSetShowDockSearch = onSetShowDockSearch,
                         onSetWallpaperShade = onSetWallpaperShade,
+                        onSetGestureSensitivity = onSetGestureSensitivity,
                         onSetGestureAction = onSetGestureAction,
                         onOpenThemeManager = onOpenThemeManager,
                         onBack = { surfaceModeName = LauncherSurfaceMode.HOME.name },
@@ -2244,6 +2249,7 @@ private fun HomeSurface(
             )
             .launcherHomePagerVerticalGestureNavigation(
                 enabled = !horizontalPagingHostedExternally,
+                sensitivity = experiencePreferences.gestureSensitivity,
                 onSwipeUp = {
                     currentExecuteGestureAction(
                         currentGesturePreferences.swipeUpAction,
@@ -8849,7 +8855,7 @@ private enum class LauncherSettingsCategory(
     GESTURES(
         "Gestures & Actions",
         "Assign Home gestures to Launcher actions or installed apps",
-        "gestures actions swipe up down left right double tap hold pinch two finger home button notifications quick settings search app shortcut editor lock",
+        "gestures actions sensitivity responsive deliberate swipe up down left right double tap hold pinch two finger home button notifications quick settings search app shortcut editor lock",
     ),
     APPEARANCE(
         "Appearance",
@@ -9289,6 +9295,7 @@ private fun LauncherSettingsRootSurface(
     onSetShowDockLabels: (Boolean) -> Unit,
     onSetShowDockSearch: (Boolean) -> Unit,
     onSetWallpaperShade: (LauncherWallpaperShade) -> Unit,
+    onSetGestureSensitivity: (LauncherGestureSensitivity) -> Unit,
     onSetGestureAction: (LauncherHomeGesture, LauncherGestureAction) -> Unit,
     onOpenThemeManager: () -> Unit,
     onBack: () -> Unit,
@@ -10469,6 +10476,27 @@ private fun LauncherSettingsRootSurface(
                 "Assign Home gestures to Launcher actions or installed apps",
                 visible = selectedSettingsCategory == LauncherSettingsCategory.GESTURES,
             ) {
+                Text(
+                    "Vertical swipe sensitivity",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                ChoiceRow(
+                    choices = LauncherGestureSensitivity.entries.map { it.displayName },
+                    selected = experiencePreferences.gestureSensitivity.displayName,
+                    onChoice = { selected ->
+                        onSetGestureSensitivity(
+                            LauncherGestureSensitivity.entries.firstOrNull {
+                                it.displayName == selected
+                            } ?: LauncherGestureSensitivity.STANDARD,
+                        )
+                    },
+                )
+                Text(
+                    "Responsive activates swipe up/down with less travel; Deliberate requires more. Standard preserves the current Home thresholds.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 LauncherHomeGesture.entries
                     .filterNot { it == LauncherHomeGesture.TAP_AND_HOLD }
                     .forEach { gesture ->

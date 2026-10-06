@@ -299,6 +299,8 @@ GoreeCloud Search may later provide optional advanced search, semantic/query-pro
 
 Launcher settings includes a **Gestures** section for Home-surface assignments. Swipe up, Swipe down, Swipe left, Swipe right, Double-tap, and Tap and hold can each be mapped independently to None, Apps, Launcher Universal Search, Launcher settings, Home editor, Wallpaper, Theme Manager, or a currently launchable app. Defaults preserve Swipe up → Apps, Swipe down → Universal Search, and Tap and hold → Home editor. App targets resolve through Android `LauncherApps`; if a selected app is removed or unavailable in its profile, the gesture fails safely without dispatching an unvalidated intent. Swipe left/right, Double-tap, and Tap and hold apply to empty Home space so long-press drag/reorder and app placement controls remain authoritative.
 
+The Development candidate also adds **Vertical swipe sensitivity** with **Responsive**, **Standard**, and **Deliberate** choices. Standard preserves the established Home thresholds; Responsive requires 25% less vertical travel and Deliberate requires 25% more. This preference only changes when Launcher recognizes the already-configured Swipe up/down gesture—it does not change the assigned action, add a new recognizer, or expand application-launch authority.
+
 The broader personalization direction still includes icon packs, icon masking, bounded icon scaling/normalization, GoreeCloud/adaptive themed icons, icon shapes, wallpaper-derived palettes, custom colors/transparency, custom Home/Apps/folder/dock styling, additional gesture and registered-command targets, reduced-motion behavior, and high-contrast/accessibility preferences.
 
 ## Smart information and cards

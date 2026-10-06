@@ -1136,6 +1136,7 @@ class MainActivity : ComponentActivity() {
                                 !onPrimaryPage &&
                                 !showHomePageManager &&
                                 activeHomeAppDrag == null,
+                            sensitivity = experiencePreferences.gestureSensitivity,
                             onSwipeUp = {
                                 executeSecondaryHomeGesture(experiencePreferences.swipeUpAction)
                             },
@@ -1557,6 +1558,10 @@ class MainActivity : ComponentActivity() {
                             onSetShowDockLabels = launcherPreferencesRepository::setShowDockLabels,
                             onSetShowDockSearch = launcherPreferencesRepository::setShowDockSearch,
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
+                            onSetGestureSensitivity = { sensitivity ->
+                                launcherPreferencesRepository.setGestureSensitivity(sensitivity)
+                                Unit
+                            },
                             onSetGestureAction = { gesture, action ->
                                 launcherPreferencesRepository.setGestureAction(gesture, action)
                                 Unit

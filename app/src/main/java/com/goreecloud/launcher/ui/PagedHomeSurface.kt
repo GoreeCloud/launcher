@@ -85,6 +85,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.core.launcher.LauncherHomeLabelPolicy
+import com.goreecloud.launcher.core.launcher.LauncherGestureSensitivity
 import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
 import com.goreecloud.launcher.core.launcher.LauncherFolder
@@ -200,12 +201,13 @@ internal fun Modifier.homePageSwipeNavigation(
 
 internal fun Modifier.homeVerticalGestureNavigation(
     enabled: Boolean,
+    sensitivity: LauncherGestureSensitivity = LauncherGestureSensitivity.STANDARD,
     onSwipeUp: () -> Unit,
     onSwipeDown: () -> Unit,
 ): Modifier {
     if (!enabled) return this
-    return pointerInput(enabled, onSwipeUp, onSwipeDown) {
-        val threshold = 42.dp.toPx()
+    return pointerInput(enabled, sensitivity, onSwipeUp, onSwipeDown) {
+        val threshold = sensitivity.activationDistancePx(42.dp.toPx())
         var distance = 0f
         var triggered = false
         detectVerticalDragGestures(
