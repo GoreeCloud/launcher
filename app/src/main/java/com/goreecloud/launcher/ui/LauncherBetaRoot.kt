@@ -304,6 +304,19 @@ internal fun launcherDockMaterialRole(
     LauncherDockStyle.RAISED -> GlazeV16MaterialRole.RAISED
 }
 
+internal fun launcherDockWidthFraction(
+    appCount: Int,
+    showSearch: Boolean,
+): Float = when {
+    showSearch -> 0.90f
+    appCount.coerceAtLeast(0) <= 1 -> 0.38f
+    appCount == 2 -> 0.48f
+    appCount == 3 -> 0.60f
+    appCount == 4 -> 0.72f
+    appCount == 5 -> 0.84f
+    else -> 0.90f
+}
+
 internal fun launcherHomeSearchHeightDp(
     style: LauncherHomeSearchStyle,
     largeText: Boolean,
@@ -8894,205 +8907,26 @@ private fun LauncherSettingsCategoryIcon(
     category: LauncherSettingsCategory,
     color: Color,
 ) {
-    Canvas(Modifier.size(26.dp)) {
-        val u = size.minDimension
-        val stroke = 1.9.dp.toPx()
-        val outline = Stroke(
-            width = stroke,
-            cap = StrokeCap.Round,
-            join = androidx.compose.ui.graphics.StrokeJoin.Round,
-        )
-        fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
-            drawLine(
-                color = color,
-                start = Offset(u * x1, u * y1),
-                end = Offset(u * x2, u * y2),
-                strokeWidth = stroke,
-                cap = StrokeCap.Round,
-            )
-        }
-
-        when (category) {
-            LauncherSettingsCategory.HOME -> {
-                val roof = Path().apply {
-                    moveTo(u * .16f, u * .46f)
-                    lineTo(u * .50f, u * .17f)
-                    lineTo(u * .84f, u * .46f)
-                }
-                drawPath(roof, color, style = outline)
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(u * .26f, u * .42f),
-                    size = Size(u * .48f, u * .39f),
-                    cornerRadius = CornerRadius(u * .07f),
-                    style = outline,
-                )
-            }
-            LauncherSettingsCategory.DRAWER -> {
-                listOf(
-                    .20f to .20f,
-                    .56f to .20f,
-                    .20f to .56f,
-                    .56f to .56f,
-                ).forEach { (x, y) ->
-                    drawRoundRect(
-                        color = color,
-                        topLeft = Offset(u * x, u * y),
-                        size = Size(u * .24f, u * .24f),
-                        cornerRadius = CornerRadius(u * .06f),
-                        style = outline,
-                    )
-                }
-            }
-            LauncherSettingsCategory.DOCK -> {
-                line(.14f, .76f, .86f, .76f)
-                listOf(.29f, .50f, .71f).forEach { x ->
-                    drawRoundRect(
-                        color = color,
-                        topLeft = Offset(u * (x - .075f), u * .37f),
-                        size = Size(u * .15f, u * .15f),
-                        cornerRadius = CornerRadius(u * .04f),
-                        style = outline,
-                    )
-                }
-            }
-            LauncherSettingsCategory.FOLDERS -> {
-                val folder = Path().apply {
-                    moveTo(u * .13f, u * .31f)
-                    lineTo(u * .38f, u * .31f)
-                    lineTo(u * .47f, u * .22f)
-                    lineTo(u * .64f, u * .22f)
-                    lineTo(u * .70f, u * .31f)
-                    lineTo(u * .87f, u * .31f)
-                    lineTo(u * .87f, u * .79f)
-                    lineTo(u * .13f, u * .79f)
-                    close()
-                }
-                drawPath(folder, color, style = outline)
-            }
-            LauncherSettingsCategory.SEARCH -> {
-                drawCircle(
-                    color = color,
-                    radius = u * .255f,
-                    center = Offset(u * .42f, u * .42f),
-                    style = outline,
-                )
-                line(.61f, .61f, .83f, .83f)
-            }
-            LauncherSettingsCategory.WIDGETS -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(u * .14f, u * .16f),
-                    size = Size(u * .31f, u * .31f),
-                    cornerRadius = CornerRadius(u * .07f),
-                    style = outline,
-                )
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(u * .55f, u * .16f),
-                    size = Size(u * .31f, u * .52f),
-                    cornerRadius = CornerRadius(u * .07f),
-                    style = outline,
-                )
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(u * .14f, u * .57f),
-                    size = Size(u * .31f, u * .27f),
-                    cornerRadius = CornerRadius(u * .07f),
-                    style = outline,
-                )
-            }
-            LauncherSettingsCategory.GESTURES -> {
-                line(.22f, .72f, .67f, .27f)
-                line(.67f, .27f, .67f, .49f)
-                line(.67f, .27f, .45f, .27f)
-                line(.16f, .54f, .34f, .54f)
-                line(.13f, .70f, .30f, .70f)
-            }
-            LauncherSettingsCategory.APPEARANCE -> {
-                drawOval(
-                    color = color,
-                    topLeft = Offset(u * .15f, u * .20f),
-                    size = Size(u * .70f, u * .60f),
-                    style = outline,
-                )
-                drawCircle(color, radius = u * .052f, center = Offset(u * .34f, u * .39f))
-                drawCircle(color, radius = u * .052f, center = Offset(u * .53f, u * .33f))
-                drawCircle(color, radius = u * .052f, center = Offset(u * .66f, u * .49f))
-                drawCircle(
-                    color = color,
-                    radius = u * .08f,
-                    center = Offset(u * .43f, u * .62f),
-                    style = outline,
-                )
-            }
-            LauncherSettingsCategory.BADGES -> {
-                val bell = Path().apply {
-                    moveTo(u * .28f, u * .66f)
-                    quadraticBezierTo(u * .34f, u * .58f, u * .34f, u * .46f)
-                    quadraticBezierTo(u * .34f, u * .27f, u * .50f, u * .24f)
-                    quadraticBezierTo(u * .66f, u * .27f, u * .66f, u * .46f)
-                    quadraticBezierTo(u * .66f, u * .58f, u * .72f, u * .66f)
-                    lineTo(u * .28f, u * .66f)
-                }
-                drawPath(bell, color, style = outline)
-                line(.43f, .76f, .57f, .76f)
-                drawCircle(color = color, radius = u * .095f, center = Offset(u * .73f, u * .27f))
-            }
-            LauncherSettingsCategory.PRIVACY -> {
-                val shield = Path().apply {
-                    moveTo(u * .50f, u * .12f)
-                    lineTo(u * .78f, u * .23f)
-                    lineTo(u * .74f, u * .58f)
-                    quadraticBezierTo(u * .69f, u * .77f, u * .50f, u * .87f)
-                    quadraticBezierTo(u * .31f, u * .77f, u * .26f, u * .58f)
-                    lineTo(u * .22f, u * .23f)
-                    close()
-                }
-                drawPath(shield, color, style = outline)
-                drawCircle(color = color, radius = u * .055f, center = Offset(u * .50f, u * .48f))
-                line(.50f, .54f, .50f, .66f)
-            }
-            LauncherSettingsCategory.BACKUP -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(u * .18f, u * .44f),
-                    size = Size(u * .64f, u * .36f),
-                    cornerRadius = CornerRadius(u * .08f),
-                    style = outline,
-                )
-                drawArc(
-                    color = color,
-                    startAngle = 205f,
-                    sweepAngle = 235f,
-                    useCenter = false,
-                    topLeft = Offset(u * .28f, u * .12f),
-                    size = Size(u * .44f, u * .44f),
-                    style = outline,
-                )
-                line(.27f, .20f, .27f, .39f)
-                line(.27f, .20f, .45f, .20f)
-            }
-            LauncherSettingsCategory.ADVANCED -> {
-                line(.18f, .30f, .82f, .30f)
-                line(.18f, .50f, .82f, .50f)
-                line(.18f, .70f, .82f, .70f)
-                drawCircle(color = color, radius = u * .075f, center = Offset(u * .37f, u * .30f), style = outline)
-                drawCircle(color = color, radius = u * .075f, center = Offset(u * .63f, u * .50f), style = outline)
-                drawCircle(color = color, radius = u * .075f, center = Offset(u * .45f, u * .70f), style = outline)
-            }
-            LauncherSettingsCategory.ABOUT -> {
-                drawCircle(
-                    color = color,
-                    radius = u * .34f,
-                    center = Offset(u * .50f, u * .50f),
-                    style = outline,
-                )
-                drawCircle(color = color, radius = u * .035f, center = Offset(u * .50f, u * .34f))
-                line(.50f, .48f, .50f, .68f)
-            }
-        }
+    val glyph = when (category) {
+        LauncherSettingsCategory.HOME -> LauncherOutlineGlyph.HOME
+        LauncherSettingsCategory.DRAWER -> LauncherOutlineGlyph.APPS
+        LauncherSettingsCategory.DOCK -> LauncherOutlineGlyph.DOCK
+        LauncherSettingsCategory.FOLDERS -> LauncherOutlineGlyph.FOLDER
+        LauncherSettingsCategory.SEARCH -> LauncherOutlineGlyph.SEARCH
+        LauncherSettingsCategory.WIDGETS -> LauncherOutlineGlyph.WIDGETS
+        LauncherSettingsCategory.GESTURES -> LauncherOutlineGlyph.GESTURE
+        LauncherSettingsCategory.APPEARANCE -> LauncherOutlineGlyph.APPEARANCE
+        LauncherSettingsCategory.BADGES -> LauncherOutlineGlyph.BELL
+        LauncherSettingsCategory.PRIVACY -> LauncherOutlineGlyph.SHIELD
+        LauncherSettingsCategory.BACKUP -> LauncherOutlineGlyph.BACKUP
+        LauncherSettingsCategory.ADVANCED -> LauncherOutlineGlyph.SLIDERS
+        LauncherSettingsCategory.ABOUT -> LauncherOutlineGlyph.INFO
     }
+    LauncherOutlineGlyph(
+        glyph = glyph,
+        color = color,
+        modifier = Modifier.size(26.dp),
+    )
 }
 
 @Composable
@@ -9120,22 +8954,11 @@ private fun LauncherSettingsSearchField(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
         ) {
-            Canvas(Modifier.size(22.dp)) {
-                val stroke = 2.dp.toPx()
-                drawCircle(
-                    color = searchIconColor,
-                    radius = size.minDimension * 0.31f,
-                    center = Offset(size.width * 0.43f, size.height * 0.42f),
-                    style = Stroke(stroke),
-                )
-                drawLine(
-                    color = searchIconColor,
-                    start = Offset(size.width * 0.64f, size.height * 0.64f),
-                    end = Offset(size.width * 0.84f, size.height * 0.84f),
-                    strokeWidth = stroke,
-                    cap = StrokeCap.Round,
-                )
-            }
+            LauncherOutlineGlyph(
+                glyph = LauncherOutlineGlyph.SEARCH,
+                color = searchIconColor,
+                modifier = Modifier.size(22.dp),
+            )
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
@@ -9453,20 +9276,9 @@ private fun LauncherSettingsRootSurface(
                         category.summary.lowercase(Locale.getDefault()).contains(normalizedQuery) ||
                         category.keywords.lowercase(Locale.getDefault()).contains(normalizedQuery)
                 }
-                Surface(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(GlazeMetrics.radiusExtraLarge),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(
-                        1.dp,
-                        MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
-                    ),
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = GlazeMetrics.space1),
-                    ) {
                         visibleCategories.forEachIndexed { index, category ->
                             LauncherSettingsOverviewRow(
                                 category = category,
@@ -9491,7 +9303,6 @@ private fun LauncherSettingsRootSurface(
                             )
                         }
                     }
-                }
             }
 
             SettingsSection(
@@ -11557,37 +11368,47 @@ internal fun GlazeDock(
         )
     }
 
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("launcher-home-dock")
-            .onGloballyPositioned {
-                val bounds = it.boundsInRoot()
-                measuredBounds = bounds
-                onDockBoundsChanged(bounds)
-            },
-        shape = shape,
-        color = if (dockHasSurface || dockHovered) color else Color.Transparent,
-        border = if (dockHasSurface || dockHovered) border else null,
-        shadowElevation = when {
-            style == LauncherDockStyle.RAISED -> 3.dp
-            style == LauncherDockStyle.SOLID -> 1.dp
-            dockHovered && resolvedPresentation.materialRole == GlazeV16MaterialRole.RAISED -> 2.dp
-            else -> 0.dp
-        },
+    val compactWidthFraction = launcherDockWidthFraction(
+        appCount = apps.size,
+        showSearch = showSearch,
+    )
+
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
     ) {
-        BoxWithConstraints(
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(
-                    when {
-                        showLabels -> 104.dp
-                        style == LauncherDockStyle.EDGE -> 88.dp
-                        else -> 84.dp
-                    },
-                ),
+                .fillMaxWidth(compactWidthFraction)
+                .widthIn(max = 560.dp)
+                .testTag("launcher-home-dock")
+                .onGloballyPositioned {
+                    val bounds = it.boundsInRoot()
+                    measuredBounds = bounds
+                    onDockBoundsChanged(bounds)
+                },
+            shape = shape,
+            color = if (dockHasSurface || dockHovered) color else Color.Transparent,
+            border = if (dockHasSurface || dockHovered) border else null,
+            shadowElevation = when {
+                style == LauncherDockStyle.RAISED -> 3.dp
+                style == LauncherDockStyle.SOLID -> 1.dp
+                dockHovered && resolvedPresentation.materialRole == GlazeV16MaterialRole.RAISED -> 2.dp
+                else -> 0.dp
+            },
         ) {
-            val minimumSlot = resolvedPresentation.minimumInteractionTarget.coerceAtLeast(48.dp)
+            BoxWithConstraints(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(
+                        when {
+                            showLabels -> 96.dp
+                            style == LauncherDockStyle.EDGE -> 84.dp
+                            else -> 76.dp
+                        },
+                    ),
+            ) {
+                val minimumSlot = resolvedPresentation.minimumInteractionTarget.coerceAtLeast(48.dp)
             val preferredSlot = if (minimumSlot > 60.dp) minimumSlot else 60.dp
             val horizontalPadding = GlazeMetrics.space3
             val searchReservation = if (showSearch) minimumSlot + GlazeMetrics.space1 else 0.dp
@@ -11866,6 +11687,7 @@ internal fun GlazeDock(
             }
         }
     }
+}
 }
 
 @Suppress("DEPRECATION")

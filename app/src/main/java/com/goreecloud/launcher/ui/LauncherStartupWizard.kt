@@ -648,68 +648,109 @@ private fun WizardSearchPreview(
     val accent = MaterialTheme.colorScheme.primary
     val foreground = MaterialTheme.colorScheme.onSurfaceVariant
     val surface = MaterialTheme.colorScheme.surface
+    val backdrop = MaterialTheme.colorScheme.surfaceVariant
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp),
+            .height(62.dp),
     ) {
         val w = size.width
         val h = size.height
-        val stroke = 1.5.dp.toPx()
+        val stroke = 1.75.dp.toPx()
+        val iconColor = if (selected) accent else foreground
+
+        // Miniature Home canvas: one quiet surface, no nested "card in a card".
         drawRoundRect(
-            color = surface,
-            topLeft = Offset(w * 0.05f, h * 0.06f),
-            size = androidx.compose.ui.geometry.Size(w * 0.90f, h * 0.88f),
-            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.12f),
+            color = backdrop.copy(alpha = 0.34f),
+            topLeft = Offset(w * 0.035f, h * 0.03f),
+            size = androidx.compose.ui.geometry.Size(w * 0.93f, h * 0.94f),
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.20f),
         )
-        if (showSearchBar) {
+
+        // Two rows of optically consistent app placeholders.
+        repeat(6) { index ->
+            val column = index % 3
+            val row = index / 3
+            val cx = w * (0.26f + column * 0.24f)
+            val cy = h * (0.31f + row * 0.27f)
             drawRoundRect(
-                color = if (selected) accent.copy(alpha = 0.18f) else foreground.copy(alpha = 0.10f),
-                topLeft = Offset(w * 0.13f, h * 0.17f),
-                size = androidx.compose.ui.geometry.Size(w * 0.74f, h * 0.24f),
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.12f),
+                color = foreground.copy(alpha = 0.22f),
+                topLeft = Offset(cx - h * 0.075f, cy - h * 0.075f),
+                size = androidx.compose.ui.geometry.Size(h * 0.15f, h * 0.15f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.045f),
             )
+        }
+
+        if (showSearchBar) {
+            val pillLeft = w * 0.16f
+            val pillTop = h * 0.70f
+            val pillWidth = w * 0.68f
+            val pillHeight = h * 0.20f
+            drawRoundRect(
+                color = surface.copy(alpha = 0.94f),
+                topLeft = Offset(pillLeft, pillTop),
+                size = androidx.compose.ui.geometry.Size(pillWidth, pillHeight),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillHeight / 2f),
+            )
+            val center = Offset(pillLeft + pillHeight * 0.52f, pillTop + pillHeight * 0.47f)
             drawCircle(
-                color = if (selected) accent else foreground,
-                radius = h * 0.055f,
-                center = Offset(w * 0.23f, h * 0.29f),
+                color = iconColor,
+                radius = pillHeight * 0.20f,
+                center = center,
                 style = Stroke(stroke),
             )
             drawLine(
-                color = if (selected) accent else foreground,
-                start = Offset(w * 0.265f, h * 0.325f),
-                end = Offset(w * 0.30f, h * 0.36f),
+                color = iconColor,
+                start = Offset(center.x + pillHeight * 0.14f, center.y + pillHeight * 0.14f),
+                end = Offset(center.x + pillHeight * 0.28f, center.y + pillHeight * 0.28f),
                 strokeWidth = stroke,
                 cap = StrokeCap.Round,
             )
+            drawRoundRect(
+                color = foreground.copy(alpha = 0.24f),
+                topLeft = Offset(pillLeft + pillHeight * 0.95f, pillTop + pillHeight * 0.37f),
+                size = androidx.compose.ui.geometry.Size(pillWidth * 0.42f, pillHeight * 0.18f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(pillHeight * 0.09f),
+            )
         } else {
-            drawLine(
-                color = if (selected) accent else foreground,
-                start = Offset(w * 0.50f, h * 0.22f),
-                end = Offset(w * 0.50f, h * 0.54f),
-                strokeWidth = stroke * 1.4f,
-                cap = StrokeCap.Round,
-            )
-            drawLine(
-                color = if (selected) accent else foreground,
-                start = Offset(w * 0.40f, h * 0.44f),
-                end = Offset(w * 0.50f, h * 0.54f),
-                strokeWidth = stroke * 1.4f,
-                cap = StrokeCap.Round,
-            )
-            drawLine(
-                color = if (selected) accent else foreground,
-                start = Offset(w * 0.60f, h * 0.44f),
-                end = Offset(w * 0.50f, h * 0.54f),
-                strokeWidth = stroke * 1.4f,
-                cap = StrokeCap.Round,
-            )
-        }
-        repeat(4) { column ->
+            // A touch ring + motion trail conveys the real swipe gesture without a crude arrow.
+            val x = w * 0.50f
             drawCircle(
-                color = foreground.copy(alpha = 0.42f),
-                radius = h * 0.055f,
-                center = Offset(w * (0.22f + column * 0.19f), h * 0.73f),
+                color = iconColor.copy(alpha = 0.16f),
+                radius = h * 0.105f,
+                center = Offset(x, h * 0.19f),
+            )
+            drawCircle(
+                color = iconColor,
+                radius = h * 0.042f,
+                center = Offset(x, h * 0.19f),
+            )
+            drawLine(
+                color = iconColor,
+                start = Offset(x, h * 0.29f),
+                end = Offset(x, h * 0.63f),
+                strokeWidth = stroke * 1.15f,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = iconColor,
+                start = Offset(x, h * 0.63f),
+                end = Offset(x - h * 0.08f, h * 0.55f),
+                strokeWidth = stroke * 1.15f,
+                cap = StrokeCap.Round,
+            )
+            drawLine(
+                color = iconColor,
+                start = Offset(x, h * 0.63f),
+                end = Offset(x + h * 0.08f, h * 0.55f),
+                strokeWidth = stroke * 1.15f,
+                cap = StrokeCap.Round,
+            )
+            drawRoundRect(
+                color = surface.copy(alpha = 0.90f),
+                topLeft = Offset(w * 0.28f, h * 0.72f),
+                size = androidx.compose.ui.geometry.Size(w * 0.44f, h * 0.12f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(h * 0.06f),
             )
         }
     }
@@ -720,11 +761,8 @@ private fun WizardGestureStrip() {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = androidx.compose.foundation.shape.RoundedCornerShape(GlazeMetrics.radiusLarge),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.24f),
-        border = BorderStroke(
-            1.dp,
-            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.62f),
-        ),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.16f),
+        border = null,
     ) {
         Row(
             modifier = Modifier.padding(6.dp),
@@ -782,118 +820,22 @@ private fun WizardVisualGlyph(
     tint: Color,
     modifier: Modifier = Modifier,
 ) {
-    Canvas(modifier.size(22.dp)) {
-        val u = size.minDimension
-        val stroke = u * 0.08f
-        val cap = StrokeCap.Round
-        fun line(x1: Float, y1: Float, x2: Float, y2: Float) {
-            drawLine(
-                tint,
-                Offset(u * x1, u * y1),
-                Offset(u * x2, u * y2),
-                stroke,
-                cap = cap,
-            )
-        }
-        when (symbol) {
-            WizardVisualSymbol.HOME -> {
-                line(0.18f, 0.50f, 0.50f, 0.20f)
-                line(0.50f, 0.20f, 0.82f, 0.50f)
-                line(0.28f, 0.44f, 0.28f, 0.82f)
-                line(0.72f, 0.44f, 0.72f, 0.82f)
-                line(0.28f, 0.82f, 0.72f, 0.82f)
-            }
-            WizardVisualSymbol.PRIVACY -> {
-                val path = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(u * 0.50f, u * 0.10f)
-                    lineTo(u * 0.78f, u * 0.22f)
-                    lineTo(u * 0.74f, u * 0.58f)
-                    lineTo(u * 0.50f, u * 0.88f)
-                    lineTo(u * 0.26f, u * 0.58f)
-                    lineTo(u * 0.22f, u * 0.22f)
-                    close()
-                }
-                drawPath(path, tint, style = Stroke(stroke))
-            }
-            WizardVisualSymbol.APPS -> {
-                listOf(
-                    0.18f to 0.18f,
-                    0.57f to 0.18f,
-                    0.18f to 0.57f,
-                    0.57f to 0.57f,
-                ).forEach { (x, y) ->
-                    drawRoundRect(
-                        tint,
-                        Offset(u * x, u * y),
-                        androidx.compose.ui.geometry.Size(u * 0.25f, u * 0.25f),
-                        androidx.compose.ui.geometry.CornerRadius(u * 0.05f),
-                    )
-                }
-            }
-            WizardVisualSymbol.WIDGETS -> {
-                drawRoundRect(
-                    tint,
-                    Offset(u * 0.14f, u * 0.18f),
-                    androidx.compose.ui.geometry.Size(u * 0.72f, u * 0.64f),
-                    androidx.compose.ui.geometry.CornerRadius(u * 0.10f),
-                    style = Stroke(stroke),
-                )
-                line(0.25f, 0.42f, 0.75f, 0.42f)
-                line(0.25f, 0.60f, 0.60f, 0.60f)
-            }
-            WizardVisualSymbol.FOLDER -> {
-                val path = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(u * 0.12f, u * 0.32f)
-                    lineTo(u * 0.40f, u * 0.32f)
-                    lineTo(u * 0.48f, u * 0.42f)
-                    lineTo(u * 0.88f, u * 0.42f)
-                    lineTo(u * 0.84f, u * 0.78f)
-                    lineTo(u * 0.12f, u * 0.78f)
-                    close()
-                }
-                drawPath(path, tint, style = Stroke(stroke))
-            }
-            WizardVisualSymbol.SEARCH -> {
-                drawCircle(
-                    tint,
-                    radius = u * 0.24f,
-                    center = Offset(u * 0.43f, u * 0.43f),
-                    style = Stroke(stroke),
-                )
-                line(0.60f, 0.60f, 0.84f, 0.84f)
-            }
-            WizardVisualSymbol.LOCK -> {
-                drawRoundRect(
-                    tint,
-                    Offset(u * 0.24f, u * 0.44f),
-                    androidx.compose.ui.geometry.Size(u * 0.52f, u * 0.38f),
-                    androidx.compose.ui.geometry.CornerRadius(u * 0.08f),
-                    style = Stroke(stroke),
-                )
-                drawArc(
-                    color = tint,
-                    startAngle = 180f,
-                    sweepAngle = 180f,
-                    useCenter = false,
-                    topLeft = Offset(u * 0.31f, u * 0.17f),
-                    size = androidx.compose.ui.geometry.Size(u * 0.38f, u * 0.46f),
-                    style = Stroke(stroke),
-                )
-            }
-            WizardVisualSymbol.GESTURE -> {
-                line(0.50f, 0.82f, 0.50f, 0.20f)
-                line(0.50f, 0.20f, 0.32f, 0.38f)
-                line(0.50f, 0.20f, 0.68f, 0.38f)
-            }
-            WizardVisualSymbol.EDIT -> {
-                line(0.25f, 0.74f, 0.68f, 0.31f)
-                line(0.68f, 0.31f, 0.78f, 0.41f)
-                line(0.78f, 0.41f, 0.35f, 0.84f)
-                line(0.25f, 0.74f, 0.35f, 0.84f)
-                line(0.24f, 0.86f, 0.40f, 0.82f)
-            }
-        }
+    val glyph = when (symbol) {
+        WizardVisualSymbol.HOME -> LauncherOutlineGlyph.HOME
+        WizardVisualSymbol.PRIVACY -> LauncherOutlineGlyph.SHIELD
+        WizardVisualSymbol.APPS -> LauncherOutlineGlyph.APPS
+        WizardVisualSymbol.WIDGETS -> LauncherOutlineGlyph.WIDGETS
+        WizardVisualSymbol.FOLDER -> LauncherOutlineGlyph.FOLDER
+        WizardVisualSymbol.SEARCH -> LauncherOutlineGlyph.SEARCH
+        WizardVisualSymbol.LOCK -> LauncherOutlineGlyph.LOCK
+        WizardVisualSymbol.GESTURE -> LauncherOutlineGlyph.GESTURE
+        WizardVisualSymbol.EDIT -> LauncherOutlineGlyph.EDIT
     }
+    LauncherOutlineGlyph(
+        glyph = glyph,
+        color = tint,
+        modifier = modifier.size(22.dp),
+    )
 }
 
 @Composable

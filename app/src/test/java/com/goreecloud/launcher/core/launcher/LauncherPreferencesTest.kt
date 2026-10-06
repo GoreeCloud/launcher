@@ -25,7 +25,7 @@ class LauncherPreferencesTest {
 
         try {
             var experience = repository.experiencePreferences.first()
-            assertEquals(LauncherDockStyle.GLASS, experience.dockStyle)
+            assertEquals(LauncherDockStyle.CLEAR, experience.dockStyle)
             assertEquals(5, experience.dockPageSize)
             assertFalse(experience.dockLoopPages)
             assertFalse(experience.showDockLabels)
@@ -432,7 +432,7 @@ class LauncherPreferencesTest {
         assertEquals(0, defaults.startupWizardStep)
         assertFalse(defaults.startupWizardCompleted)
         assertFalse(defaults.homeHintsDismissed)
-        assertEquals(LauncherDockStyle.GLASS, defaults.dockStyle)
+        assertEquals(LauncherDockStyle.CLEAR, defaults.dockStyle)
         assertEquals(LauncherWallpaperShade.SOFT, defaults.wallpaperShade)
         assertEquals(LauncherIconShape.ROUNDED_SQUARE, defaults.iconShape)
         assertEquals(null, defaults.iconPackPackage)
@@ -477,7 +477,7 @@ class LauncherPreferencesTest {
     fun visualPreferenceStorageDecodingFailsSafe() {
         assertEquals(LauncherDockStyle.CLEAR, LauncherDockStyle.fromStorage("clear"))
         assertEquals(LauncherDockStyle.EDGE, LauncherDockStyle.fromStorage("edge"))
-        assertEquals(LauncherDockStyle.GLASS, LauncherDockStyle.fromStorage("unknown"))
+        assertEquals(LauncherDockStyle.CLEAR, LauncherDockStyle.fromStorage("unknown"))
         assertEquals(LauncherWallpaperShade.STRONG, LauncherWallpaperShade.fromStorage("strong"))
         assertEquals(LauncherWallpaperShade.SOFT, LauncherWallpaperShade.fromStorage(null))
         assertEquals(

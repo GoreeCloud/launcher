@@ -1,3 +1,13 @@
+## October 6, 2026 — owner-directed visual cohesion and lightweight Search/Home refinement candidate
+
+The current Development continuation applies a broader visual-quality pass from representative-device owner screenshots rather than treating each mismatch as an isolated patch. Fresh/default Dock presentation now uses **Clear** and the rendered Dock is width-bounded to its current density instead of spanning the full Home canvas; paging, drag/drop, optional Search, labels, and the Glaze 48 dp interaction floor remain intact. This makes the ordinary Dock read as a lightweight floating icon row over wallpaper while the existing Solid/Raised/Edge material choices remain explicit user options.
+
+A new shared first-party Launcher outline-glyph family establishes one 24 dp optical box, one rounded 1.8 dp stroke system, consistent joins/caps, and common geometry for Settings, onboarding, local Search-source badges, and generic Search-result category artwork. The onboarding **Swipe down** and **Search bar** examples now render as miniature Home demonstrations rather than rough arrow/dot diagrams. Universal Search app, shortcut, handoff, source-group, and detail presentation is denser and flatter: routine rows lose redundant borders, source badges/trailing controls use consistent columns, and nested detail panels are visually quieter while maintaining the existing 48 dp interaction contract.
+
+When Brave Browser is not installed, Brave Search now uses the official Brave stable product icon instead of the previous Launcher-drawn approximation. The exact upstream Brave asset revision and trademark/branding boundary are recorded in `THIRD-PARTY-NOTICES.md`; installed provider application artwork still takes precedence where available.
+
+**Acceptance boundary:** Development candidate only. Fresh exact-head protected build/JVM/lint/runtime evidence and representative-device Home/Dock/Search/Settings/onboarding visual, accessibility, large-text, RTL, reduced-effects, phone/tablet/foldable, performance/power, and protected signing/update acceptance remain required.
+
 ## October 5/6, 2026 — legacy/adaptive icon optical-fill refinement candidate
 
 - Extended the shared Launcher icon rasterizer so padded legacy artwork is optically enlarged only when its visible alpha bounds occupy less than 84% of the decode canvas, targets 90% fill, and is capped at 1.24× to avoid destructive cropping.

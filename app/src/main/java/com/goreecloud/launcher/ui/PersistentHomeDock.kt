@@ -95,7 +95,7 @@ internal fun ReadOnlyPagedHomeSurface(
     onOpenWidgetEditor: () -> Unit,
     onOpenWidgetSettings: () -> Unit,
     dockApps: List<LauncherActivityInfo> = emptyList(),
-    dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
+    dockStyle: LauncherDockStyle = LauncherDockStyle.CLEAR,
     pageTransition: LauncherHomePageTransition = LauncherHomePageTransition.SLIDE,
     showPageIndicator: Boolean = true,
     onSelectPage: (String) -> Unit = {},

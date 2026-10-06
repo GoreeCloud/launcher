@@ -196,7 +196,7 @@ enum class LauncherDockStyle(val storageValue: String) {
 
     companion object {
         fun fromStorage(value: String?): LauncherDockStyle =
-            entries.firstOrNull { it.storageValue == value } ?: GLASS
+            entries.firstOrNull { it.storageValue == value } ?: CLEAR
     }
 }
 
@@ -331,7 +331,7 @@ data class LauncherExperiencePreferences(
     val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
     val homeSearchStyle: LauncherHomeSearchStyle = LauncherHomeSearchStyle.GLASS,
     val homeSpacing: LauncherHomeSpacing = LauncherHomeSpacing.BALANCED,
-    val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
+    val dockStyle: LauncherDockStyle = LauncherDockStyle.CLEAR,
     val dockPageSize: Int = 5,
     val dockLoopPages: Boolean = false,
     val showDockLabels: Boolean = false,
