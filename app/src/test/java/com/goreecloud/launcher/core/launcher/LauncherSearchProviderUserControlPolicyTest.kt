@@ -6,6 +6,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LauncherSearchProviderUserControlPolicyTest {
+    @Test fun workOnlyConnectedAppIsVisible() {
+        data class App(val pkg: String, val user: String)
+        val result = launcherConnectedAppVisibility(
+            listOf(App("com.dropbox.android", "work")), "com.dropbox.android",
+            "personal", { it.pkg }, { it.user },
+        )
+        assertEquals(LauncherConnectedAppVisibility.WORK, result)
+        assertEquals(LauncherConnectedAppVisibility.BOTH, launcherConnectedAppVisibility(
+            listOf(App("com.dropbox.android", "personal"), App("com.dropbox.android", "work")),
+            "com.dropbox.android", "personal", { it.pkg }, { it.user },
+        ))
+    }
+
     @Test
     fun localRetentionFreeFirstPartyProviderExecutesAutomaticallyByDefault() {
         val registration = registration(
@@ -373,12 +386,6 @@ class LauncherSearchProviderUserControlPolicyTest {
             ),
         )
         assertEquals(
-            "Bing",
-            LauncherSearchProviderUserControlPolicy.displayNameFor(
-                LauncherConnectedSearchProviderRegistry.BING_SEARCH_PROVIDER_ID,
-            ),
-        )
-        assertEquals(
             "DuckDuckGo",
             LauncherSearchProviderUserControlPolicy.displayNameFor(
                 LauncherConnectedSearchProviderRegistry.DUCKDUCKGO_PROVIDER_ID,
@@ -408,12 +415,6 @@ class LauncherSearchProviderUserControlPolicyTest {
                 LauncherConnectedSearchProviderRegistry.CLAUDE_PROVIDER_ID,
             ),
         )
-        assertEquals(
-            "Microsoft Copilot",
-            LauncherSearchProviderUserControlPolicy.displayNameFor(
-                LauncherConnectedSearchProviderRegistry.MICROSOFT_COPILOT_PROVIDER_ID,
-            ),
-        )
         assertTrue(
             LauncherConnectedSearchProviderRegistry.isWebSearchProvider(
                 LauncherConnectedSearchProviderRegistry.GOOGLE_SEARCH_PROVIDER_ID,
@@ -424,6 +425,13 @@ class LauncherSearchProviderUserControlPolicyTest {
                 LauncherConnectedSearchProviderRegistry.CHATGPT_PROVIDER_ID,
             ),
         )
+
+        // Retired integration identities remain rejected even after a persisted-order migration.
+        listOf("connected.bing-search", "connected.microsoft-copilot").forEach { retired ->
+            assertFalse(LauncherConnectedSearchProviderRegistry.isConnectedProvider(retired))
+            assertEquals(null, LauncherConnectedSearchProviderRegistry.displayNameFor(retired))
+            assertEquals(emptyList<String>(), LauncherConnectedSearchProviderRegistry.iconPackageNamesFor(retired))
+        }
 
         val metadata = metadata(
             providerId = LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,

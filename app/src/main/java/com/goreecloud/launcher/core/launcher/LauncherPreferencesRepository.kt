@@ -953,43 +953,33 @@ class LauncherPreferencesRepository(
         }
     }
 
-    fun setDockStyle(style: LauncherDockStyle) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.dockStyle] = style.storageValue
-            }
+    fun setDockStyle(style: LauncherDockStyle): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockStyle] = style.storageValue
         }
     }
 
-    fun setDockPageSize(size: Int) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.dockPageSize] = size.coerceIn(4, 7)
-            }
+    fun setDockPageSize(size: Int): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockPageSize] = size.coerceIn(4, 7)
         }
     }
 
-    fun setDockLoopPages(loop: Boolean) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.dockLoopPages] = loop
-            }
+    fun setDockLoopPages(loop: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockLoopPages] = loop
         }
     }
 
-    fun setShowDockLabels(show: Boolean) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.showDockLabels] = show
-            }
+    fun setShowDockLabels(show: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.showDockLabels] = show
         }
     }
 
-    fun setShowDockSearch(show: Boolean) {
-        scope.launch {
-            dataStore.edit { values ->
-                values[Keys.showDockSearch] = show
-            }
+    fun setShowDockSearch(show: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.showDockSearch] = show
         }
     }
 

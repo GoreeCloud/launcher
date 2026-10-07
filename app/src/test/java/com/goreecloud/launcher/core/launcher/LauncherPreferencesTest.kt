@@ -31,24 +31,21 @@ class LauncherPreferencesTest {
             assertFalse(experience.showDockLabels)
             assertFalse(experience.showDockSearch)
 
-            repository.setDockStyle(LauncherDockStyle.RAISED)
-            repository.setDockPageSize(99)
-            repository.setDockLoopPages(true)
-            repository.setShowDockLabels(true)
-            repository.setShowDockSearch(true)
+            repository.setDockStyle(LauncherDockStyle.RAISED).join()
+            repository.setDockPageSize(99).join()
+            repository.setDockLoopPages(true).join()
+            repository.setShowDockLabels(true).join()
+            repository.setShowDockSearch(true).join()
 
-            experience = repository.experiencePreferences.first {
-                it.dockStyle == LauncherDockStyle.RAISED &&
-                    it.dockPageSize == 7 &&
-                    it.dockLoopPages &&
-                    it.showDockLabels &&
-                    it.showDockSearch
-            }
+            experience = repository.experiencePreferences.first()
+            assertEquals(LauncherDockStyle.RAISED, experience.dockStyle)
             assertEquals(7, experience.dockPageSize)
             assertEquals(true, experience.dockLoopPages)
+            assertEquals(true, experience.showDockLabels)
+            assertEquals(true, experience.showDockSearch)
 
-            repository.setDockPageSize(1)
-            experience = repository.experiencePreferences.first { it.dockPageSize == 4 }
+            repository.setDockPageSize(1).join()
+            experience = repository.experiencePreferences.first()
             assertEquals(4, experience.dockPageSize)
         } finally {
             dataStoreScope.cancel()

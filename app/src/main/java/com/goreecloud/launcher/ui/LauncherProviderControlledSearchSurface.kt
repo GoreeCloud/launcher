@@ -80,6 +80,8 @@ import com.goreecloud.launcher.R
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherDirectApiSource
 import com.goreecloud.launcher.core.launcher.LauncherDirectApiSourceStore
+import com.goreecloud.launcher.core.launcher.LauncherConnectedAppVisibility
+import com.goreecloud.launcher.core.launcher.launcherConnectedAppVisibility
 import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherCopyTextSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherContactsSearchProvider
@@ -273,9 +275,7 @@ internal fun LauncherProviderControlledSearchSurface(
         suggestionKeys
             .asSequence()
             .mapNotNull(appsByKey::get)
-            .distinctBy { app ->
-                app.user.hashCode().toString() + ":" + app.componentName.packageName
-            }
+            .distinctBy { app -> app.user to app.componentName.packageName }
             .take(LauncherSearchSuggestionPolicy.DEFAULT_LIMIT)
             .toList()
     }
@@ -326,14 +326,13 @@ internal fun LauncherProviderControlledSearchSurface(
     var complete by remember(providers, query, searchProviderPreferences) {
         mutableStateOf(false)
     }
-    val automaticProviderIds = remember(providers) {
-        providers.mapTo(linkedSetOf()) { provider -> provider.id }
-    }
-    val explicitHandoffs = remember(query, controls, automaticProviderIds) {
+    val explicitHandoffs = remember(query, controls) {
+        // Inline-capable connected sources keep their external handoff as an optional user action.
+        // Inline execution remains the automatic path only after source opt-in and authorization.
         LauncherSearchPresentationPolicy.explicitHandoffProviders(
             rawQuery = query,
             providerControls = controls,
-        ).filterNot { provider -> provider.providerId in automaticProviderIds }
+        )
     }
 
     LaunchedEffect(providers, query, searchProviderPreferences) {
@@ -356,8 +355,8 @@ internal fun LauncherProviderControlledSearchSurface(
         complete = true
     }
 
-    // Search remains a light floating overlay above the Launcher wallpaper. Current connected
-    // providers stay tap-only; future reviewed remote-inline providers require explicit opt-in.
+    // Search remains a light floating overlay above the Launcher wallpaper. Reviewed inline
+    // providers execute only after opt-in/authorization; external handoff remains an optional action.
     Column(
         modifier = Modifier.fillMaxSize()
             .safeDrawingPadding()
@@ -787,7 +786,7 @@ internal fun LauncherProviderControlledSearchSurface(
                     if (explicitHandoffs.isNotEmpty()) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Text(
-                            "Search online",
+                            "Connected sources",
                             modifier = Modifier.padding(
                                 start = GlazeMetrics.space2,
                                 top = GlazeMetrics.space1,
@@ -842,16 +841,23 @@ private suspend fun loadLauncherAppFreshness(
     apps: List<LauncherActivityInfo>,
 ): Map<String, Long> = withContext(Dispatchers.IO) {
     val packageTimes = mutableMapOf<String, Long?>()
+    val primaryUser = android.os.Process.myUserHandle()
     buildMap {
         apps.forEach { app ->
             val packageName = app.componentName.packageName
-            if (!packageTimes.containsKey(packageName)) {
-                packageTimes[packageName] =
-                    launcherPackageFreshnessMillis(packageManager, packageName)
+            val firstInstall = app.firstInstallTime.takeIf { it > 0L }
+            val timestamp = if (app.user == primaryUser) {
+                if (!packageTimes.containsKey(packageName)) {
+                    packageTimes[packageName] =
+                        launcherPackageFreshnessMillis(packageManager, packageName)
+                }
+                listOfNotNull(firstInstall, packageTimes[packageName]).maxOrNull()
+            } else {
+                // PackageManager resolves the calling user, not the Work-profile package.
+                // LauncherActivityInfo belongs to the actual Android UserHandle.
+                firstInstall
             }
-            packageTimes[packageName]?.let { timestamp ->
-                put(app.workspaceKey(), timestamp)
-            }
+            timestamp?.let { put(app.workspaceKey(), it) }
         }
     }
 }
@@ -1196,29 +1202,37 @@ private fun LauncherUniversalSearchSuggestionApp(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
         ) {
-            if (icon != null) {
-                Image(
-                    bitmap = icon,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .launcherIconMask(),
-                )
-            } else {
-                Surface(
-                    modifier = Modifier.size(42.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            app.label.toString().trim().take(1).uppercase(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        )
+            Box(modifier = Modifier.size(48.dp)) {
+                if (icon != null) {
+                    Image(
+                        bitmap = icon,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(42.dp)
+                            .align(Alignment.Center)
+                            .launcherIconMask(),
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(42.dp).align(Alignment.Center),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                app.label.toString().trim().take(1).uppercase(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            )
+                        }
                     }
                 }
+                LauncherAppProfileBadge(
+                    app = app,
+                    modifier = Modifier.align(Alignment.TopStart).offset(x = (-2).dp, y = (-2).dp),
+                    compact = true,
+                )
             }
             Text(
                 app.label.toString(),
@@ -1247,13 +1261,21 @@ private fun LauncherSearchHandoffRow(
         apps.firstOrNull { app -> app.componentName.packageName in packageNames }
     }
     val icon = sourceApp?.let { rememberLauncherAppIcon(it) }
+    val dropboxAppHandoff = provider.providerId ==
+        LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID
+    val workProfileApp = sourceApp?.user != null &&
+        sourceApp.user != android.os.Process.myUserHandle()
     Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("launcher-search-handoff-" + provider.providerId)
             .semantics {
-                contentDescription = "Search " + provider.displayName + " for " + query
+                contentDescription = if (dropboxAppHandoff) {
+                    "Open Dropbox in its profile and search in the app"
+                } else {
+                    "Search " + provider.displayName + " for " + query
+                }
             },
         shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.30f),
@@ -1293,7 +1315,12 @@ private fun LauncherSearchHandoffRow(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    "Search online for “" + query + "”",
+                    if (dropboxAppHandoff) {
+                        if (workProfileApp) "Open Work app · search in Dropbox"
+                        else "Open app · search in Dropbox"
+                    } else {
+                        "Search online for “" + query + "”"
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -2680,6 +2707,15 @@ private fun LauncherSearchSourceManager(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val dropboxVisibility = remember(apps) {
+        launcherConnectedAppVisibility(
+            apps = apps,
+            targetPackage = LauncherConnectedSearchProviderRegistry.DROPBOX_PACKAGE,
+            primaryUser = android.os.Process.myUserHandle(),
+            packageOf = { app -> app.componentName.packageName },
+            userOf = { app -> app.user },
+        )
+    }
     val ready = persisted != null
     val issues by LauncherLocalSearchDiagnostics.issues.collectAsState()
     var reorderMode by rememberSaveable { mutableStateOf(false) }
@@ -2888,7 +2924,11 @@ private fun LauncherSearchSourceManager(
                                             debugBuild = BuildConfig.DEBUG,
                                             alreadyConnected = driveConnected,
                                         )
+                                    val dropboxSource = option.providerId ==
+                                        LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID
                                     val connectedHandoffAvailable =
+                                        (dropboxSource &&
+                                            dropboxVisibility != LauncherConnectedAppVisibility.NOT_VISIBLE) ||
                                         !option.providerId.startsWith("connected.") ||
                                             LauncherConnectedSearchProviderRegistry
                                                 .isExplicitHandoffAvailable(
@@ -2932,14 +2972,16 @@ private fun LauncherSearchSourceManager(
                                             fileSearchRoots.isEmpty() ->
                                             "Choose folder"
                                         driveSource && !driveConnectionAvailable ->
-                                            "Signed build required"
-                                        !connectedHandoffAvailable &&
-                                            option.providerId ==
-                                                LauncherConnectedSearchProviderRegistry
-                                                    .DROPBOX_PROVIDER_ID ->
-                                            "Dropbox app required"
+                                            "OAuth signing not registered"
+                                        dropboxSource -> when (dropboxVisibility) {
+                                            LauncherConnectedAppVisibility.USER -> "Installed · User profile"
+                                            LauncherConnectedAppVisibility.WORK -> "Installed · Work profile"
+                                            LauncherConnectedAppVisibility.BOTH -> "Installed · User & Work"
+                                            LauncherConnectedAppVisibility.NOT_VISIBLE ->
+                                                "Not visible to Launcher"
+                                        }
                                         !connectedHandoffAvailable ->
-                                            "Provider unavailable"
+                                            "No supported handoff app"
                                         else -> null
                                     }
                                     val rowSecondaryText =
@@ -3342,9 +3384,9 @@ private fun compactSourceSummary(
         "App handoff · Optional"
     else -> when {
         LauncherConnectedSearchProviderRegistry.isAiProvider(option.providerId) ->
-            "AI · Explicit handoff"
+            "AI · Opens external app"
         LauncherConnectedSearchProviderRegistry.isWebSearchProvider(option.providerId) ->
-            "Web · Explicit handoff"
+            "Web · Opens browser"
         else -> when (option.invocationMode) {
         LauncherSearchProviderInvocationMode.AUTOMATIC_LOCAL -> "Local · Automatic"
         LauncherSearchProviderInvocationMode.OPT_IN_LOCAL -> "Local · Permission"
@@ -3373,8 +3415,9 @@ private fun connectedSourceDetail(
                 "Folder-scoped local document search remains under Files."
         }
     option.providerId == LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID ->
-        "Dropbox inline results require a reviewed OAuth adapter. Until that authorization path " +
-            "exists, Launcher keeps this source behind an explicit handoff."
+        "Dropbox installed in an accessible Android profile can be opened there. The app " +
+            "may require you to search again inside Dropbox. Inline file results require " +
+            "a separately reviewed Dropbox OAuth connection; no query is sent to Dropbox by this source."
     LauncherConnectedSearchProviderRegistry.isAiProvider(option.providerId) ->
         option.displayName + " receives the query only after you explicitly choose this source. " +
             "Launcher does not send typed queries to this AI service in the background. The " +

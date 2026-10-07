@@ -295,7 +295,7 @@ internal class LauncherDirectApiSourceStore(private val context: Context) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, keystoreKey())
         val iv = cipher.iv
-        require(iv.size == 12) { "Android Keystore returned an unexpected GCM IV length" }
+        require(iv.size == 12) { "Unexpected Android Keystore GCM nonce length" }
         val result = byteArrayOf(1) + iv + cipher.doFinal(plain)
         val output = file.startWrite()
         try {

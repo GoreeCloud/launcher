@@ -9,6 +9,7 @@ import android.app.role.RoleManager
 import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.LauncherActivityInfo
+import android.content.pm.LauncherApps
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -1561,11 +1562,11 @@ class MainActivity : ComponentActivity() {
                             onSetHomeSearchPlacement = launcherPreferencesRepository::setHomeSearchPlacement,
                             onSetHomeSearchStyle = launcherPreferencesRepository::setHomeSearchStyle,
                             onSetHomeSpacing = launcherPreferencesRepository::setHomeSpacing,
-                            onSetDockStyle = launcherPreferencesRepository::setDockStyle,
-                            onSetDockPageSize = launcherPreferencesRepository::setDockPageSize,
-                            onSetDockLoopPages = launcherPreferencesRepository::setDockLoopPages,
-                            onSetShowDockLabels = launcherPreferencesRepository::setShowDockLabels,
-                            onSetShowDockSearch = launcherPreferencesRepository::setShowDockSearch,
+                            onSetDockStyle = { launcherPreferencesRepository.setDockStyle(it) },
+                            onSetDockPageSize = { launcherPreferencesRepository.setDockPageSize(it) },
+                            onSetDockLoopPages = { launcherPreferencesRepository.setDockLoopPages(it) },
+                            onSetShowDockLabels = { launcherPreferencesRepository.setShowDockLabels(it) },
+                            onSetShowDockSearch = { launcherPreferencesRepository.setShowDockSearch(it) },
                             onSetWallpaperShade = launcherPreferencesRepository::setWallpaperShade,
                             onSetGestureSensitivity = { sensitivity ->
                                 launcherPreferencesRepository.setGestureSensitivity(sensitivity)
@@ -2836,11 +2837,47 @@ class MainActivity : ComponentActivity() {
             providerId = providerId,
             rawQuery = rawQuery,
         )
+        if (intent == null &&
+            providerId == LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID
+        ) {
+            // ACTION_SEARCH resolution in the current user cannot see a Work-profile activity.
+            // LauncherApps is the Android-authorized profile boundary, not PackageManager.
+            val launcherApps = getSystemService(LauncherApps::class.java)
+            val accessibleDropbox = launcherApps?.profiles.orEmpty().flatMap { user ->
+                runCatching {
+                    launcherApps.getActivityList(
+                        LauncherConnectedSearchProviderRegistry.DROPBOX_PACKAGE,
+                        user,
+                    )
+                }.getOrDefault(emptyList())
+            }
+            val target = accessibleDropbox.firstOrNull {
+                it.user != Process.myUserHandle()
+            } ?: accessibleDropbox.firstOrNull()
+            if (target != null) {
+                runCatching { appsRepository.launch(target) }
+                    .onSuccess {
+                        Toast.makeText(
+                            this,
+                            "Opened Dropbox in its Android profile. Search inside Dropbox.",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                    .onFailure {
+                        Toast.makeText(
+                            this,
+                            "Android blocked access to Dropbox in that profile.",
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                return
+            }
+        }
         if (intent == null) {
             Toast.makeText(
                 this,
-                "That connected Search provider is unavailable.",
-                Toast.LENGTH_SHORT,
+                "The provider is not accessible. Check its app, profile, and permissions.",
+                Toast.LENGTH_LONG,
             ).show()
             return
         }

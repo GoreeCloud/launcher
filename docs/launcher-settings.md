@@ -226,3 +226,16 @@ This Settings architecture is Development work. Source/build/runtime CI is neces
 App Drawer Tabs default off. Settings and onboarding allow explicit opt-in. The enabled horizontal tabs sit beside Apps; disabling hides the entire control strip without deleting existing tab names or memberships. The v1 portable preference snapshot cannot yet export/import the tab settings and definitions.
 
 The thirteen category icons use the shared `LauncherOutlineGlyph` Canvas/vector family, a uniform rounded stroke and theme-derived colors. Draft PR #280 refines Dock, Folders, Gestures, and Advanced geometry. Remaining submenu vector and device/theme/font/density acceptance are open. This candidate is not on protected main or in the previously delivered APK.
+
+
+## Universal Search profile and provider corrections (draft Development candidate)
+
+The stacked Development source candidate for owner screenshot feedback introduces the following source changes, which remain **unmerged and not delivered as an APK**:
+
+- Newly Installed/Updated, Frequent, and Recent suggestion icons now show the same Android User/Work profile badge as other app and shortcut Search results. App keys and de-duplication remain profile-qualified. The freshness loader uses each non-primary profile's LauncherActivityInfo install timestamp rather than applying the calling user's package timestamp to Work apps.
+- The Bing and Microsoft Copilot Search provider identities and registrations are retired; persisted provider IDs are excluded from active source controls by the existing known-provider normalization. Ordinary locally installed Microsoft apps are not affected.
+- Dropbox's Search Sources availability is derived from Android-authorized LauncherApps inventory across accessible User and Work profiles. An app visible only in Work is recognized even when PackageManager cannot resolve its search intent from User. Work-only activation uses LauncherApps to open the authorized profile's Dropbox app, without bypassing profile policies or claiming to pass the query. An unseen app is described as **not visible**, never definitively absent.
+- Search Sources distinguishes unconfigured OAuth signing, missing handoff support, profile visibility, and external app/browser behavior. Provider settings re-evaluate when the LauncherApps inventory updates.
+- Direct API Answers already supports explicitly configured, credentialed inline OpenAI/Anthropic/Gemini/Perplexity/custom APIs in a separate user-controlled panel; it does not imply that provider-app handoffs offer authenticated inline integration.
+
+**Unfinished:** A reviewed Dropbox OAuth adapter and provider-supported authenticated inline adapters for other app-only services are not part of this code change. No OAuth client, redirect registration, provider credentials, user consent, token refresh/revocation or real provider API test results are claimed. Android 16 instrumented User/Work/Shelter/quiet-profile tests, physical UI/accessibility testing, and all exact-head CI gates remain required before merge or release. On profiles blocked by enterprise policy, Launcher cannot infer whether the package is physically installed.

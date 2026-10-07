@@ -13,7 +13,7 @@
 - Made the Home wallpaper full-bleed beneath the externally hosted floating Dock; removed the root layout allocation that produced a full-width rectangular bottom strip behind the Dock.
 - Increased compact Dock width bands for 2–6 visible items and Search-enabled layouts so five-icon Docks have deliberate horizontal breathing room while preserving the interaction floor.
 - Standardized User/Work profile badges on the top-left corner of app/shortcut icons across Home, Dock, App Drawer, Universal Search, and app-context presentation; moved Drawer pin state to a separate bottom-left slot.
-- Expanded the individually configurable Connected Search catalog with Google Search, Bing, DuckDuckGo, ChatGPT, Gemini, Perplexity, Claude, and Microsoft Copilot in addition to Google Drive, Dropbox, and Brave Search.
+- Expanded the individually configurable Connected Search catalog with Google Search, DuckDuckGo, ChatGPT, Gemini, Perplexity, and Claude in addition to Google Drive, Dropbox, and Brave Search; Bing and Microsoft Copilot are explicitly retired as Launcher Universal Search providers.
 - Kept all new web/AI providers explicit user handoffs. Typing in Universal Search does not fan queries out to these providers automatically; app-backed AI sources fail closed when their official Android handoff is unavailable.
 - Reused installed official provider application artwork where available and retained bounded Launcher fallbacks/readiness messaging when an official app is unavailable.
 

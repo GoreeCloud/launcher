@@ -25,7 +25,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeLeft
@@ -1661,7 +1660,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                         "launcher-home-empty-space-actions",
                         useUnmergedTree = true,
                     )
-                    .performSemanticsAction(SemanticsActions.OnLongClick)
+                    .performTouchInput {
+                        // Use the same physical long-press path as the other Home editor runtime
+                        // tests. A synchronous semantics OnLongClick can freeze UiAutomation on
+                        // software-emulated API 36 even though the user-facing gesture is healthy.
+                        val emptyPoint = center.copy(
+                            x = right - 32f,
+                            y = bottom - 32f,
+                        )
+                        down(emptyPoint)
+                        advanceEventTime(700)
+                        up()
+                    }
 
                 waitForDisplayedTag("launcher-home-editor-fullscreen")
                 composeRule
@@ -1775,7 +1785,18 @@ class ActivatedHomeLifecycleRuntimeTest {
                         "launcher-home-empty-space-actions",
                         useUnmergedTree = true,
                     )
-                    .performSemanticsAction(SemanticsActions.OnLongClick)
+                    .performTouchInput {
+                        // Use the same physical long-press path as the other Home editor runtime
+                        // tests. A synchronous semantics OnLongClick can freeze UiAutomation on
+                        // software-emulated API 36 even though the user-facing gesture is healthy.
+                        val emptyPoint = center.copy(
+                            x = right - 32f,
+                            y = bottom - 32f,
+                        )
+                        down(emptyPoint)
+                        advanceEventTime(700)
+                        up()
+                    }
 
                 waitForDisplayedTag("launcher-home-editor-fullscreen")
                 waitForDisplayedTag("launcher-home-editor-action-wallpaper")
