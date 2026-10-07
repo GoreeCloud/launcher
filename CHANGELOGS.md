@@ -1,3 +1,13 @@
+## October 7, 2026 — Home page-indicator isolation and overlap correction candidate
+
+- Moved the Home page indicator out of the Activity-level overlay and into the Launcher Home surface so it is scoped to Home and cannot remain faintly composed over Apps, Search, Settings, or Theme Manager during surface transitions.
+- Replaced fixed 112/176 dp indicator offset guesses with the same measured external-Dock clearance policy used by Home content.
+- Preserved the existing primary Home indicator reserve and added a matching reserved lane for secondary Home pages, preventing page dots from sharing layout space with app icons or labels.
+- Kept one stable indicator outside the horizontal Home pager so it does not duplicate or move with individual pages.
+- Added focused policy coverage for Home-only visibility, single-page/disabled suppression, Dock-aware clearance, and secondary-page reserve behavior.
+
+**Status:** Development candidate only. Exact-head build/JVM/lint/runtime validation and representative-device visual confirmation remain required.
+
 ## October 6, 2026 — user-owned in-Launcher Direct API answers candidate
 
 - Added four individually configurable direct answer adapters: OpenAI (ChatGPT), Claude (Anthropic), Gemini, and Perplexity, plus user-named HTTPS OpenAI-compatible chat and bounded GET/JSON search APIs.

@@ -78,9 +78,7 @@ import com.goreecloud.launcher.core.launcher.LauncherGestureActionType
 import com.goreecloud.launcher.core.launcher.LauncherInstalledAppBaselineRepository
 import com.goreecloud.launcher.core.launcher.LauncherHomeAppMode
 import com.goreecloud.launcher.core.launcher.LauncherHomeSearchPlacement
-import com.goreecloud.launcher.core.launcher.LauncherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherHomeSpacing
-import com.goreecloud.launcher.core.launcher.launcherHomeSearchSurface
 import com.goreecloud.launcher.core.launcher.LauncherIconPackDescriptor
 import com.goreecloud.launcher.core.launcher.LauncherIconPackRepository
 import com.goreecloud.launcher.core.launcher.LauncherLaunchShortcutSearchAction
@@ -131,7 +129,6 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceProductionRuntimeCoord
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomeWidget
 import com.goreecloud.launcher.core.workspace.db.WorkspaceWidgetMutationResult
 import com.goreecloud.launcher.core.workspace.workspaceKey
-import com.goreecloud.launcher.ui.HomePageDots
 import com.goreecloud.launcher.ui.HomePageManagerSheet
 import com.goreecloud.launcher.ui.LauncherAppDragData
 import com.goreecloud.launcher.ui.LauncherAppDragOrigin
@@ -1819,52 +1816,13 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     contentOnly = true,
+                                    reserveExternalPageIndicator =
+                                        experiencePreferences.showHomePageIndicator,
                                     dockHostedExternally = true,
                                 )
 
                             },
                         )
-
-                    if (
-                        experiencePreferences.showHomePageIndicator &&
-                        renderedPages.size > 1 &&
-                        showingHome
-                    ) {
-                        val homeSearchSurface = launcherHomeSearchSurface(
-                            mode = launcherPreferences.universalSearchHomeMode,
-                            placement = experiencePreferences.homeSearchPlacement,
-                        )
-                        val hasMovableSearch = renderedPages.any { page ->
-                            page.widgetPlacements.any { placement ->
-                                val descriptor =
-                                    placement.descriptor as? WorkspaceWidgetDescriptor.BuiltIn
-                                descriptor?.typeId == WorkspaceWidgetCatalog.SEARCH
-                            }
-                        }
-                        val indicatorBottomPadding = when {
-                            onPrimaryPage &&
-                                (
-                                    homeSearchSurface ==
-                                        LauncherHomeSearchSurface.FIXED_BOTTOM ||
-                                        (
-                                            homeSearchSurface ==
-                                                LauncherHomeSearchSurface.MOVABLE &&
-                                                !hasMovableSearch
-                                            )
-                                    ) ->
-                                176.dp
-                            else -> 112.dp
-                        }
-                        HomePageDots(
-                            pages = renderedPages,
-                            selectedPageId = selectedHomePageId,
-                            onSelectPage = { selectedHomePageId = it },
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .navigationBarsPadding()
-                                .padding(bottom = indicatorBottomPadding),
-                        )
-                    }
 
                     if (showHomePageManager && showingHome && renderedPages.isNotEmpty()) {
                         HomePageManagerSheet(

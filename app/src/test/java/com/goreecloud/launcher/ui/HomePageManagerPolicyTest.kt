@@ -3,6 +3,7 @@ package com.goreecloud.launcher.ui
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import com.goreecloud.launcher.core.launcher.LauncherHomePageTransition
+import com.goreecloud.launcher.core.launcher.LauncherDockStyle
 import com.goreecloud.launcher.core.workspace.db.WorkspaceLegacyImportMapper
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRenderedHomePage
 import org.junit.Assert.assertEquals
@@ -464,6 +465,98 @@ class HomePageManagerPolicyTest {
             ),
         )
         assertTrue(primaryHomeShouldHandleHorizontalPaging(contentOnly = false))
+    }
+
+    @Test
+    fun homePageIndicatorIsStrictlyScopedToHomeSurface() {
+        assertTrue(
+            launcherShouldRenderHomePageIndicator(
+                surfaceMode = LauncherSurfaceMode.HOME,
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            launcherShouldRenderHomePageIndicator(
+                surfaceMode = LauncherSurfaceMode.DRAWER,
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            launcherShouldRenderHomePageIndicator(
+                surfaceMode = LauncherSurfaceMode.SEARCH,
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            launcherShouldRenderHomePageIndicator(
+                surfaceMode = LauncherSurfaceMode.HOME,
+                requested = false,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            launcherShouldRenderHomePageIndicator(
+                surfaceMode = LauncherSurfaceMode.HOME,
+                requested = true,
+                pageCount = 1,
+            ),
+        )
+    }
+
+    @Test
+    fun homePageIndicatorClearanceFollowsTheActualExternalDockLane() {
+        assertEquals(
+            8f,
+            launcherHomePageIndicatorBottomClearanceDp(
+                hasExternalDock = false,
+                showDockLabels = false,
+                dockStyle = LauncherDockStyle.CLEAR,
+            ),
+            0.001f,
+        )
+        assertEquals(
+            84f,
+            launcherHomePageIndicatorBottomClearanceDp(
+                hasExternalDock = true,
+                showDockLabels = false,
+                dockStyle = LauncherDockStyle.CLEAR,
+            ),
+            0.001f,
+        )
+        assertEquals(
+            108f,
+            launcherHomePageIndicatorBottomClearanceDp(
+                hasExternalDock = true,
+                showDockLabels = true,
+                dockStyle = LauncherDockStyle.CLEAR,
+            ),
+            0.001f,
+        )
+    }
+
+    @Test
+    fun secondaryPagerReservesTheExternallyHostedIndicatorLane() {
+        assertTrue(
+            secondaryHomeShouldReserveExternalPageIndicator(
+                requested = true,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldReserveExternalPageIndicator(
+                requested = false,
+                pageCount = 3,
+            ),
+        )
+        assertFalse(
+            secondaryHomeShouldReserveExternalPageIndicator(
+                requested = true,
+                pageCount = 1,
+            ),
+        )
     }
 
     @Test

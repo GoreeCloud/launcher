@@ -158,14 +158,10 @@ class ActivatedHomeLifecycleRuntimeTest {
         // test's removal is still settling, which otherwise lets this case launch against stock
         // Launcher and wait forever for GoreeCloud Home semantics. add-role-holder is idempotent
         // when the package is already the holder; restore the original ownership in finally.
-        runShellCommand(
-            "cmd role add-role-holder ${RoleManager.ROLE_HOME} ${context.packageName}"
+        ensureHomeRoleHeld(
+            roleManager = roleManager,
+            packageName = context.packageName,
         )
-        withTimeout(10_000) {
-            while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                delay(100)
-            }
-        }
 
         try {
             val apps = withTimeout(10_000) {
@@ -2444,34 +2440,52 @@ class ActivatedHomeLifecycleRuntimeTest {
         roleManager: RoleManager,
         packageName: String,
     ) {
-        // RoleManager can transiently report this package as HOME while a preceding test's
-        // remove-role-holder transition is still settling back to Quickstep. Reassert the
-        // desired holder idempotently before each HOME-dependent case, then let the caller's
-        // pre-test ownership snapshot decide whether teardown removes it.
-        // Bound both the shell-side mutation and the host-side pipe drain. This lets the
-        // RoleManager command complete normally while preventing one stalled shell pipe from
-        // hanging the entire Android instrumentation suite.
-        runShellCommand(
-            "toybox timeout 8 cmd role add-role-holder ${RoleManager.ROLE_HOME} $packageName",
+        mutateHomeRoleAndAwait(
+            roleManager = roleManager,
+            packageName = packageName,
+            shouldBeHeld = true,
         )
-        withTimeout(10_000) {
-            while (!roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                delay(100)
-            }
-        }
     }
 
     private suspend fun removeHomeRoleAndAwait(
         roleManager: RoleManager,
         packageName: String,
     ) {
-        runShellCommand(
-            "toybox timeout 8 cmd role remove-role-holder ${RoleManager.ROLE_HOME} $packageName",
+        mutateHomeRoleAndAwait(
+            roleManager = roleManager,
+            packageName = packageName,
+            shouldBeHeld = false,
         )
-        withTimeout(10_000) {
-            while (roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
-                delay(100)
+    }
+
+    private suspend fun mutateHomeRoleAndAwait(
+        roleManager: RoleManager,
+        packageName: String,
+        shouldBeHeld: Boolean,
+    ) {
+        val operation = if (shouldBeHeld) "add-role-holder" else "remove-role-holder"
+        // UiAutomation shell execution is asynchronous. Keep the descriptor alive so closing the
+        // read side cannot cancel the command, but never drain stdout: Android 16 can leave that
+        // pipe open while RoleManager finishes a holder transition. RoleManager is the bounded,
+        // observable authority for completion.
+        val descriptor = InstrumentationRegistry.getInstrumentation()
+            .uiAutomation
+            .executeShellCommand(
+                "toybox timeout 8 cmd role $operation ${RoleManager.ROLE_HOME} $packageName",
+            )
+        try {
+            withTimeout(10_000) {
+                while (roleManager.isRoleHeld(RoleManager.ROLE_HOME) != shouldBeHeld) {
+                    delay(100)
+                }
             }
+            if (!shouldBeHeld) {
+                // Avoid immediate remove/add contention between adjacent test cases while keeping
+                // the settle interval deterministic and far below the suite watchdog.
+                delay(500)
+            }
+        } finally {
+            descriptor.close()
         }
     }
 

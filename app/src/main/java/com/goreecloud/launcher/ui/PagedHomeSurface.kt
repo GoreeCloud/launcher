@@ -112,6 +112,11 @@ internal fun secondaryHomeShouldRenderPageIndicator(
     pageCount: Int,
 ): Boolean = !contentOnly && requested && pageCount > 1
 
+internal fun secondaryHomeShouldReserveExternalPageIndicator(
+    requested: Boolean,
+    pageCount: Int,
+): Boolean = requested && pageCount > 1
+
 internal fun secondaryHomeShouldRenderDock(
     contentOnly: Boolean,
     dockAppCount: Int,
@@ -1383,6 +1388,7 @@ fun ReadOnlyPagedHomeSurface(
     layoutLocked: Boolean = false,
     onGridBoundsChanged: (Rect?) -> Unit = {},
     contentOnly: Boolean = false,
+    reserveExternalPageIndicator: Boolean = false,
     dockHostedExternally: Boolean = false,
 ) {
     if (!contentOnly) {
@@ -1946,6 +1952,19 @@ fun ReadOnlyPagedHomeSurface(
                         ),
                     )
                 }
+
+            if (
+                secondaryHomeShouldReserveExternalPageIndicator(
+                    requested = reserveExternalPageIndicator,
+                    pageCount = pages.size,
+                )
+            ) {
+                Spacer(
+                    Modifier
+                        .height(20.dp)
+                        .testTag("launcher-secondary-home-page-indicator-reserve"),
+                )
+            }
 
             if (
                 secondaryHomeShouldRenderPageIndicator(

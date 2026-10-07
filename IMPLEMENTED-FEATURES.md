@@ -1,3 +1,11 @@
+## October 7, 2026 — Home page-indicator isolation candidate
+
+The current Development candidate gives Home page dots one explicit owner: the Home surface. The indicator is no longer emitted from the Activity-level composition, so leaving Home immediately removes it from Launcher presentation instead of allowing transition overlap with the App Drawer or other surfaces. Its vertical placement now derives from the actual externally hosted Dock clearance policy rather than fixed bottom-offset heuristics.
+
+Primary Home retains its dedicated 20 dp indicator reserve and secondary Home pages now reserve an equivalent lane when the external Home indicator is enabled. The indicator remains outside the horizontal page pager, preserving stable page-dot position while pages move, but its reserved layout space prevents application icons and labels from occupying the same visual lane.
+
+Focused tests cover Home-only visibility, disabled/single-page suppression, Dock-aware clearance, and secondary reserve behavior. **Acceptance boundary:** Development candidate only; fresh exact-head protected validation plus representative-device Home/App Drawer transition and overlap acceptance remain required.
+
 ## October 6, 2026 — direct AI and custom search API answers candidate
 
 The current unintegrated Development branch adds **Direct API answers** to Universal Search. Users can configure API keys and model IDs for OpenAI/ChatGPT, Anthropic Claude, Google Gemini, and Perplexity, or define HTTPS OpenAI-compatible chat and read-only GET/JSON search sources. These integrations are distinct from the previously available app handoff providers: a deliberate **Ask** in Universal Search invokes exactly one enabled API and shows its response on the same screen.

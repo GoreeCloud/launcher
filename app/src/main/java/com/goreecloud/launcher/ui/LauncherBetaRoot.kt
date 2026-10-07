@@ -215,6 +215,29 @@ import kotlinx.coroutines.withTimeoutOrNull
 
 enum class LauncherSurfaceMode { HOME, SEARCH, DRAWER, SETTINGS, THEME_MANAGER }
 
+internal fun launcherShouldRenderHomePageIndicator(
+    surfaceMode: LauncherSurfaceMode,
+    requested: Boolean,
+    pageCount: Int,
+): Boolean =
+    surfaceMode == LauncherSurfaceMode.HOME &&
+        requested &&
+        pageCount > 1
+
+internal fun launcherHomePageIndicatorBottomClearanceDp(
+    hasExternalDock: Boolean,
+    showDockLabels: Boolean,
+    dockStyle: LauncherDockStyle,
+): Float =
+    (if (hasExternalDock) {
+        launcherExternalDockContentClearanceDp(
+            showLabels = showDockLabels,
+            style = dockStyle,
+        )
+    } else {
+        0f
+    }) + 8f
+
 internal enum class LauncherAppDragOrigin { HOME, DOCK, DRAWER }
 
 internal enum class LauncherAppContextOrigin { HOME, DOCK, DRAWER }
@@ -1366,11 +1389,36 @@ fun LauncherBetaRoot(
                         }
                     }
 
-                    if (
+                    val hasExternalDock =
                         rootDockApps.isNotEmpty() ||
-                        activeDrag != null ||
-                        experiencePreferences.showDockSearch
+                            activeDrag != null ||
+                            experiencePreferences.showDockSearch
+
+                    if (
+                        launcherShouldRenderHomePageIndicator(
+                            surfaceMode = surfaceMode,
+                            requested = experiencePreferences.showHomePageIndicator,
+                            pageCount = homePages.size,
+                        )
                     ) {
+                        HomePageDots(
+                            pages = homePages,
+                            selectedPageId = selectedHomePageId,
+                            onSelectPage = onSelectHomePage,
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .navigationBarsPadding()
+                                .padding(
+                                    bottom = launcherHomePageIndicatorBottomClearanceDp(
+                                        hasExternalDock = hasExternalDock,
+                                        showDockLabels = experiencePreferences.showDockLabels,
+                                        dockStyle = experiencePreferences.dockStyle,
+                                    ).dp,
+                                ),
+                        )
+                    }
+
+                    if (hasExternalDock) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
