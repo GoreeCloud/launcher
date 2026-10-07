@@ -815,6 +815,7 @@ class MainActivity : ComponentActivity() {
                         initialUniversalSearchHomeMode = launcherPreferences.universalSearchHomeMode,
                         initialAddNewAppsToHome = experiencePreferences.addNewAppsToHome,
                         initialShowHints = !experiencePreferences.homeHintsDismissed,
+                        initialEnableDrawerTabs = experiencePreferences.enableDrawerTabs,
                         initialDockSize = visualPreferences.starterDockSize,
                         initialStep = experiencePreferences.startupWizardStep,
                         onStepChange = launcherPreferencesRepository::setStartupWizardStep,
@@ -830,6 +831,7 @@ class MainActivity : ComponentActivity() {
                                     universalSearchHomeMode = configuration.universalSearchHomeMode,
                                     addNewAppsToHome = configuration.addNewAppsToHome,
                                     showHints = configuration.showHints,
+                                    enableDrawerTabs = configuration.enableDrawerTabs,
                                 )
                             }
                         },
@@ -1554,6 +1556,7 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerPageRows = launcherPreferencesRepository::setDrawerPageRows,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,
                             onSetShowDrawerSuggestions = launcherPreferencesRepository::setShowDrawerSuggestions,
+                            onSetDrawerTabsEnabled = launcherPreferencesRepository::setDrawerTabsEnabled,
                             onSetHomeGlanceAlignment = launcherPreferencesRepository::setHomeGlanceAlignment,
                             onSetHomeSearchPlacement = launcherPreferencesRepository::setHomeSearchPlacement,
                             onSetHomeSearchStyle = launcherPreferencesRepository::setHomeSearchStyle,

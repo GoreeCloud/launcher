@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
@@ -59,6 +60,7 @@ data class LauncherStartupConfiguration(
     val addNewAppsToHome: Boolean,
     val showHints: Boolean,
     val dockSize: Int = 5,
+    val enableDrawerTabs: Boolean = false,
 )
 
 @Composable
@@ -71,6 +73,7 @@ fun LauncherStartupWizard(
     initialUniversalSearchHomeMode: LauncherUniversalSearchHomeMode,
     initialAddNewAppsToHome: Boolean,
     initialShowHints: Boolean,
+    initialEnableDrawerTabs: Boolean = false,
     initialDockSize: Int = 5,
     initialStep: Int = 0,
     onStepChange: (Int) -> Unit = {},
@@ -90,6 +93,7 @@ fun LauncherStartupWizard(
     }
     var addNewAppsToHome by rememberSaveable { mutableStateOf(initialAddNewAppsToHome) }
     var showHints by rememberSaveable { mutableStateOf(initialShowHints) }
+    var enableDrawerTabs by rememberSaveable { mutableStateOf(initialEnableDrawerTabs) }
     var dockSize by rememberSaveable { mutableIntStateOf(initialDockSize.coerceIn(4, 6)) }
     var showDetails by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -284,6 +288,13 @@ fun LauncherStartupWizard(
                                 checked = addNewAppsToHome,
                                 onCheckedChange = { addNewAppsToHome = it },
                             )
+                            WizardSectionTitle("App Drawer (optional)")
+                            WizardSwitchRow(
+                                title = "Enable App Drawer Tabs",
+                                summary = "Off by default. Add custom tabs beside the Apps heading.",
+                                checked = enableDrawerTabs,
+                                onCheckedChange = { enableDrawerTabs = it },
+                            )
                         }
 
                         else -> {
@@ -426,6 +437,7 @@ fun LauncherStartupWizard(
                                             addNewAppsToHome = addNewAppsToHome,
                                             showHints = showHints,
                                             dockSize = dockSize,
+                                            enableDrawerTabs = enableDrawerTabs,
                                         ),
                                     )
                                 }
@@ -1120,6 +1132,14 @@ private fun WizardSwitchRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            modifier = if (title == "Enable App Drawer Tabs") {
+                Modifier.testTag("launcher-wizard-drawer-tabs")
+            } else {
+                Modifier
+            },
+        )
     }
 }

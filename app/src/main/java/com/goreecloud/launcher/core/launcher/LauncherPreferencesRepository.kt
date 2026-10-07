@@ -346,6 +346,7 @@ data class LauncherExperiencePreferences(
     val drawerPageRows: Int = 5,
     val showDrawerAppCount: Boolean = false,
     val showDrawerSuggestions: Boolean = false,
+    val enableDrawerTabs: Boolean = false,
     val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
     val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
     val homeSearchStyle: LauncherHomeSearchStyle = LauncherHomeSearchStyle.GLASS,
@@ -433,6 +434,7 @@ class LauncherPreferencesRepository(
         val drawerPageRows = intPreferencesKey("drawer_page_rows")
         val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
         val showDrawerSuggestions = booleanPreferencesKey("show_drawer_suggestions_v1")
+        val enableDrawerTabs = booleanPreferencesKey("drawer_tabs_enabled_v1")
         val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
         val homeSearchPlacement = stringPreferencesKey("home_search_placement")
         val homeSearchStyle = stringPreferencesKey("home_search_style")
@@ -624,6 +626,8 @@ class LauncherPreferencesRepository(
                 drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
                 showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
                 showDrawerSuggestions = values[Keys.showDrawerSuggestions] ?: false,
+                enableDrawerTabs = values[Keys.enableDrawerTabs]
+                    ?: LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).isNotEmpty(),
                 homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
                 homeSearchPlacement = LauncherHomeSearchPlacement.fromStorage(values[Keys.homeSearchPlacement]),
                 homeSearchStyle = LauncherHomeSearchStyle.fromStorage(values[Keys.homeSearchStyle]),
@@ -911,6 +915,12 @@ class LauncherPreferencesRepository(
         }
     }
 
+    fun setDrawerTabsEnabled(enabled: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.enableDrawerTabs] = enabled
+        }
+    }
+
     fun setShowDrawerSuggestions(show: Boolean) {
         scope.launch {
             dataStore.edit { values ->
@@ -1054,6 +1064,7 @@ class LauncherPreferencesRepository(
         universalSearchHomeMode: LauncherUniversalSearchHomeMode,
         addNewAppsToHome: Boolean,
         showHints: Boolean,
+        enableDrawerTabs: Boolean = false,
     ) {
         val normalizedGrid = LauncherPreferences(
             homeColumns = homeColumns,
@@ -1068,6 +1079,7 @@ class LauncherPreferencesRepository(
             values[Keys.universalSearchHomeMode] = universalSearchHomeMode.storageValue
             values[Keys.addNewAppsToHome] = addNewAppsToHome
             values[Keys.homeHintsDismissed] = !showHints
+            values[Keys.enableDrawerTabs] = enableDrawerTabs
             values[Keys.startupWizardStep] = 0
             values[Keys.startupWizardCompleted] = true
         }

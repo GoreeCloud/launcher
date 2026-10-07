@@ -874,6 +874,7 @@ fun LauncherBetaRoot(
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetShowDrawerSuggestions: (Boolean) -> Unit,
+    onSetDrawerTabsEnabled: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
@@ -1445,7 +1446,7 @@ fun LauncherBetaRoot(
                     canResetDrawerPinnedOrder =
                         selectedAppContextOrigin == LauncherAppContextOrigin.DRAWER &&
                             drawerPinnedAppKeys.size > 1,
-                    hasDrawerTabs = drawerTabs.isNotEmpty(),
+                    hasDrawerTabs = experiencePreferences.enableDrawerTabs && drawerTabs.isNotEmpty(),
                     canMoveDockEarlier =
                         selectedAppContextOrigin == LauncherAppContextOrigin.DOCK && dockIndex > 0,
                     canMoveDockLater =
@@ -2002,6 +2003,7 @@ fun LauncherBetaRoot(
                         onSetDrawerPageRows = onSetDrawerPageRows,
                         onSetShowDrawerAppCount = onSetShowDrawerAppCount,
                         onSetShowDrawerSuggestions = onSetShowDrawerSuggestions,
+                        onSetDrawerTabsEnabled = onSetDrawerTabsEnabled,
                         onSetHomeGlanceAlignment = onSetHomeGlanceAlignment,
                         onSetHomeSearchPlacement = onSetHomeSearchPlacement,
                         onSetHomeSearchStyle = onSetHomeSearchStyle,
@@ -7118,7 +7120,9 @@ private fun AppDrawerSurface(
     var showCreateDrawerTabDialog by rememberSaveable { mutableStateOf(false) }
     var editingDrawerTabId by rememberSaveable { mutableStateOf<String?>(null) }
     var selectedSmartFolderKindName by rememberSaveable { mutableStateOf<String?>(null) }
-    val selectedDrawerTab = drawerTabs.firstOrNull { it.id == selectedDrawerTabId }
+    val selectedDrawerTab = if (experiencePreferences.enableDrawerTabs) {
+        drawerTabs.firstOrNull { it.id == selectedDrawerTabId }
+    } else null
     LaunchedEffect(drawerTabs.map { it.id }) {
         if (selectedDrawerTabId != null && drawerTabs.none { it.id == selectedDrawerTabId }) {
             selectedDrawerTabId = null
@@ -7423,29 +7427,52 @@ private fun AppDrawerSurface(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
                 ) {
-                    Column {
-                        Text(
-                            if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
-                                "Apps"
-                            } else {
-                                selectedPage.kind.displayName
-                            },
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Text(
-                            buildString {
-                                if (experiencePreferences.showDrawerAppCount || drawerQuery.isNotBlank()) {
-                                    append(selectedFilteredCount)
-                                    append(if (drawerQuery.isBlank()) " installed · " else " shown · ")
-                                }
-                                append(layoutDescription)
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = drawerSecondaryColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space2),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.widthIn(max = 168.dp)) {
+                            Text(
+                                if (selectedPage.kind == LauncherDrawerProfileKind.USER) {
+                                    "Apps"
+                                } else {
+                                    selectedPage.kind.displayName
+                                },
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            Text(
+                                buildString {
+                                    if (experiencePreferences.showDrawerAppCount || drawerQuery.isNotBlank()) {
+                                        append(selectedFilteredCount)
+                                        append(if (drawerQuery.isBlank()) " installed · " else " shown · ")
+                                    }
+                                    append(layoutDescription)
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = drawerSecondaryColor,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+
+                        if (experiencePreferences.enableDrawerTabs) {
+                            DrawerCustomTabsRow(
+                                tabs = drawerTabs,
+                                selectedTabId = selectedDrawerTabId,
+                                onSelectTab = { tabId ->
+                                    selectedDrawerTabId = tabId
+                                    discoveryFilterName = LauncherDrawerDiscoveryFilter.ALL.name
+                                },
+                                onCreateTab = {
+                                    if (drawerTabs.size < 8) showCreateDrawerTabDialog = true
+                                },
+                                onEditTab = { tabId -> editingDrawerTabId = tabId },
+                                secondaryColor = drawerSecondaryColor,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                     Row(
                         modifier = Modifier
@@ -7609,20 +7636,6 @@ private fun AppDrawerSurface(
                         secondaryColor = drawerSecondaryColor,
                     )
                 }
-                Spacer(Modifier.height(GlazeMetrics.space2))
-                DrawerCustomTabsRow(
-                    tabs = drawerTabs,
-                    selectedTabId = selectedDrawerTabId,
-                    onSelectTab = { tabId ->
-                        selectedDrawerTabId = tabId
-                        discoveryFilterName = LauncherDrawerDiscoveryFilter.ALL.name
-                    },
-                    onCreateTab = {
-                        if (drawerTabs.size < 8) showCreateDrawerTabDialog = true
-                    },
-                    onEditTab = { tabId -> editingDrawerTabId = tabId },
-                    secondaryColor = drawerSecondaryColor,
-                )
                 Spacer(Modifier.height(GlazeMetrics.space1))
                 LaunchedEffect(
                     experiencePreferences.showDrawerSuggestions,
@@ -7958,11 +7971,11 @@ private fun DrawerCustomTabsRow(
     onCreateTab: () -> Unit,
     onEditTab: (String) -> Unit,
     secondaryColor: Color,
+    modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = modifier
             .horizontalScroll(scrollState)
             .testTag("launcher-drawer-custom-tabs"),
         horizontalArrangement = Arrangement.spacedBy(GlazeMetrics.space1),
@@ -9403,6 +9416,7 @@ private fun LauncherSettingsRootSurface(
     onSetDrawerPageRows: (Int) -> Unit,
     onSetShowDrawerAppCount: (Boolean) -> Unit,
     onSetShowDrawerSuggestions: (Boolean) -> Unit,
+    onSetDrawerTabsEnabled: (Boolean) -> Unit,
     onSetHomeGlanceAlignment: (LauncherHomeGlanceAlignment) -> Unit,
     onSetHomeSearchPlacement: (LauncherHomeSearchPlacement) -> Unit,
     onSetHomeSearchStyle: (LauncherHomeSearchStyle) -> Unit,
@@ -9954,6 +9968,17 @@ private fun LauncherSettingsRootSurface(
                 visible = selectedSettingsCategory == LauncherSettingsCategory.DRAWER,
             ) {
                 SettingsReadOnlyRow("Profiles", "User Apps · Work Apps when available")
+                SettingSwitch(
+                    "Enable App Drawer Tabs",
+                    experiencePreferences.enableDrawerTabs,
+                    onSetDrawerTabsEnabled,
+                )
+                Text(
+                    "Off by default. When enabled, custom tabs appear beside Apps. " +
+                        "Turning tabs off keeps their names and app memberships.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Text(
                     "Layout",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -220,3 +220,9 @@ Important capability must not depend only on a gesture. Settings must preserve n
 ## Acceptance boundary
 
 This Settings architecture is Development work. Source/build/runtime CI is necessary but does not establish representative physical-device visual quality, TalkBack/Switch Access, keyboard/D-pad, large-text, RTL/localization, phone/tablet/foldable, performance/power, protected Development signing/update continuity, complete portable recovery, Release Candidate, Production, Stable, Seal, or Anchor acceptance.
+
+## Pending App Drawer Tabs and glyph refinement (draft PR #280)
+
+App Drawer Tabs default off. Settings and onboarding allow explicit opt-in. The enabled horizontal tabs sit beside Apps; disabling hides the entire control strip without deleting existing tab names or memberships. The v1 portable preference snapshot cannot yet export/import the tab settings and definitions.
+
+The thirteen category icons use the shared `LauncherOutlineGlyph` Canvas/vector family, a uniform rounded stroke and theme-derived colors. Draft PR #280 refines Dock, Folders, Gestures, and Advanced geometry. Remaining submenu vector and device/theme/font/density acceptance are open. This candidate is not on protected main or in the previously delivered APK.

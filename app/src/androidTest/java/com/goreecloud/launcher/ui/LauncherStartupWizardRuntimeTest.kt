@@ -2,9 +2,12 @@ package com.goreecloud.launcher.ui
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -71,6 +74,8 @@ class LauncherStartupWizardRuntimeTest {
             .assertIsSelected()
         composeRule.onNodeWithText("None")
             .assertIsNotSelected()
+        composeRule.onNodeWithTag("launcher-wizard-drawer-tabs")
+            .performScrollTo().assertIsOff().performClick().assertIsOn()
         composeRule.onNodeWithText("Continue").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Search and gestures")
@@ -85,6 +90,7 @@ class LauncherStartupWizardRuntimeTest {
         assertEquals(5, result?.homeColumns)
         assertEquals(6, result?.homeRows)
         assertEquals(LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY, result?.universalSearchHomeMode)
+        assertEquals(true, result?.enableDrawerTabs)
     }
     @Test
     fun wizardKeepsAdvancedDetailsBehindLearnMore() {

@@ -65,7 +65,9 @@ class LauncherPreferencesTest {
         val repository = LauncherPreferencesRepository(dataStore)
 
         try {
+            assertFalse(repository.experiencePreferences.first().enableDrawerTabs)
             repository.createDrawerTab("  Work tools  ").join()
+            assertEquals(true, repository.experiencePreferences.first().enableDrawerTabs)
             var tabs = repository.drawerTabs.first { it.size == 1 }
             val tab = tabs.single()
             assertEquals("Work tools", tab.name)
@@ -83,6 +85,14 @@ class LauncherPreferencesTest {
                 setOf("user:10/com.example/.Main"),
                 tabs.single().memberKeys,
             )
+
+            repository.setDrawerTabsEnabled(true).join()
+            assertEquals(true, repository.experiencePreferences.first().enableDrawerTabs)
+            repository.setDrawerTabsEnabled(false).join()
+            assertFalse(repository.experiencePreferences.first().enableDrawerTabs)
+            assertEquals(tabs, repository.drawerTabs.first())
+            repository.setDrawerTabsEnabled(true).join()
+            assertEquals(tabs, repository.drawerTabs.first())
 
             repository.renameDrawerTab(tab.id, "Development").join()
             assertEquals(
@@ -210,6 +220,7 @@ class LauncherPreferencesTest {
                 universalSearchHomeMode = LauncherUniversalSearchHomeMode.PERMANENT,
                 addNewAppsToHome = true,
                 showHints = false,
+                enableDrawerTabs = true,
             )
 
             val preferences = repository.preferences.first()
@@ -228,6 +239,7 @@ class LauncherPreferencesTest {
             assertEquals(true, experience.homeHintsDismissed)
             assertEquals(0, experience.startupWizardStep)
             assertEquals(true, experience.startupWizardCompleted)
+            assertEquals(true, experience.enableDrawerTabs)
         } finally {
             dataStoreScope.cancel()
         }

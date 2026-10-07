@@ -197,3 +197,7 @@ Launcher Settings -> detailed configuration
 ## Acceptance boundary
 
 Current source remains Development. Exact-head automated validation is necessary but insufficient for release qualification. Representative-device visual quality, TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile transitions, direct placement, performance/power, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
+
+## Opt-in inline custom tabs (draft PR #280)
+
+Development candidate only: App Drawer Tabs default to off and are enabled explicitly in Launcher Settings → App Drawer or during optional first-run setup. The All tab, add control and user-created tabs are hidden entirely when disabled. Enabling displays a horizontally scrolling tab strip beside the Apps heading; the old separate row is removed. Local tab names and profile-qualified memberships remain stored while hidden. Existing strict portable v1 backups do not include these settings, so cross-device backup/restore remains pending versioned work. Physical-device layout, large-text, accessibility, signing and protected CI acceptance are open. PR #280 is restacked directly on protected main after integrated PR #277 and PR #278; it remains a Development candidate and is not merged.

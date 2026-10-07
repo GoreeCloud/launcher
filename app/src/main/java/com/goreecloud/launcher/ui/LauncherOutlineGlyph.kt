@@ -90,13 +90,17 @@ internal fun LauncherOutlineGlyph(
 
         when (glyph) {
             LauncherOutlineGlyph.HOME -> {
-                val roof = Path().apply {
-                    moveTo(u * .18f, u * .46f)
-                    lineTo(u * .50f, u * .20f)
-                    lineTo(u * .82f, u * .46f)
+                val house = Path().apply {
+                    moveTo(u * .16f, u * .46f)
+                    lineTo(u * .50f, u * .18f)
+                    lineTo(u * .84f, u * .46f)
+                    moveTo(u * .26f, u * .41f)
+                    lineTo(u * .26f, u * .78f)
+                    lineTo(u * .74f, u * .78f)
+                    lineTo(u * .74f, u * .41f)
                 }
-                drawPath(roof, color, style = stroke)
-                roundedBox(.27f, .43f, .46f, .36f, .06f)
+                drawPath(house, color, style = stroke)
+                roundedBox(.43f, .57f, .14f, .21f, .025f)
             }
 
             LauncherOutlineGlyph.APPS -> {
@@ -105,22 +109,35 @@ internal fun LauncherOutlineGlyph(
             }
 
             LauncherOutlineGlyph.DOCK -> {
-                listOf(.29f, .50f, .71f).forEach { x ->
-                    roundedBox(x - .07f, .34f, .14f, .14f, .04f)
+                listOf(.20f, .41f, .62f).forEach { x ->
+                    roundedBox(x, .28f, .18f, .18f, .05f)
                 }
-                line(.19f, .71f, .81f, .71f)
+                val tray = Path().apply {
+                    moveTo(u * .16f, u * .59f)
+                    lineTo(u * .16f, u * .69f)
+                    quadraticBezierTo(u * .16f, u * .76f, u * .23f, u * .76f)
+                    lineTo(u * .77f, u * .76f)
+                    quadraticBezierTo(u * .84f, u * .76f, u * .84f, u * .69f)
+                    lineTo(u * .84f, u * .59f)
+                }
+                drawPath(tray, color, style = stroke)
             }
 
             LauncherOutlineGlyph.FOLDER -> {
                 val folder = Path().apply {
-                    moveTo(u * .15f, u * .34f)
-                    lineTo(u * .39f, u * .34f)
-                    lineTo(u * .47f, u * .25f)
-                    lineTo(u * .64f, u * .25f)
-                    lineTo(u * .70f, u * .34f)
-                    lineTo(u * .85f, u * .34f)
-                    lineTo(u * .85f, u * .77f)
-                    lineTo(u * .15f, u * .77f)
+                    moveTo(u * .17f, u * .33f)
+                    lineTo(u * .38f, u * .33f)
+                    lineTo(u * .46f, u * .25f)
+                    lineTo(u * .61f, u * .25f)
+                    lineTo(u * .68f, u * .33f)
+                    lineTo(u * .81f, u * .33f)
+                    quadraticBezierTo(u * .85f, u * .33f, u * .85f, u * .38f)
+                    lineTo(u * .85f, u * .73f)
+                    quadraticBezierTo(u * .85f, u * .78f, u * .80f, u * .78f)
+                    lineTo(u * .20f, u * .78f)
+                    quadraticBezierTo(u * .15f, u * .78f, u * .15f, u * .73f)
+                    lineTo(u * .15f, u * .38f)
+                    quadraticBezierTo(u * .15f, u * .33f, u * .17f, u * .33f)
                     close()
                 }
                 drawPath(folder, color, style = stroke)
@@ -137,17 +154,21 @@ internal fun LauncherOutlineGlyph(
             }
 
             LauncherOutlineGlyph.WIDGETS -> {
-                roundedBox(.16f, .17f, .29f, .29f)
-                roundedBox(.55f, .17f, .29f, .47f)
-                roundedBox(.16f, .56f, .29f, .27f)
+                roundedBox(.17f, .18f, .29f, .29f, .055f)
+                roundedBox(.54f, .18f, .29f, .45f, .055f)
+                roundedBox(.17f, .55f, .29f, .28f, .055f)
+                line(.62f, .73f, .76f, .73f)
             }
 
             LauncherOutlineGlyph.GESTURE -> {
-                line(.23f, .72f, .69f, .27f)
-                line(.69f, .27f, .69f, .49f)
-                line(.69f, .27f, .47f, .27f)
-                line(.17f, .54f, .34f, .54f)
-                line(.14f, .70f, .29f, .70f)
+                val swipe = Path().apply {
+                    moveTo(u * .17f, u * .74f)
+                    cubicTo(u * .35f, u * .74f, u * .54f, u * .61f, u * .68f, u * .34f)
+                }
+                drawPath(swipe, color, style = stroke)
+                line(.47f, .35f, .70f, .29f)
+                line(.70f, .29f, .75f, .52f)
+                drawCircle(color, u * .035f, Offset(u * .21f, u * .59f))
             }
 
             LauncherOutlineGlyph.APPEARANCE -> {
@@ -170,16 +191,23 @@ internal fun LauncherOutlineGlyph(
 
             LauncherOutlineGlyph.BELL -> {
                 val bell = Path().apply {
-                    moveTo(u * .29f, u * .67f)
-                    quadraticBezierTo(u * .35f, u * .58f, u * .35f, u * .46f)
-                    quadraticBezierTo(u * .35f, u * .28f, u * .50f, u * .25f)
-                    quadraticBezierTo(u * .65f, u * .28f, u * .65f, u * .46f)
-                    quadraticBezierTo(u * .65f, u * .58f, u * .71f, u * .67f)
+                    moveTo(u * .28f, u * .70f)
+                    quadraticBezierTo(u * .36f, u * .60f, u * .36f, u * .47f)
+                    quadraticBezierTo(u * .36f, u * .30f, u * .50f, u * .27f)
+                    quadraticBezierTo(u * .64f, u * .30f, u * .64f, u * .47f)
+                    quadraticBezierTo(u * .64f, u * .60f, u * .72f, u * .70f)
                     close()
                 }
                 drawPath(bell, color, style = stroke)
-                line(.44f, .77f, .56f, .77f)
-                drawCircle(color, u * .055f, Offset(u * .72f, u * .29f))
+                drawArc(
+                    color = color,
+                    startAngle = 5f,
+                    sweepAngle = 170f,
+                    useCenter = false,
+                    topLeft = Offset(u * .45f, u * .70f),
+                    size = Size(u * .10f, u * .10f),
+                    style = stroke,
+                )
             }
 
             LauncherOutlineGlyph.SHIELD -> {
@@ -198,25 +226,33 @@ internal fun LauncherOutlineGlyph(
             }
 
             LauncherOutlineGlyph.BACKUP -> {
-                roundedBox(.20f, .48f, .60f, .30f, .07f)
+                roundedBox(.20f, .51f, .60f, .28f, .065f)
+                line(.33f, .69f, .67f, .69f)
                 drawArc(
                     color = color,
-                    startAngle = 205f,
-                    sweepAngle = 235f,
+                    startAngle = 200f,
+                    sweepAngle = 260f,
                     useCenter = false,
-                    topLeft = Offset(u * .29f, u * .16f),
-                    size = Size(u * .42f, u * .42f),
+                    topLeft = Offset(u * .28f, u * .16f),
+                    size = Size(u * .44f, u * .44f),
                     style = stroke,
                 )
-                line(.28f, .23f, .28f, .39f)
-                line(.28f, .23f, .44f, .23f)
+                line(.30f, .22f, .30f, .38f)
+                line(.30f, .38f, .46f, .38f)
             }
 
             LauncherOutlineGlyph.SLIDERS -> {
-                listOf(.30f, .50f, .70f).forEach { y -> line(.18f, y, .82f, y) }
-                drawCircle(color, u * .055f, Offset(u * .37f, u * .30f), style = stroke)
-                drawCircle(color, u * .055f, Offset(u * .63f, u * .50f), style = stroke)
-                drawCircle(color, u * .055f, Offset(u * .45f, u * .70f), style = stroke)
+                listOf(.30f, .50f, .70f).forEachIndexed { index, y ->
+                    val x = listOf(.38f, .63f, .46f)[index]
+                    line(.17f, y, x - .095f, y)
+                    line(x + .095f, y, .83f, y)
+                    drawCircle(
+                        color = color,
+                        radius = u * .07f,
+                        center = Offset(u * x, u * y),
+                        style = stroke,
+                    )
+                }
             }
 
             LauncherOutlineGlyph.INFO -> {
