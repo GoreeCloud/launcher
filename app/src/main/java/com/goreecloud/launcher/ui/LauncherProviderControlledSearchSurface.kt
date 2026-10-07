@@ -78,6 +78,8 @@ import androidx.compose.ui.unit.dp
 import com.goreecloud.launcher.BuildConfig
 import com.goreecloud.launcher.R
 import com.goreecloud.launcher.core.launcher.LaunchApplicationSearchAction
+import com.goreecloud.launcher.core.launcher.LauncherDirectApiSource
+import com.goreecloud.launcher.core.launcher.LauncherDirectApiSourceStore
 import com.goreecloud.launcher.core.launcher.LauncherConnectedSearchProviderRegistry
 import com.goreecloud.launcher.core.launcher.LauncherCopyTextSearchAction
 import com.goreecloud.launcher.core.launcher.LauncherContactsSearchProvider
@@ -149,6 +151,49 @@ internal fun LauncherProviderControlledSearchSurface(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val directApiStore = remember(context.applicationContext) {
+        LauncherDirectApiSourceStore(context.applicationContext)
+    }
+    var directApiSources by remember { mutableStateOf<List<LauncherDirectApiSource>>(emptyList()) }
+    var directApiStorageError by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(directApiStore) {
+        try {
+            directApiSources = withContext(Dispatchers.IO) { directApiStore.list() }
+            directApiStorageError = null
+        } catch (_: Exception) {
+            directApiStorageError = "Direct API connections are unavailable on this device."
+        }
+    }
+    val onSaveDirectApi: (LauncherDirectApiSource) -> String? = { source ->
+        try {
+            directApiStore.upsert(source)
+            directApiSources = directApiStore.list()
+            directApiStorageError = null
+            null
+        } catch (_: Exception) {
+            "Could not save this API connection. Check its HTTPS URL, model, and fields."
+        }
+    }
+    val onRemoveDirectApi: (String) -> String? = { id ->
+        try {
+            directApiStore.remove(id)
+            directApiSources = directApiStore.list()
+            directApiStorageError = null
+            null
+        } catch (_: Exception) {
+            "Could not delete this API connection."
+        }
+    }
+    val onResetAllDirectApi: () -> String? = {
+        try {
+            directApiStore.resetAll()
+            directApiSources = emptyList()
+            directApiStorageError = null
+            null
+        } catch (_: Exception) {
+            "Could not clear secure API connection storage."
+        }
+    }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val presentationContext = LocalGlazeV16PresentationContext.current
@@ -361,6 +406,11 @@ internal fun LauncherProviderControlledSearchSurface(
                 apps = apps,
                 suggestionPresentation = suggestionPresentation,
                 onSelectSuggestionPresentation = searchAppearancePreferences::setPresentation,
+                directApiSources = directApiSources,
+                directApiStorageError = directApiStorageError,
+                onSaveDirectApi = onSaveDirectApi,
+                onRemoveDirectApi = onRemoveDirectApi,
+                onResetAllDirectApi = onResetAllDirectApi,
                 persisted = searchProviderPreferences,
                 controls = controls,
                 onSet = onSetSearchProviderPreferences,
@@ -528,6 +578,11 @@ internal fun LauncherProviderControlledSearchSurface(
                             }
                         }
                     }
+
+                    LauncherDirectApiAnswerPanel(
+                        query = query,
+                        sources = directApiSources,
+                    )
 
                     if (results.isEmpty() && explicitHandoffs.isEmpty()) {
                         Column(
@@ -2609,6 +2664,11 @@ private fun LauncherSearchSourceManager(
     apps: List<LauncherActivityInfo>,
     suggestionPresentation: LauncherSearchSuggestionPresentation,
     onSelectSuggestionPresentation: (LauncherSearchSuggestionPresentation) -> Unit,
+    directApiSources: List<LauncherDirectApiSource>,
+    directApiStorageError: String?,
+    onSaveDirectApi: (LauncherDirectApiSource) -> String?,
+    onRemoveDirectApi: (String) -> String?,
+    onResetAllDirectApi: () -> String?,
     persisted: LauncherSearchProviderPreferenceDecodeResult?,
     controls: LauncherSearchProviderControlState,
     fileSearchRoots: List<Uri>,
@@ -2645,6 +2705,24 @@ private fun LauncherSearchSourceManager(
                 selected = suggestionPresentation,
                 onSelect = onSelectSuggestionPresentation,
             )
+        }
+
+        item(key = "direct-api-connections") {
+            LauncherDirectApiSourcesSettings(
+                sources = directApiSources,
+                apps = apps,
+                onSave = onSaveDirectApi,
+                onRemove = onRemoveDirectApi,
+                onResetAll = onResetAllDirectApi,
+                storageUnavailable = directApiStorageError != null,
+            )
+            directApiStorageError?.let { message ->
+                Text(
+                    message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         item(key = "provider-controls") {

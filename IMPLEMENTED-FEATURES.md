@@ -1,3 +1,11 @@
+## October 6, 2026 — direct AI and custom search API answers candidate
+
+The current unintegrated Development branch adds **Direct API answers** to Universal Search. Users can configure API keys and model IDs for OpenAI/ChatGPT, Anthropic Claude, Google Gemini, and Perplexity, or define HTTPS OpenAI-compatible chat and read-only GET/JSON search sources. These integrations are distinct from the previously available app handoff providers: a deliberate **Ask** in Universal Search invokes exactly one enabled API and shows its response on the same screen.
+
+Connections are encrypted using Android Keystore AES-GCM and app-private no-backup storage; source enablement, deletion, endpoint validation, bounded responses, cancellation, and no secret-value display are explicit. No typed-query background fan-out, no silent billing, no new Android permission, and no cross-profile authority is added.
+
+**Acceptance boundary:** Stacked Draft PR #278 only; never treat candidate code or CI kickoff as working production integration. Build/JVM/lint/runtime, API test keys, negative network scenarios, storage recovery, accessibility, OEM/managed-profile, signed update continuity, and owner acceptance remain gates.
+
 ## October 6, 2026 — representative-device Dock, profile-badge, and Search-hub refinement candidate
 
 Owner representative-device feedback is now reflected as launcher-wide presentation and Search-provider rules rather than one-screen patches. The floating Home Dock is overlaid on full-bleed wallpaper so no full-width bottom strip, panel, tint, or scrim is allocated behind it; ordinary multi-icon Dock widths are expanded to add horizontal breathing room without reducing the interaction floor. User/Work profile identity moves to the top-left icon corner across Home, Dock, Apps, Search, and app-context surfaces; Drawer pin state vacates that slot and uses a separate bottom-left mark.

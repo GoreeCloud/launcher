@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.semantics.SemanticsActions
@@ -1226,6 +1228,16 @@ class ActivatedHomeLifecycleRuntimeTest {
                         .isNotEmpty()
                 }
                 composeRule
+                    .onNodeWithTag(
+                        "launcher-search-source-manager",
+                        useUnmergedTree = true,
+                    )
+                    .performScrollToNode(
+                        hasContentDescription(
+                            "Reset Search source order and enabled defaults",
+                        ),
+                    )
+                composeRule
                     .onNodeWithContentDescription(
                         "Reset Search source order and enabled defaults",
                         useUnmergedTree = true,
@@ -1387,30 +1399,32 @@ class ActivatedHomeLifecycleRuntimeTest {
                 repository.state.first { it.authority == WorkspaceAuthority.ROOM }
             }
 
-            val scenario = ActivityScenario.launch(MainActivity::class.java)
-            try {
-                val dao = LauncherDatabaseProvider.get(context).workspaceDao()
-                val preferences = LauncherPreferencesRepository(context).preferences.first()
-                val roomPlacement = WorkspaceRoomPlacementRepository(
-                    authorityRepository = repository,
-                    workspaceDaoProvider = { dao },
-                )
-                val baseline = roomPlacement.replace(
-                    favoriteKeys = listOf(firstKey, secondKey),
-                    dockKeys = emptyList(),
-                    homeGrid = WorkspaceGridPlacement.Grid(
-                        columns = preferences.homeColumns,
-                        rows = preferences.homeRows,
-                    ),
-                )
-                check(baseline is WorkspaceRoomWriteResult.Written)
-
-                val spatialReady = runtime.ensurePrimaryHomeSpatialGrid(
+            val dao = LauncherDatabaseProvider.get(context).workspaceDao()
+            val preferences = LauncherPreferencesRepository(context).preferences.first()
+            val roomPlacement = WorkspaceRoomPlacementRepository(
+                authorityRepository = repository,
+                workspaceDaoProvider = { dao },
+            )
+            val baseline = roomPlacement.replace(
+                favoriteKeys = listOf(firstKey, secondKey),
+                dockKeys = emptyList(),
+                homeGrid = WorkspaceGridPlacement.Grid(
                     columns = preferences.homeColumns,
                     rows = preferences.homeRows,
-                )
-                check(spatialReady is WorkspacePrimaryHomeSpatialResult.Ready)
+                ),
+            )
+            check(baseline is WorkspaceRoomWriteResult.Written) {
+                "Expected deterministic Room baseline before Activity launch; result was $baseline."
+            }
 
+            val spatialReady = runtime.ensurePrimaryHomeSpatialGrid(
+                columns = preferences.homeColumns,
+                rows = preferences.homeRows,
+            )
+            check(spatialReady is WorkspacePrimaryHomeSpatialResult.Ready)
+
+            val scenario = ActivityScenario.launch(MainActivity::class.java)
+            try {
                 waitForDisplayedLabel(firstApp.label.toString())
                 waitForDisplayedLabel(secondApp.label.toString())
 

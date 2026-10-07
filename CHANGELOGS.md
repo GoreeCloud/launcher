@@ -1,3 +1,13 @@
+## October 6, 2026 — user-owned in-Launcher Direct API answers candidate
+
+- Added four individually configurable direct answer adapters: OpenAI (ChatGPT), Claude (Anthropic), Gemini, and Perplexity, plus user-named HTTPS OpenAI-compatible chat and bounded GET/JSON search APIs.
+- Added **Direct API answers** to Universal Search → Search Sources with concealed API key entry, model/endpoint controls, enable/disable state, and delete for custom connections. Official endpoints remain pinned.
+- Added **Ask with your API** to Universal Search results. An explicit Ask sends the current question to one selected source and renders the answer inside Launcher. Query-as-you-type, multi-provider fan-out, and automatic external billing are not enabled.
+- Implemented Android Keystore AES-GCM + noBackup atomic encrypted connection storage, HTTPS-only credentials in headers, redirect prevention, bounded responses/timeouts, cancellation and suppressed remote error bodies. No new permissions or analytics.
+- Added focused catalog, endpoint validation, and field-validation tests plus the explicit implementation/acceptance record in `docs/direct-api-answers.md`.
+
+**Status:** Draft stacked PR #278 (base PR #277) Development candidate, not integrated. Fresh exact-head protected CI, Android 16 runtime, live API-key/provider response validation, secret storage/recovery and representative-device acceptance remain open.
+
 ## October 6, 2026 — representative-device Dock, profile identity, and Search-source refinement candidate
 
 - Made the Home wallpaper full-bleed beneath the externally hosted floating Dock; removed the root layout allocation that produced a full-width rectangular bottom strip behind the Dock.
