@@ -233,29 +233,64 @@ internal class LauncherGoogleDriveSearchProvider(
     }
 }
 
+private enum class LauncherConnectedSearchKind {
+    CLOUD,
+    WEB,
+    AI,
+}
+
 private data class LauncherConnectedSearchDefinition(
     val providerId: String,
     val displayName: String,
     val authorizationRequirement: LauncherSearchAuthorizationRequirement,
     val requiresResolution: Boolean,
-    val buildIntent: (String) -> Intent,
+    val iconPackageNames: List<String>,
+    val kind: LauncherConnectedSearchKind,
+    val buildIntent: (Context, String) -> Intent,
 )
 
 object LauncherConnectedSearchProviderRegistry {
     const val GOOGLE_DRIVE_PROVIDER_ID = "connected.google-drive"
     const val DROPBOX_PROVIDER_ID = "connected.dropbox"
+    const val GOOGLE_SEARCH_PROVIDER_ID = "connected.google-search"
+    const val BING_SEARCH_PROVIDER_ID = "connected.bing-search"
+    const val DUCKDUCKGO_PROVIDER_ID = "connected.duckduckgo"
     const val BRAVE_SEARCH_PROVIDER_ID = "connected.brave-search"
+    const val CHATGPT_PROVIDER_ID = "connected.chatgpt"
+    const val GEMINI_PROVIDER_ID = "connected.gemini"
+    const val PERPLEXITY_PROVIDER_ID = "connected.perplexity"
+    const val CLAUDE_PROVIDER_ID = "connected.claude"
+    const val MICROSOFT_COPILOT_PROVIDER_ID = "connected.microsoft-copilot"
 
     private const val GOOGLE_DRIVE_PACKAGE = "com.google.android.apps.docs"
     private const val DROPBOX_PACKAGE = "com.dropbox.android"
+    private const val GOOGLE_APP_PACKAGE = "com.google.android.googlequicksearchbox"
+    private const val GOOGLE_GEMINI_PACKAGE = "com.google.android.apps.bard"
+    private const val BING_PACKAGE = "com.microsoft.bing"
+    private const val DUCKDUCKGO_PACKAGE = "com.duckduckgo.mobile.android"
     private const val BRAVE_BROWSER_PACKAGE = "com.brave.browser"
+    private const val CHATGPT_PACKAGE = "com.openai.chatgpt"
+    private const val PERPLEXITY_PACKAGE = "ai.perplexity.app.android"
+    private const val CLAUDE_PACKAGE = "com.anthropic.claude"
+    private const val MICROSOFT_COPILOT_PACKAGE = "com.microsoft.copilot"
 
-    fun iconPackageNameFor(providerId: String): String? = when (providerId) {
-        GOOGLE_DRIVE_PROVIDER_ID -> GOOGLE_DRIVE_PACKAGE
-        DROPBOX_PROVIDER_ID -> DROPBOX_PACKAGE
-        BRAVE_SEARCH_PROVIDER_ID -> BRAVE_BROWSER_PACKAGE
-        else -> null
-    }
+    fun iconPackageNamesFor(providerId: String): List<String> =
+        definitions().firstOrNull { it.providerId == providerId }?.iconPackageNames.orEmpty()
+
+    fun iconPackageNameFor(providerId: String): String? =
+        iconPackageNamesFor(providerId).firstOrNull()
+
+    fun displayNameFor(providerId: String): String? =
+        definitions().firstOrNull { it.providerId == providerId }?.displayName
+
+    fun isConnectedProvider(providerId: String): Boolean =
+        definitions().any { it.providerId == providerId }
+
+    fun isAiProvider(providerId: String): Boolean =
+        definitions().firstOrNull { it.providerId == providerId }?.kind == LauncherConnectedSearchKind.AI
+
+    fun isWebSearchProvider(providerId: String): Boolean =
+        definitions().firstOrNull { it.providerId == providerId }?.kind == LauncherConnectedSearchKind.WEB
 
     @Suppress("UNUSED_PARAMETER")
     fun registrations(
@@ -290,76 +325,119 @@ object LauncherConnectedSearchProviderRegistry {
     ): Intent? {
         val query = rawQuery.trim()
         if (query.isBlank()) return null
-        val definition = definitions()
-            .firstOrNull { it.providerId == providerId }
-            ?: return null
-        val intent = definition.buildIntent(query)
+        val definition = definitions().firstOrNull { it.providerId == providerId } ?: return null
+        val intent = definition.buildIntent(context, query)
         return if (!definition.requiresResolution || resolves(context, intent)) intent else null
     }
 
-    fun isExplicitHandoffAvailable(
-        context: Context,
-        providerId: String,
-    ): Boolean {
+    fun isExplicitHandoffAvailable(context: Context, providerId: String): Boolean {
         val definition = definitions().firstOrNull { it.providerId == providerId } ?: return false
         return !definition.requiresResolution ||
-            resolves(context, definition.buildIntent("goreecloud"))
+            resolves(context, definition.buildIntent(context, "goreecloud"))
     }
+
+    private fun shareTextIntent(
+        context: Context,
+        packageNames: List<String>,
+        query: String,
+    ): Intent {
+        val candidates = packageNames.map { packageName ->
+            Intent(Intent.ACTION_SEND)
+                .setType("text/plain")
+                .setPackage(packageName)
+                .putExtra(Intent.EXTRA_TEXT, query)
+        }
+        return candidates.firstOrNull { resolves(context, it) } ?: candidates.first()
+    }
+
+    private fun webSearchIntent(
+        authority: String,
+        path: String,
+        query: String,
+    ): Intent = Intent(
+        Intent.ACTION_VIEW,
+        Uri.Builder()
+            .scheme("https")
+            .authority(authority)
+            .apply {
+                path.trim('/').takeIf { it.isNotEmpty() }?.split('/')?.forEach { segment ->
+                    appendPath(segment)
+                }
+            }
+            .appendQueryParameter("q", query)
+            .build(),
+    )
 
     private fun definitions(): List<LauncherConnectedSearchDefinition> = listOf(
         LauncherConnectedSearchDefinition(
-            providerId = GOOGLE_DRIVE_PROVIDER_ID,
-            displayName = "Google Drive",
-            authorizationRequirement = LauncherSearchAuthorizationRequirement.ACCOUNT,
-            // Keep Drive visible even when it does not publish an exported search Activity.
-            // The OAuth/Drive API provider supplies inline results after explicit user opt-in;
-            // this URL remains a user-invoked fallback for the current query.
-            requiresResolution = false,
-            buildIntent = { query ->
-                Intent(Intent.ACTION_VIEW, Uri.Builder()
-                    .scheme("https")
-                    .authority("drive.google.com")
-                    .appendPath("drive")
-                    .appendPath("u")
-                    .appendPath("0")
-                    .appendPath("search")
-                    .appendQueryParameter("q", query)
-                    .build())
-            },
-        ),
+            GOOGLE_DRIVE_PROVIDER_ID, "Google Drive",
+            LauncherSearchAuthorizationRequirement.ACCOUNT, false,
+            listOf(GOOGLE_DRIVE_PACKAGE), LauncherConnectedSearchKind.CLOUD,
+        ) { _, query ->
+            Intent(
+                Intent.ACTION_VIEW,
+                Uri.Builder()
+                    .scheme("https").authority("drive.google.com")
+                    .appendPath("drive").appendPath("u").appendPath("0").appendPath("search")
+                    .appendQueryParameter("q", query).build(),
+            )
+        },
         LauncherConnectedSearchDefinition(
-            providerId = DROPBOX_PROVIDER_ID,
-            displayName = "Dropbox",
-            authorizationRequirement = LauncherSearchAuthorizationRequirement.ACCOUNT,
-            requiresResolution = true,
-            buildIntent = { query ->
-                Intent(Intent.ACTION_SEARCH)
-                    .setPackage(DROPBOX_PACKAGE)
-                    .putExtra(SearchManager.QUERY, query)
-            },
-        ),
+            DROPBOX_PROVIDER_ID, "Dropbox",
+            LauncherSearchAuthorizationRequirement.ACCOUNT, true,
+            listOf(DROPBOX_PACKAGE), LauncherConnectedSearchKind.CLOUD,
+        ) { _, query ->
+            Intent(Intent.ACTION_SEARCH).setPackage(DROPBOX_PACKAGE).putExtra(SearchManager.QUERY, query)
+        },
         LauncherConnectedSearchDefinition(
-            providerId = BRAVE_SEARCH_PROVIDER_ID,
-            displayName = "Brave Search",
-            authorizationRequirement = LauncherSearchAuthorizationRequirement.NONE,
-            requiresResolution = false,
-            buildIntent = { query ->
-                Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.Builder()
-                        .scheme("https")
-                        .authority("search.brave.com")
-                        .appendPath("search")
-                        .appendQueryParameter("q", query)
-                        .build(),
-                )
-            },
-        ),
+            GOOGLE_SEARCH_PROVIDER_ID, "Google Search",
+            LauncherSearchAuthorizationRequirement.NONE, false,
+            listOf(GOOGLE_APP_PACKAGE), LauncherConnectedSearchKind.WEB,
+        ) { _, query -> webSearchIntent("www.google.com", "search", query) },
+        LauncherConnectedSearchDefinition(
+            BING_SEARCH_PROVIDER_ID, "Bing",
+            LauncherSearchAuthorizationRequirement.NONE, false,
+            listOf(BING_PACKAGE), LauncherConnectedSearchKind.WEB,
+        ) { _, query -> webSearchIntent("www.bing.com", "search", query) },
+        LauncherConnectedSearchDefinition(
+            DUCKDUCKGO_PROVIDER_ID, "DuckDuckGo",
+            LauncherSearchAuthorizationRequirement.NONE, false,
+            listOf(DUCKDUCKGO_PACKAGE), LauncherConnectedSearchKind.WEB,
+        ) { _, query -> webSearchIntent("duckduckgo.com", "", query) },
+        LauncherConnectedSearchDefinition(
+            BRAVE_SEARCH_PROVIDER_ID, "Brave Search",
+            LauncherSearchAuthorizationRequirement.NONE, false,
+            listOf(BRAVE_BROWSER_PACKAGE), LauncherConnectedSearchKind.WEB,
+        ) { _, query -> webSearchIntent("search.brave.com", "search", query) },
+        LauncherConnectedSearchDefinition(
+            CHATGPT_PROVIDER_ID, "ChatGPT",
+            LauncherSearchAuthorizationRequirement.NONE, true,
+            listOf(CHATGPT_PACKAGE), LauncherConnectedSearchKind.AI,
+        ) { context, query -> shareTextIntent(context, listOf(CHATGPT_PACKAGE), query) },
+        LauncherConnectedSearchDefinition(
+            GEMINI_PROVIDER_ID, "Gemini",
+            LauncherSearchAuthorizationRequirement.NONE, true,
+            listOf(GOOGLE_GEMINI_PACKAGE, GOOGLE_APP_PACKAGE), LauncherConnectedSearchKind.AI,
+        ) { context, query ->
+            shareTextIntent(context, listOf(GOOGLE_GEMINI_PACKAGE, GOOGLE_APP_PACKAGE), query)
+        },
+        LauncherConnectedSearchDefinition(
+            PERPLEXITY_PROVIDER_ID, "Perplexity",
+            LauncherSearchAuthorizationRequirement.NONE, true,
+            listOf(PERPLEXITY_PACKAGE), LauncherConnectedSearchKind.AI,
+        ) { context, query -> shareTextIntent(context, listOf(PERPLEXITY_PACKAGE), query) },
+        LauncherConnectedSearchDefinition(
+            CLAUDE_PROVIDER_ID, "Claude",
+            LauncherSearchAuthorizationRequirement.NONE, true,
+            listOf(CLAUDE_PACKAGE), LauncherConnectedSearchKind.AI,
+        ) { context, query -> shareTextIntent(context, listOf(CLAUDE_PACKAGE), query) },
+        LauncherConnectedSearchDefinition(
+            MICROSOFT_COPILOT_PROVIDER_ID, "Microsoft Copilot",
+            LauncherSearchAuthorizationRequirement.NONE, true,
+            listOf(MICROSOFT_COPILOT_PACKAGE), LauncherConnectedSearchKind.AI,
+        ) { context, query -> shareTextIntent(context, listOf(MICROSOFT_COPILOT_PACKAGE), query) },
     )
 
     private fun resolves(context: Context, intent: Intent): Boolean =
-        context.packageManager.resolveActivity(
-            intent,
-            PackageManager.MATCH_DEFAULT_ONLY,
-        ) != null
+        context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY) != null
 }

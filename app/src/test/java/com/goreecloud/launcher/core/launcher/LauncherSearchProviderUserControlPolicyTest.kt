@@ -366,6 +366,64 @@ class LauncherSearchProviderUserControlPolicyTest {
                 LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,
             ),
         )
+        assertEquals(
+            "Google Search",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.GOOGLE_SEARCH_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Bing",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.BING_SEARCH_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "DuckDuckGo",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.DUCKDUCKGO_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "ChatGPT",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.CHATGPT_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Gemini",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.GEMINI_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Perplexity",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.PERPLEXITY_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Claude",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.CLAUDE_PROVIDER_ID,
+            ),
+        )
+        assertEquals(
+            "Microsoft Copilot",
+            LauncherSearchProviderUserControlPolicy.displayNameFor(
+                LauncherConnectedSearchProviderRegistry.MICROSOFT_COPILOT_PROVIDER_ID,
+            ),
+        )
+        assertTrue(
+            LauncherConnectedSearchProviderRegistry.isWebSearchProvider(
+                LauncherConnectedSearchProviderRegistry.GOOGLE_SEARCH_PROVIDER_ID,
+            ),
+        )
+        assertTrue(
+            LauncherConnectedSearchProviderRegistry.isAiProvider(
+                LauncherConnectedSearchProviderRegistry.CHATGPT_PROVIDER_ID,
+            ),
+        )
 
         val metadata = metadata(
             providerId = LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID,

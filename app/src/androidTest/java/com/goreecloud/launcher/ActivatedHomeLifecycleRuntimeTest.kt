@@ -56,7 +56,10 @@ import com.goreecloud.launcher.core.workspace.db.WorkspaceRoomPlacementRepositor
 import com.goreecloud.launcher.core.workspace.db.WorkspaceRoomWriteResult
 import com.goreecloud.launcher.core.workspace.db.WorkspaceWidgetMutationResult
 import com.goreecloud.launcher.core.workspace.workspaceKey
-import java.io.FileInputStream
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.FutureTask
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -2410,9 +2413,9 @@ class ActivatedHomeLifecycleRuntimeTest {
         // remove-role-holder transition is still settling back to Quickstep. Reassert the
         // desired holder idempotently before each HOME-dependent case, then let the caller's
         // pre-test ownership snapshot decide whether teardown removes it.
-        // Bound the shell-side role mutation itself. A stalled RoleManager shell service can
-        // otherwise keep FileInputStream.readBytes() waiting for EOF until the outer CI watchdog,
-        // hiding the real test and preventing the remaining runtime suite from executing.
+        // Bound both the shell-side mutation and the host-side pipe drain. This lets the
+        // RoleManager command complete normally while preventing one stalled shell pipe from
+        // hanging the entire Android instrumentation suite.
         runShellCommand(
             "toybox timeout 8 cmd role add-role-holder ${RoleManager.ROLE_HOME} $packageName",
         )
@@ -2440,10 +2443,35 @@ class ActivatedHomeLifecycleRuntimeTest {
     private fun runShellCommand(command: String) {
         val descriptor: ParcelFileDescriptor =
             InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command)
-        FileInputStream(descriptor.fileDescriptor).use { input ->
-            input.readBytes()
+        val completion = FutureTask<ByteArray> {
+            ParcelFileDescriptor.AutoCloseInputStream(descriptor).use { input ->
+                input.readBytes()
+            }
         }
-        descriptor.close()
+        Thread(completion, "launcher-role-shell").apply {
+            isDaemon = true
+            start()
+        }
+        try {
+            completion.get(12, TimeUnit.SECONDS)
+        } catch (timeout: TimeoutException) {
+            runCatching { descriptor.close() }
+            completion.cancel(true)
+            throw AssertionError("Timed out waiting for Android shell command completion", timeout)
+        } catch (execution: ExecutionException) {
+            throw AssertionError(
+                "Android shell command failed while draining output",
+                execution.cause ?: execution,
+            )
+        } catch (interrupted: InterruptedException) {
+            runCatching { descriptor.close() }
+            completion.cancel(true)
+            Thread.currentThread().interrupt()
+            throw AssertionError(
+                "Interrupted while waiting for Android shell command completion",
+                interrupted,
+            )
+        }
     }
 
 

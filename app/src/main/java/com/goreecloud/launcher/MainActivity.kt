@@ -428,6 +428,8 @@ class MainActivity : ComponentActivity() {
             val experiencePreferencesState by produceState<LauncherExperiencePreferences?>(initialValue = null) {
                 launcherPreferencesRepository.experiencePreferences.collect { value = it }
             }
+            val drawerPosition by launcherPreferencesRepository.drawerPosition
+                .collectAsStateWithLifecycle(initialValue = null)
             val placementState by produceState<WorkspaceAuthoritativePlacementState?>(initialValue = null) {
                 workspaceRuntimeCoordinator.observePlacement().collect { value = it }
             }
@@ -1160,6 +1162,7 @@ class MainActivity : ComponentActivity() {
                             preferences = launcherPreferences,
                             drawerLayoutMode = drawerLayoutMode,
                             experiencePreferences = experiencePreferences,
+                            drawerPosition = drawerPosition,
                             homePageTransition = visualPreferences.homePageTransition,
                             recentAppKeys = localRecentAppKeys,
                             localLaunchCounts = localLaunchCounts,
@@ -1544,6 +1547,9 @@ class MainActivity : ComponentActivity() {
                             onSetDrawerSearchPlacement = launcherPreferencesRepository::setDrawerSearchPlacement,
                             onSetDrawerNavigation = launcherPreferencesRepository::setDrawerNavigation,
                             onSetDrawerEntryMode = launcherPreferencesRepository::setDrawerEntryMode,
+                            onSetRememberDrawerPosition =
+                                launcherPreferencesRepository::setRememberDrawerPosition,
+                            onSetDrawerPosition = launcherPreferencesRepository::setDrawerPosition,
                             onSetDrawerSpacing = launcherPreferencesRepository::setDrawerSpacing,
                             onSetDrawerPageRows = launcherPreferencesRepository::setDrawerPageRows,
                             onSetShowDrawerAppCount = launcherPreferencesRepository::setShowDrawerAppCount,

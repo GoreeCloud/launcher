@@ -36,7 +36,9 @@ Layout Lock must prevent Dock placement mutation while leaving normal launching 
 
 The Dock must adapt to phone, tablet, landscape, large-display, and supported foldable compositions. Launcher-owned interactive targets retain at least the resolved 48 dp minimum floor under the normal policy. Visual artwork may scale within its bounded presentation range before interaction targets are reduced.
 
-Dock icons use the same normalized icon pipeline, selected adaptive mask, profile badge rules, and optical geometry as Home, Apps, Search, and folder previews. Labels, when enabled, reserve consistent geometry and use bounded single-line presentation rather than shifting neighboring slots.
+Dock icons use the same normalized icon pipeline, selected adaptive mask, profile badge rules, and optical geometry as Home, Apps, Search, and folder previews. The profile badge occupies the icon's top-left corner across Launcher surfaces. Labels, when enabled, reserve consistent geometry and use bounded single-line presentation rather than shifting neighboring slots.
+
+The floating Dock is an overlay on the Home wallpaper, not a full-width bottom surface. The wallpaper must remain visually continuous to the bottom display edge, including behind and beneath the Dock. Only the Dock's own selected material may render behind its bounded floating shape; Launcher must not add a full-width panel, tint strip, scrim, or rectangular Dock background. Ordinary multi-icon layouts reserve additional horizontal breathing room while retaining the accessibility interaction floor and compact visual intent.
 
 ## Universal Search integration
 

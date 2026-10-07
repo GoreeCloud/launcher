@@ -98,6 +98,78 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun rememberDrawerPositionDefaultsOnPersistsViewportAndClearsWhenDisabled() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-position.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            assertEquals(true, repository.experiencePreferences.first().rememberDrawerPosition)
+            assertEquals(null, repository.drawerPosition.first())
+
+            repository.setDrawerPosition(
+                LauncherDrawerPosition(
+                    contextKey = "USER|GRID|SCROLL|ALPHABETICAL|ALL||5|5",
+                    itemIndex = 14,
+                    itemScrollOffset = 27,
+                    page = 2,
+                ),
+            ).join()
+            val stored = repository.drawerPosition.first { it != null }
+            assertEquals(14, stored?.itemIndex)
+            assertEquals(27, stored?.itemScrollOffset)
+            assertEquals(2, stored?.page)
+
+            repository.setRememberDrawerPosition(false).join()
+            assertEquals(
+                false,
+                repository.experiencePreferences.first { !it.rememberDrawerPosition }
+                    .rememberDrawerPosition,
+            )
+            assertEquals(null, repository.drawerPosition.first())
+
+            repository.setDrawerPosition(
+                LauncherDrawerPosition(
+                    contextKey = "WORK|LIST|SCROLL|ALPHABETICAL|ALL||5|5",
+                    itemIndex = 9,
+                    itemScrollOffset = 13,
+                ),
+            ).join()
+            assertEquals(null, repository.drawerPosition.first())
+
+            repository.setRememberDrawerPosition(true).join()
+            assertEquals(
+                true,
+                repository.experiencePreferences.first { it.rememberDrawerPosition }
+                    .rememberDrawerPosition,
+            )
+            assertEquals(null, repository.drawerPosition.first())
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
+    fun drawerPositionSanitizationFailsClosedAndBoundsPersistedCoordinates() {
+        assertEquals(null, LauncherDrawerPosition(contextKey = "   ").sanitized())
+
+        val sanitized = LauncherDrawerPosition(
+            contextKey = "  USER|GRID  ",
+            itemIndex = -4,
+            itemScrollOffset = Int.MAX_VALUE,
+            page = -7,
+        ).sanitized()
+
+        assertEquals("USER|GRID", sanitized?.contextKey)
+        assertEquals(0, sanitized?.itemIndex)
+        assertEquals(100_000, sanitized?.itemScrollOffset)
+        assertEquals(0, sanitized?.page)
+    }
+
+    @Test
     fun repositoryFallbackKeepsEstablishedHomeCardClock() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(
@@ -439,6 +511,7 @@ class LauncherPreferencesTest {
         assertEquals(LauncherDrawerSearchPlacement.OFF, defaults.drawerSearchPlacement)
         assertEquals(LauncherDrawerNavigation.SCROLL, defaults.drawerNavigation)
         assertEquals(LauncherDrawerEntryMode.BROWSE, defaults.drawerEntryMode)
+        assertEquals(true, defaults.rememberDrawerPosition)
         assertEquals(LauncherDrawerSpacing.STANDARD, defaults.drawerSpacing)
         assertEquals(5, defaults.drawerPageRows)
         assertFalse(defaults.showDrawerSuggestions)

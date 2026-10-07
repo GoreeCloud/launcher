@@ -1,3 +1,19 @@
+## October 6, 2026 — representative-device Dock, profile-badge, and Search-hub refinement candidate
+
+Owner representative-device feedback is now reflected as launcher-wide presentation and Search-provider rules rather than one-screen patches. The floating Home Dock is overlaid on full-bleed wallpaper so no full-width bottom strip, panel, tint, or scrim is allocated behind it; ordinary multi-icon Dock widths are expanded to add horizontal breathing room without reducing the interaction floor. User/Work profile identity moves to the top-left icon corner across Home, Dock, Apps, Search, and app-context surfaces; Drawer pin state vacates that slot and uses a separate bottom-left mark.
+
+Universal Search expands its Connected catalog beyond Google Drive, Dropbox, and Brave Search with individually configurable Google Search, Bing, DuckDuckGo, ChatGPT, Gemini, Perplexity, Claude, and Microsoft Copilot entries. Web providers remain explicit user handoffs; AI sources also remain explicit handoffs and do not receive typed queries automatically. When an official Android provider app is installed, Launcher reuses that app's official icon artwork; unavailable app-backed AI handoffs remain visible with explicit readiness state instead of disappearing.
+
+**Acceptance boundary:** Draft PR #277 Development candidate only. Fresh exact-head protected build/JVM/lint/runtime validation and representative-device wallpaper continuity, Dock density, profile-badge collision/accessibility, provider handoff, large-text, phone/tablet/foldable, and reduced-effects acceptance remain required.
+
+## October 6, 2026 — explicit User/Work profile identity badges candidate
+
+Development source now gives both App Drawer profile identities an explicit Launcher-owned visual mark: **User** uses a person badge and **Work** uses a briefcase badge. The badge is intentionally separate from notification, pin, and App Lock indicators, so profile identity remains visible even when those states are also present and no unbadged state has to be interpreted as Personal/User.
+
+The same profile identity is carried into stationary app-context shortcut rows and Universal Search application/shortcut presentation, including prominent results. Accessibility descriptions explicitly report **User profile** or **Work profile**. The implementation reuses the existing bounded Drawer authority where the primary Android user maps to User Apps and non-primary LauncherApps inventory maps to Work Apps; it does not invent profile membership, change launch authority, request a permission, add network behavior, or broaden cross-profile access.
+
+**Acceptance boundary:** Draft PR #277 Development candidate only. Fresh exact-head protected build/JVM/lint/runtime validation plus representative-device profile-badge legibility, TalkBack/Switch Access, large-text, phone/tablet/foldable, real managed-profile lifecycle, and visual collision checks with notification/pin/App Lock states remain required.
+
 ## October 5, 2026 — legacy/adaptive icon optical-fill refinement candidate
 
 Development source extends the shared mask-ready icon pipeline to cover both adaptive and legacy artwork. Adaptive foregrounds receive bounded overscan before the selected Launcher mask is applied. Legacy drawables are rasterized to the bounded decode canvas, inspected by alpha bounds, and enlarged only when unusually padded; the normalization targets 90% visible fill below an 84% threshold and caps enlargement at 1.24×.

@@ -1,3 +1,26 @@
+## October 6, 2026 — representative-device Dock, profile identity, and Search-source refinement candidate
+
+- Made the Home wallpaper full-bleed beneath the externally hosted floating Dock; removed the root layout allocation that produced a full-width rectangular bottom strip behind the Dock.
+- Increased compact Dock width bands for 2–6 visible items and Search-enabled layouts so five-icon Docks have deliberate horizontal breathing room while preserving the interaction floor.
+- Standardized User/Work profile badges on the top-left corner of app/shortcut icons across Home, Dock, App Drawer, Universal Search, and app-context presentation; moved Drawer pin state to a separate bottom-left slot.
+- Expanded the individually configurable Connected Search catalog with Google Search, Bing, DuckDuckGo, ChatGPT, Gemini, Perplexity, Claude, and Microsoft Copilot in addition to Google Drive, Dropbox, and Brave Search.
+- Kept all new web/AI providers explicit user handoffs. Typing in Universal Search does not fan queries out to these providers automatically; app-backed AI sources fail closed when their official Android handoff is unavailable.
+- Reused installed official provider application artwork where available and retained bounded Launcher fallbacks/readiness messaging when an official app is unavailable.
+
+**Status:** Draft PR #277 Development candidate only. Fresh exact-head CI and representative-device visual/provider/accessibility acceptance remain required.
+
+## October 6, 2026 — App Drawer Remember Position candidate
+
+- Added **Remember position** under App Drawer settings, defaulting on for ordinary Launcher use.
+- When enabled, compatible Grid/Compact/List/Category scroll state and paged Drawer page/within-page position are restored approximately when Apps reopens.
+- Position restoration is context-bound to profile, layout, navigation mode, sort order, discovery filter, custom tab, column count and rows-per-page so changed presentation does not reuse stale coordinates; the remembered User/Work profile is restored when still present, and only the visible profile can persist the final viewport.
+- Temporary Search results reset to their starting position while preserving the prior ordinary-browse viewport for a later return.
+- Disabling the setting immediately clears stored viewport state and subsequent Drawer opens start from the beginning.
+- The remembered location is device-local presentation state and remains outside the portable preference/backup contract; no new permission, network access, telemetry or cross-profile authority is introduced.
+- Added focused persistence/default/clear/sanitization tests and deterministic viewport-context coverage.
+
+**Status:** Draft PR #277 Development candidate only. Exact-head CI and representative-device enabled/disabled reopen, short-screen/large-text, profile, accessibility and performance acceptance remain required.
+
 ## October 6, 2026 — owner-directed visual cohesion and lightweight Search/Home refinement candidate
 
 The current Development continuation applies a broader visual-quality pass from representative-device owner screenshots rather than treating each mismatch as an isolated patch. Fresh/default Dock presentation now uses **Clear** and the rendered Dock is width-bounded to its current density instead of spanning the full Home canvas; paging, drag/drop, optional Search, labels, and the Glaze 48 dp interaction floor remain intact. This makes the ordinary Dock read as a lightweight floating icon row over wallpaper while the existing Solid/Raised/Edge material choices remain explicit user options.

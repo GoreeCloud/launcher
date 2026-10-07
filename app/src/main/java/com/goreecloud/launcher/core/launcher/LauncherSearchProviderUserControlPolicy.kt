@@ -276,10 +276,7 @@ object LauncherSearchProviderUserControlPolicy {
         LauncherCallHistorySearchProvider.PROVIDER_ID -> "Call history"
         LauncherMessagesSearchProvider.PROVIDER_ID -> "Messages"
         LauncherFilesSearchProvider.PROVIDER_ID -> "Files"
-        LauncherConnectedSearchProviderRegistry.GOOGLE_DRIVE_PROVIDER_ID -> "Google Drive"
-        LauncherConnectedSearchProviderRegistry.DROPBOX_PROVIDER_ID -> "Dropbox"
-        LauncherConnectedSearchProviderRegistry.BRAVE_SEARCH_PROVIDER_ID -> "Brave Search"
-        else -> providerId
+        else -> LauncherConnectedSearchProviderRegistry.displayNameFor(providerId) ?: providerId
     }
 
     fun privacySummaryFor(metadata: LauncherSearchProviderMetadata): String {

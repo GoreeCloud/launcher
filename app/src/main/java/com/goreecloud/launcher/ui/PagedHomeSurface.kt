@@ -1412,16 +1412,12 @@ fun ReadOnlyPagedHomeSurface(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .then(
-                        if (
-                            secondaryHomeShouldOwnBottomInset(
-                                contentOnly = false,
-                                dockHostedExternally = dockHostedExternally,
-                            )
-                        ) {
-                            Modifier.navigationBarsPadding()
+                    .navigationBarsPadding()
+                    .padding(
+                        bottom = if (dockHostedExternally && dockApps.isNotEmpty()) {
+                            launcherExternalDockContentClearanceDp(false, dockStyle).dp
                         } else {
-                            Modifier
+                            0.dp
                         },
                     ),
             ) {
@@ -1685,19 +1681,15 @@ fun ReadOnlyPagedHomeSurface(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
-                .then(
-                    if (
-                        secondaryHomeShouldOwnBottomInset(
-                            contentOnly = contentOnly,
-                            dockHostedExternally = dockHostedExternally,
-                        )
-                    ) {
-                        Modifier.navigationBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = GlazeMetrics.space4)
+                .padding(
+                    bottom = if (dockHostedExternally && dockApps.isNotEmpty()) {
+                        launcherExternalDockContentClearanceDp(false, dockStyle).dp
                     } else {
-                        Modifier
+                        0.dp
                     },
-                )
-                .padding(horizontal = GlazeMetrics.space4),
+                ),
         ) {
             Spacer(Modifier.height(72.dp))
 

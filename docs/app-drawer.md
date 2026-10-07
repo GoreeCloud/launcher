@@ -88,6 +88,8 @@ Android remains authority for application/profile identity.
 
 The Drawer separates User Apps and Work Apps when applicable. Organizational state including hidden apps, pins, and custom-tab membership uses profile-qualified identities so identical package/component names in different profiles are not treated as one item.
 
+The current Development candidate also gives both identities an explicit Launcher-owned profile badge instead of relying on absence-as-meaning: User apps use a person mark and Work apps use a briefcase mark. The profile mark occupies the **top-left corner of the app or shortcut icon** across Home, Dock, App Drawer, Universal Search, and app-context presentation. Other Launcher marks must use separate slots so pin, notification, and App Lock state cannot displace profile identity. The same profile identity is carried into app-context shortcuts and Universal Search application/shortcut presentation, with explicit **User profile** / **Work profile** accessibility descriptions. Profile badges are presentation-only and do not change Android profile authority, launch identity, package state, App Lock, notification badges, or workspace placement.
+
 ## Suggestions, freshness, and local ordering
 
 Local **Most recent** and **Most frequent** ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.

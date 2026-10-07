@@ -139,6 +139,7 @@ app/src/main/java/com/goreecloud/launcher/ui/LauncherHomePageTransition.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherLazyListItems.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherLocalAppSearch.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherProviderControlledSearchSurface.kt
+app/src/main/java/com/goreecloud/launcher/ui/LauncherProfileBadge.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherRoot.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSearchSuggestionTabIcon.kt
 app/src/main/java/com/goreecloud/launcher/ui/LauncherSettingsDestinationHost.kt
@@ -236,6 +237,7 @@ app/src/test/java/com/goreecloud/launcher/ui/LauncherFolderPresentationPolicyTes
 app/src/test/java/com/goreecloud/launcher/ui/LauncherGlazeSearchGroupsTest.kt
 app/src/test/java/com/goreecloud/launcher/ui/LauncherHomeTilePresentationPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/ui/LauncherLocalAppSearchTest.kt
+app/src/test/java/com/goreecloud/launcher/ui/LauncherProfileBadgePolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/ui/LauncherSettingsNavigationTest.kt
 app/src/test/java/com/goreecloud/launcher/ui/LauncherSurfaceTransitionPolicyTest.kt
 app/src/test/java/com/goreecloud/launcher/ui/theme/GlazeCurrentAuthorityTest.kt
