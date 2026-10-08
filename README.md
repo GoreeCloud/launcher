@@ -1,6 +1,6 @@
 # GoreeCloud Launcher
 
-> **Repository authority:** `GoreeCloud/launcher` is the independent development repository. The former `GoreeCloud/android-app-defaults/apps/launcher/` location is historical migration provenance and will be retired after transfer validation.
+> **Repository authority:** `GoreeCloud/launcher` is the independent development repository. The former `GoreeCloud/android-app-defaults/apps/launcher/` location was retired by protected [monorepo PR #291](https://github.com/GoreeCloud/android-app-defaults/pull/291), merged as `068a958074431fabecff8748c9b630ea9dfdf6b9`; historical code remains in Git. Independent [Launcher PR #1](https://github.com/GoreeCloud/launcher/pull/1) preserved its extracted source/history and merged as `a159412507532c0d3314057fab24d138dff131ac` after Android 16 runtime/performance, build/lint and Platform Contract validation. Standalone `main` is branch-protected; product lifecycle remains Development.
 >
 > **Project governance:** [PROJECT-SPECIFICATIONS.md](PROJECT-SPECIFICATIONS.md) is the canonical project specification and [PROJECT-RECORD.md](PROJECT-RECORD.md) preserves significant history and evidence.
 

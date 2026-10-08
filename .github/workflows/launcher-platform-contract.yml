@@ -2,17 +2,9 @@ name: Launcher Platform Contract
 
 on:
   pull_request:
-    paths:
-      - 'goreecloud.platform.yaml'
-      - 'apps/keyboard/goreecloud.platform.yaml'
-      - '.github/workflows/launcher-platform-contract.yml'
   push:
     branches:
       - main
-    paths:
-      - 'goreecloud.platform.yaml'
-      - 'apps/keyboard/goreecloud.platform.yaml'
-      - '.github/workflows/launcher-platform-contract.yml'
   workflow_dispatch:
 
 permissions:
@@ -25,8 +17,7 @@ concurrency:
 jobs:
   launcher:
     name: Launcher Platform Contract
-    # Legacy Launcher PRs #218 and #251 both update the Contract 0.4 validator
-    # to this reviewed central workflow revision. Preserve that fix at monorepo scope.
+    # Run required Platform Contract check on every change.
     uses: GoreeCloud/GoreeCloud/.github/workflows/reusable-platform-manifest.yml@e49b9afdea094c96a36a0457b1603f2fa8e8fa6b
     with:
       manifest-path: goreecloud.platform.yaml
