@@ -179,9 +179,24 @@ internal fun launcherDirectApiValidResponsePath(raw: String): Boolean =
  * Keystore key and written atomically under noBackupFilesDir. No plaintext preference, export,
  * Room entry, diagnostic field, backup, or log is created. Keystore loss fails closed.
  */
-internal class LauncherDirectApiSourceStore(private val context: Context) {
+internal class LauncherDirectApiSourceStore(
+    private val context: Context,
+    fileName: String = "direct_api_sources_v1.enc",
+    private val keyAlias: String = KEY_ALIAS,
+) {
     private val lock = Any()
-    private val file = AtomicFile(File(context.noBackupFilesDir, "direct_api_sources_v1.enc"))
+    private val file = AtomicFile(File(context.noBackupFilesDir, fileName))
+
+    init {
+        require(
+            fileName.matches(Regex("direct_api_sources_[A-Za-z0-9_.-]{1,100}\\.enc")),
+        ) { "Direct API storage filename is outside the app-private namespace" }
+        require(
+            keyAlias.matches(
+                Regex("goreecloud_launcher_search_direct_api_[A-Za-z0-9_.-]{1,160}"),
+            ),
+        ) { "Direct API Keystore alias is outside the Launcher namespace" }
+    }
 
     fun list(): List<LauncherDirectApiSource> = synchronized(lock) {
         val raw = readEncrypted() ?: return@synchronized emptyList()
@@ -241,7 +256,7 @@ internal class LauncherDirectApiSourceStore(private val context: Context) {
     fun resetAll() = synchronized(lock) {
         file.delete()
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        if (store.containsAlias(KEY_ALIAS)) store.deleteEntry(KEY_ALIAS)
+        if (store.containsAlias(keyAlias)) store.deleteEntry(keyAlias)
     }
 
     private fun serialize(sources: List<LauncherDirectApiSource>): ByteArray {
@@ -265,11 +280,11 @@ internal class LauncherDirectApiSourceStore(private val context: Context) {
 
     private fun keystoreKey(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        (store.getKey(KEY_ALIAS, null) as? SecretKey)?.let { return it }
+        (store.getKey(keyAlias, null) as? SecretKey)?.let { return it }
         val generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
         generator.init(
             KeyGenParameterSpec.Builder(
-                KEY_ALIAS,
+                keyAlias,
                 KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
             )
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
