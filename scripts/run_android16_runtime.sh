@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-runtime_dir="${GITHUB_WORKSPACE:?}/apps/launcher/ci-runtime"
+runtime_dir="${GITHUB_WORKSPACE:?}/ci-runtime"
 mkdir -p "$runtime_dir"
 
 set +e
 timeout --signal=TERM --kill-after=30s 20m \
-  gradle --project-dir "$GITHUB_WORKSPACE/apps/launcher" --no-daemon connectedDebugAndroidTest \
+  gradle --project-dir "$GITHUB_WORKSPACE" --no-daemon connectedDebugAndroidTest \
     -Pandroid.testInstrumentationRunnerArguments.timeout_msec=60000
 status=$?
 set -e
