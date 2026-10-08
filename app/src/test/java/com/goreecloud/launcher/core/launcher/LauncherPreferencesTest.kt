@@ -105,6 +105,60 @@ class LauncherPreferencesTest {
     }
 
     @Test
+    fun drawerSmartFolderExclusionsPersistByKindAndProfileQualifiedKey() = runBlocking {
+        val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = dataStoreScope,
+            produceFile = { temporaryFolder.newFile("drawer-smart-folder-exclusions.preferences_pb") },
+        )
+        val repository = LauncherPreferencesRepository(dataStore)
+
+        try {
+            assertEquals(
+                emptyMap<LauncherDrawerSmartFolderKind, Set<String>>(),
+                repository.drawerSmartFolderExclusions.first(),
+            )
+
+            repository.setDrawerSmartFolderExcluded(
+                kind = LauncherDrawerSmartFolderKind.SUGGESTED,
+                appKey = "user:0/com.example/.Main",
+                excluded = true,
+            ).join()
+            repository.setDrawerSmartFolderExcluded(
+                kind = LauncherDrawerSmartFolderKind.UPDATED,
+                appKey = "user:10/com.example/.Main",
+                excluded = true,
+            ).join()
+
+            val exclusions = repository.drawerSmartFolderExclusions.first {
+                it[LauncherDrawerSmartFolderKind.SUGGESTED]?.size == 1 &&
+                    it[LauncherDrawerSmartFolderKind.UPDATED]?.size == 1
+            }
+            assertEquals(
+                setOf("user:0/com.example/.Main"),
+                exclusions[LauncherDrawerSmartFolderKind.SUGGESTED],
+            )
+            assertEquals(
+                setOf("user:10/com.example/.Main"),
+                exclusions[LauncherDrawerSmartFolderKind.UPDATED],
+            )
+
+            repository.clearDrawerSmartFolderExclusions(
+                LauncherDrawerSmartFolderKind.SUGGESTED,
+            ).join()
+            val remaining = repository.drawerSmartFolderExclusions.first {
+                LauncherDrawerSmartFolderKind.SUGGESTED !in it
+            }
+            assertEquals(
+                setOf("user:10/com.example/.Main"),
+                remaining[LauncherDrawerSmartFolderKind.UPDATED],
+            )
+        } finally {
+            dataStoreScope.cancel()
+        }
+    }
+
+    @Test
     fun rememberDrawerPositionDefaultsOnPersistsViewportAndClearsWhenDisabled() = runBlocking {
         val dataStoreScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         val dataStore = PreferenceDataStoreFactory.create(

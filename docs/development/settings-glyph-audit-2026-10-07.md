@@ -1,6 +1,6 @@
 # Launcher Settings Glyph Audit — October 7, 2026
 
-Status: Development candidate in draft PR #280, restacked directly on protected main after integrated PR #277 and PR #278. Not integrated or physically accepted.
+Status: Integrated Development source from PR #280, merged to protected main as `142cbe8843041a14c22cc5eba5915b250f953999`. Source integration is verified; representative-device visual/accessibility acceptance remains open.
 
 ## Source implementation
 

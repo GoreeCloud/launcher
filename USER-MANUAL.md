@@ -53,7 +53,7 @@ The primary Home experience is a launcher-style surface. Android renders the dev
 - Long-press empty Home space to enter **Edit Home**, then use its **Settings** action to change supported Home, Apps, icon, label, appearance, layout-lock, and Launcher Universal Search preferences. Pressing Android **Home** while Edit Home is open exits the editor and returns to the ordinary primary Home surface. You can also open the same Launcher Settings surface from the gear at the top of **Apps**.
 - Swipe one finger downward through the unobstructed Home gesture zone to open Launcher Universal Search by default. This assignment can be changed under **Launcher settings → Gestures**.
 - The first-run setup can seed the five-item Dock from common app roles when available. Automatic Home apps are controlled separately by the selected No automatic apps / 10 most recent apps / 10 most used apps mode.
-- Five apps remain the first-run Dock default, not a capacity limit. In the current Development candidate you can add substantially more apps and organize them across horizontally swipeable Dock pages. Launcher preserves the resolved 48 dp interaction floor by paging earlier instead of shrinking touch targets below that floor. Under **Launcher settings → Home screen → Dock**, you can choose a preferred 4, 5, 6, or 7 items per page, optionally loop from the last Dock page back to the first, show Dock labels, expose a direct Universal Search button, and choose Glaze, Clear, Solid, Raised, or Edge presentation. The Search button can keep the Dock available even when no app placements are present. Narrow layouts may display fewer apps per page than the preference so interaction targets remain safe.
+- Five apps remain the first-run Dock default, not a capacity limit. In the current Development candidate you can add substantially more apps and organize them across horizontally swipeable Dock pages. Launcher preserves the resolved 48 dp interaction floor by paging earlier instead of shrinking touch targets below that floor. Under **Launcher settings → Home screen → Dock**, you can choose a preferred 4, 5, 6, or 7 items per page, optionally loop from the last Dock page back to the first, show Dock labels, expose a direct Universal Search button, and choose Glaze, Clear, Solid, Raised, or Edge presentation. With a hardware keyboard focused in the Dock, Page Up and Page Down move between Dock pages without replacing D-pad focus navigation. The Search button can keep the Dock available even when no app placements are present. Narrow layouts may display fewer apps per page than the preference so interaction targets remain safe.
 
 The launcher discovers launchable activities through Android `LauncherApps` across available profiles. The manifest uses a scoped `MAIN` + `LAUNCHER` package-visibility query without requesting broad `QUERY_ALL_PACKAGES` access; core search no longer requires the legacy GoreeCloud Index search-action query.
 
@@ -157,6 +157,12 @@ Use the header **Filter** action to choose **All**, **Pinned**, **Suggested**, *
 - **Updated** shows applications with a materially later Android package update timestamp when profile-correct metadata is available.
 
 These controls filter Launcher presentation only. They do not install, disable, uninstall, hide, lock, or move applications. For a Work or managed profile where Android does not expose package update metadata to Launcher, **Updated** returns no fabricated match rather than borrowing primary-profile metadata.
+
+### Smart Folders
+
+In **Category** layout, Launcher can show local **Pinned**, **Suggested**, **New**, and **Updated** Smart Folders when the applicable source has candidates. Suggested uses only Launcher-local signals; New and Updated reuse the same bounded freshness metadata as Drawer discovery.
+
+The October 6 Development continuation lets you exclude an individual application from **Suggested**, **New**, or **Updated** without hiding the app, uninstalling it, moving it, locking it, or changing another Smart Folder. Exclusions use the exact profile-qualified Launcher identity. If exclusions exist, the Smart Folder shows how many were excluded and provides **Restore** to clear that Smart Folder's exclusions. **Pinned** membership remains controlled with Pin/Unpin rather than a second exclusion mechanism.
 
 ### Custom App Drawer tabs
 

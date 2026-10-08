@@ -83,6 +83,26 @@ internal fun launcherDockLoopBoundaryTarget(
 }
 
 
+internal enum class LauncherDockPageNavigationDirection {
+    PREVIOUS,
+    NEXT,
+}
+
+internal fun launcherDockPageNavigationTarget(
+    currentVirtualPage: Int,
+    virtualPageCount: Int,
+    direction: LauncherDockPageNavigationDirection,
+): Int? {
+    val count = virtualPageCount.coerceAtLeast(1)
+    if (count <= 1) return null
+    val current = currentVirtualPage.coerceIn(0, count - 1)
+    val target = when (direction) {
+        LauncherDockPageNavigationDirection.PREVIOUS -> (current - 1).coerceAtLeast(0)
+        LauncherDockPageNavigationDirection.NEXT -> (current + 1).coerceAtMost(count - 1)
+    }
+    return target.takeIf { it != current }
+}
+
 internal enum class LauncherDockDragPageDirection {
     PREVIOUS,
     NEXT,

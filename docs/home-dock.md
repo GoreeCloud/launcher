@@ -18,7 +18,9 @@ The Dock must support more items than fit safely in one row. It must preserve th
 
 Multiple Dock pages are an approved capability. Dock-page navigation is independent from Home-page navigation. A typical organization may use separate Everyday, Productivity, and Media pages while retaining one ordered, persistent Dock collection.
 
-The user may choose a preferred items-per-page density. Device width, orientation, display posture, accessibility scale, and resolved minimum target size can reduce the effective number of visible slots so the interaction floor remains intact. Optional page looping is user-controlled in the current Development candidate. It uses bounded virtual edge pages and returns immediately to the equivalent logical edge page after a completed swipe so the visible page order remains predictable.
+The user may choose a preferred items-per-page density. Device width, orientation, display posture, accessibility scale, and resolved minimum target size can reduce the effective number of visible slots so the interaction floor remains intact. Optional page looping is user-controlled. It uses bounded virtual edge pages and returns immediately to the equivalent logical edge page after a completed swipe so the visible page order remains predictable.
+
+In the October 6 Development continuation, hardware **Page Up / Page Down** can request previous/next Dock pages through the same pager authority when keyboard focus is within the Dock. D-pad arrows are intentionally not intercepted by this feature so ordinary focus traversal remains available for separate representative-device acceptance.
 
 ## Applications, folders, shortcuts, and actions
 
@@ -87,9 +89,11 @@ Protected PR #239 integrated the first adaptive paged-Dock tranche as authoritat
 
 PR #239 exact head passed Mandatory app migration provenance #979, Android Development Foundation #1471, Migrated Android apps CI #1005, and Protected promotion #959 before merge. This establishes integrated Development CI/runtime evidence only; representative-device visual/accessibility/form-factor acceptance and stronger release-state claims remain open.
 
-### Stacked active-drag page-handoff candidate
+### Active-drag handoff and keyboard continuation
 
-The current `launcher/dock-drag-handoff-v2` Development branch adds edge-dwell page handoff while an application drag is active, preserves flat Dock ordering across page boundaries with a following-page insertion sentinel, supports loop-aware boundary insertion, and shows an edge affordance while a handoff target is active. It remains unintegrated until its own exact-head protected validation succeeds.
+Protected PR #240 integrated edge-dwell page handoff while an application drag is active, preserving flat Dock ordering across page boundaries with a following-page insertion sentinel, loop-aware boundary insertion, and a compact edge affordance.
+
+The October 6 Development continuation adds Page Up/Page Down page requests through that same Dock pager. It does not introduce a second Dock page model, does not change touch swipes or drag handoff, does not intercept D-pad arrows, and fails closed at non-looping pager edges. Fresh exact-head validation and representative-device hardware-keyboard/accessibility acceptance remain required.
 
 ## Remaining Dock work
 

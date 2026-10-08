@@ -70,7 +70,7 @@ Current Development includes the bounded local Smart Folder views described belo
 
 Smart folders provide dynamic App Drawer collections without mutating manual folders, tabs, Home, or Dock placement. Current Development derives bounded local-only **Pinned**, optional **Suggested**, **New**, and **Updated** smart folders from explicit pins, Launcher-local launch signals, and Android freshness metadata already used by Drawer discovery. Empty smart folders are omitted. Suggested smart-folder membership respects the existing Suggested apps control; when truthful usage does not exist, its membership uses the same deterministic A-Z fallback rather than fabricating behavior.
 
-Smart folders are read-only dynamic views in this tranche. Manual override/exclusion rules, custom rule composition, persisted smart-folder ordering/naming, and portable recovery remain planned. Profile identity remains bounded by the currently selected Drawer profile, and unavailable non-primary update metadata continues to fail closed rather than borrowing another profile's state.
+The October 6 Development continuation adds per-application exclusions for **Suggested**, **New**, and **Updated**. Exclusions are keyed by exact profile-qualified Launcher app identity, affect only the selected Smart Folder kind, remain device-local, and can be cleared with an explicit **Restore** action. A Smart Folder remains recoverable even when every current candidate is excluded. **Pinned** remains controlled by the existing explicit pin/unpin authority instead of a second exclusion mechanism. Custom rule composition, persisted Smart Folder ordering/naming, and portable recovery remain planned. Profile identity remains bounded by the currently selected Drawer profile, and unavailable non-primary update metadata continues to fail closed rather than borrowing another profile's state.
 
 ## Hidden applications
 
@@ -104,7 +104,7 @@ Current Development exposes these choices from the header **Filter** action:
 
 For non-primary profiles, first-install time continues to come from profile-qualified LauncherActivityInfo. Android's public LauncherApps surface does not expose profile-qualified last-update time, so **Updated** currently fails closed for Work and other non-primary profiles instead of borrowing primary-user metadata for a same-package app. Primary-profile update time comes from PackageManager.
 
-The bounded **Pinned / Suggested / New / Updated** Smart Folder views above are implemented Development behavior. Richer editable rule-based membership remains future work and must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable.
+The bounded **Pinned / Suggested / New / Updated** Smart Folder views above are implemented Development behavior. The October 6 continuation adds reversible per-app exclusions for Suggested/New/Updated; richer user-authored rule composition and portable recovery remain separately gated and must remain local-first, transparent, explainable, user-controllable, non-sponsored, and manually overridable.
 
 A fresh installation must not fabricate prior usage.
 
@@ -198,6 +198,6 @@ Launcher Settings -> detailed configuration
 
 Current source remains Development. Exact-head automated validation is necessary but insufficient for release qualification. Representative-device visual quality, TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile transitions, direct placement, performance/power, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
 
-## Opt-in inline custom tabs (draft PR #280)
+## Opt-in inline custom tabs
 
-Development candidate only: App Drawer Tabs default to off and are enabled explicitly in Launcher Settings → App Drawer or during optional first-run setup. The All tab, add control and user-created tabs are hidden entirely when disabled. Enabling displays a horizontally scrolling tab strip beside the Apps heading; the old separate row is removed. Local tab names and profile-qualified memberships remain stored while hidden. Existing strict portable v1 backups do not include these settings, so cross-device backup/restore remains pending versioned work. Physical-device layout, large-text, accessibility, signing and protected CI acceptance are open. PR #280 is restacked directly on protected main after integrated PR #277 and PR #278; it remains a Development candidate and is not merged.
+App Drawer Tabs are integrated Development behavior from PR #280, merged to protected main as `142cbe8843041a14c22cc5eba5915b250f953999`. Tabs default to off and are enabled explicitly in Launcher Settings → App Drawer or during optional first-run setup. The All tab, add control and user-created tabs are hidden entirely when disabled. Enabling displays a horizontally scrolling tab strip beside the Apps heading; the old separate row is removed. Local tab names and profile-qualified memberships remain stored while hidden. Existing strict portable v1 backups do not include these settings, so cross-device backup/restore remains pending versioned work. Representative-device layout, large-text, accessibility, protected Development signing/update continuity, and release acceptance remain open.

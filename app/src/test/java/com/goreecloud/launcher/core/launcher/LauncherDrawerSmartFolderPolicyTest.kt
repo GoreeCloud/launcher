@@ -67,6 +67,58 @@ class LauncherDrawerSmartFolderPolicyTest {
     }
 
     @Test
+    fun exclusionsHideMembersButKeepRecoveryVisible() {
+        val folders = LauncherDrawerSmartFolderPolicy.build(
+            availableKeys = linkedSetOf("a", "b"),
+            pinnedKeys = emptySet(),
+            recentAppKeys = listOf("a", "b"),
+            launchCounts = mapOf("a" to 5L, "b" to 3L),
+            labelByKey = mapOf("a" to "Alpha", "b" to "Beta"),
+            freshnessByKey = emptyMap(),
+            nowMillis = now,
+            includeSuggested = true,
+            excludedKeysByKind = mapOf(
+                LauncherDrawerSmartFolderKind.SUGGESTED to setOf("a", "b"),
+            ),
+        )
+
+        val suggested = folders.single { it.kind == LauncherDrawerSmartFolderKind.SUGGESTED }
+        assertTrue(suggested.memberKeys.isEmpty())
+        assertEquals(2, suggested.excludedCount)
+    }
+
+    @Test
+    fun exclusionCodecIsKindScopedReversibleAndNeverOverridesPinnedAuthority() {
+        val excluded = LauncherDrawerSmartFolderExclusions.setExcluded(
+            raw = emptySet(),
+            kind = LauncherDrawerSmartFolderKind.NEW,
+            appKey = "user:42:com.example/.Main",
+            excluded = true,
+        )
+        val decoded = LauncherDrawerSmartFolderExclusions.decode(excluded)
+        assertEquals(
+            setOf("user:42:com.example/.Main"),
+            decoded[LauncherDrawerSmartFolderKind.NEW],
+        )
+        assertFalse(LauncherDrawerSmartFolderKind.UPDATED in decoded)
+        assertEquals(
+            excluded,
+            LauncherDrawerSmartFolderExclusions.setExcluded(
+                raw = excluded,
+                kind = LauncherDrawerSmartFolderKind.PINNED,
+                appKey = "user:42:com.example/.Main",
+                excluded = true,
+            ),
+        )
+        assertTrue(
+            LauncherDrawerSmartFolderExclusions.clearKind(
+                excluded,
+                LauncherDrawerSmartFolderKind.NEW,
+            ).isEmpty(),
+        )
+    }
+
+    @Test
     fun emptyInventoryProducesNoSmartFolders() {
         assertTrue(
             LauncherDrawerSmartFolderPolicy.build(

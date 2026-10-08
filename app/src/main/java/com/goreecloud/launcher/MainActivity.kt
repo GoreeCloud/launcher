@@ -502,6 +502,9 @@ class MainActivity : ComponentActivity() {
             val drawerTabs by launcherPreferencesRepository.drawerTabs.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
             )
+            val drawerSmartFolderExclusions by launcherPreferencesRepository.drawerSmartFolderExclusions.collectAsStateWithLifecycle(
+                initialValue = emptyMap(),
+            )
             val folders by folderRepository.folders.collectAsStateWithLifecycle(
                 initialValue = emptyList(),
             )
@@ -1173,6 +1176,7 @@ class MainActivity : ComponentActivity() {
                             drawerPinnedAppOrder = drawerPinnedAppOrder,
                             drawerSortOrderName = drawerSortOrderName,
                             drawerTabs = drawerTabs,
+                            drawerSmartFolderExclusions = drawerSmartFolderExclusions,
                             searchProviderPreferences = searchProviderPreferences,
                             fileSearchRoots = fileSearchRoots,
                             homePageCount = renderedPages.size.coerceAtLeast(1),
@@ -1601,6 +1605,18 @@ class MainActivity : ComponentActivity() {
                                     appKey = appKey,
                                     enabled = enabled,
                                 )
+                                Unit
+                            },
+                            onSetDrawerSmartFolderExcluded = { kind, appKey, excluded ->
+                                launcherPreferencesRepository.setDrawerSmartFolderExcluded(
+                                    kind,
+                                    appKey,
+                                    excluded,
+                                )
+                                Unit
+                            },
+                            onClearDrawerSmartFolderExclusions = { kind ->
+                                launcherPreferencesRepository.clearDrawerSmartFolderExclusions(kind)
                                 Unit
                             },
                             onRequestUninstall = ::requestUninstall,

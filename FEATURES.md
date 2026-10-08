@@ -145,6 +145,7 @@ Current Development source includes:
 - A persistent **All** tab plus bounded create, rename, delete, select, and per-app tab assignment.
 - Deterministic application categories; folders remain grouped under **Folders** in Category mode.
 - A–Z, Z–A, Launcher-local Most recent, profile-aware Recently installed, profile-aware Recently updated, Launcher-local Most frequent, and Pinned first sorting.
+- Local Pinned/Suggested/New/Updated Smart Folders; the October 6 Development continuation adds reversible profile-qualified exclusions for Suggested/New/Updated with explicit Restore recovery.
 - Compact **All / Pinned / Suggested / New / Updated** discovery filters; Suggested uses only Launcher-local signals and a deterministic A-Z first-use fallback.
 - A 48 dp alphabetical jump index in ordinary A-Z List presentation.
 - Device-local App Drawer pins and manual pinned ordering.

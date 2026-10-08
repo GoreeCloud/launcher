@@ -8,6 +8,18 @@
 
 **Status:** Development candidate only. Exact-head build/JVM/lint/runtime validation and representative-device visual confirmation remain required.
 
+## October 6, 2026 — reversible Smart Folder overrides and Dock keyboard paging candidate
+
+- Added device-local, profile-qualified exclusions for **Suggested**, **New**, and **Updated** App Drawer Smart Folders. Excluding an app affects only that dynamic collection; it does not hide, uninstall, lock, move, unpin, or alter manual folder/tab membership.
+- Kept **Pinned** under the existing explicit pin/unpin authority and fail closed against persisted Pinned exclusion records.
+- Kept fully excluded dynamic Smart Folders recoverable, showing an excluded count and explicit **Restore** action instead of silently removing the collection.
+- Added bounded exclusion decoding/persistence outside portable preference v1 plus focused codec, policy, and DataStore tests.
+- Added hardware **Page Up / Page Down** navigation for multi-page Dock paging through the existing pager authority. D-pad arrows remain untouched so this continuation does not hijack ordinary focus traversal or pointer/gesture navigation.
+- Added a pure Dock page-navigation target policy with edge coverage; active drag continues to disable keyboard page switching.
+- No new Android permission, network path, telemetry, package mutation, workspace schema, Home/Dock placement authority, or remote dependency is introduced.
+
+**Acceptance boundary:** Development candidate only. Exact-head protected build/JVM/lint/runtime, review, and representative-device Smart Folder recovery, hardware-keyboard focus, TalkBack/Switch Access, large-text, RTL, profile/form-factor, performance/power, signing/update, and release acceptance remain required.
+
 ## October 6, 2026 — user-owned in-Launcher Direct API answers candidate
 
 - Added four individually configurable direct answer adapters: OpenAI (ChatGPT), Claude (Anthropic), Gemini, and Perplexity, plus user-named HTTPS OpenAI-compatible chat and bounded GET/JSON search APIs.

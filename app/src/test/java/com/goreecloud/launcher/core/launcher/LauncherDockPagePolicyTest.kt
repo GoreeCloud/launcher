@@ -77,6 +77,42 @@ class LauncherDockPagePolicyTest {
     }
 
     @Test
+    fun keyboardNavigationTargetsAdjacentPagesAndStopsAtNonLoopingEdges() {
+        assertEquals(
+            1,
+            launcherDockPageNavigationTarget(
+                currentVirtualPage = 0,
+                virtualPageCount = 3,
+                direction = LauncherDockPageNavigationDirection.NEXT,
+            ),
+        )
+        assertEquals(
+            1,
+            launcherDockPageNavigationTarget(
+                currentVirtualPage = 2,
+                virtualPageCount = 3,
+                direction = LauncherDockPageNavigationDirection.PREVIOUS,
+            ),
+        )
+        assertEquals(
+            null,
+            launcherDockPageNavigationTarget(
+                currentVirtualPage = 0,
+                virtualPageCount = 3,
+                direction = LauncherDockPageNavigationDirection.PREVIOUS,
+            ),
+        )
+        assertEquals(
+            null,
+            launcherDockPageNavigationTarget(
+                currentVirtualPage = 2,
+                virtualPageCount = 3,
+                direction = LauncherDockPageNavigationDirection.NEXT,
+            ),
+        )
+    }
+
+    @Test
     fun loopingStaysInactiveForSinglePage() {
         assertEquals(1, launcherDockVirtualPageCount(1, true))
         assertEquals(0, launcherDockInitialVirtualPage(1, true))

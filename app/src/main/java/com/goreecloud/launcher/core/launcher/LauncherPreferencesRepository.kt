@@ -470,6 +470,7 @@ class LauncherPreferencesRepository(
         val drawerPinnedAppOrder = stringPreferencesKey("drawer_pinned_app_order_v1")
         val drawerSortOrderName = stringPreferencesKey("drawer_sort_order_name_v1")
         val drawerTabs = stringPreferencesKey("drawer_tabs_v1")
+        val drawerSmartFolderExclusions = stringSetPreferencesKey("drawer_smart_folder_exclusions_v1")
         val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
     }
 
@@ -574,6 +575,19 @@ class LauncherPreferencesRepository(
      */
     val drawerTabs: Flow<List<LauncherDrawerTab>> = dataStore.data
         .map { values -> LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]) }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local, profile-qualified exclusions for dynamic Smart Folder presentation.
+     * These preferences intentionally remain outside the strict portable-v1 contract.
+     */
+    val drawerSmartFolderExclusions:
+        Flow<Map<LauncherDrawerSmartFolderKind, Set<String>>> = dataStore.data
+        .map { values ->
+            LauncherDrawerSmartFolderExclusions.decode(
+                values[Keys.drawerSmartFolderExclusions].orEmpty(),
+            )
+        }
         .distinctUntilChanged()
 
     /**
@@ -1227,6 +1241,42 @@ class LauncherPreferencesRepository(
                 pinnedKeys = pinnedKeys,
             )
             values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(reconciled)
+        }
+    }
+
+    fun setDrawerSmartFolderExcluded(
+        kind: LauncherDrawerSmartFolderKind,
+        appKey: String,
+        excluded: Boolean,
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val updated = LauncherDrawerSmartFolderExclusions.setExcluded(
+                raw = values[Keys.drawerSmartFolderExclusions].orEmpty(),
+                kind = kind,
+                appKey = appKey,
+                excluded = excluded,
+            )
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerSmartFolderExclusions)
+            } else {
+                values[Keys.drawerSmartFolderExclusions] = updated
+            }
+        }
+    }
+
+    fun clearDrawerSmartFolderExclusions(
+        kind: LauncherDrawerSmartFolderKind,
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val updated = LauncherDrawerSmartFolderExclusions.clearKind(
+                raw = values[Keys.drawerSmartFolderExclusions].orEmpty(),
+                kind = kind,
+            )
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerSmartFolderExclusions)
+            } else {
+                values[Keys.drawerSmartFolderExclusions] = updated
+            }
         }
     }
 

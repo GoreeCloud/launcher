@@ -71,7 +71,7 @@ Current Development controls include:
 
 Suggested apps use only truthful Launcher-local launch history. Launcher requests no Android Usage Access for this feature. With no valid local history, the fallback is deterministic A–Z rather than fabricated personalization.
 
-Current Development source includes bounded local Smart Folder views for Pinned, optional Suggested, New, and Updated. They are read-only dynamic views and do not mutate manual folders, tabs, Home, Dock, hidden state, App Lock, or package state. Suggested Smart Folder membership follows the same App Drawer Suggested apps control. Manual override/exclusion rules, richer user-authored category rules, portable recovery, and representative-device acceptance remain open.
+Current protected Development source includes bounded local Smart Folder views for Pinned, optional Suggested, New, and Updated. They do not mutate manual folders, tabs, Home, Dock, hidden state, App Lock, or package state. Suggested Smart Folder membership follows the same App Drawer Suggested apps control. This Development candidate adds reversible, profile-qualified per-app exclusions for Suggested, New, and Updated while leaving Pinned under explicit Pin/Unpin authority; fully excluded dynamic collections remain recoverable with Restore. Richer user-authored category rules, portable recovery, and representative-device acceptance remain open.
 
 ## Dock
 
@@ -221,16 +221,16 @@ Important capability must not depend only on a gesture. Settings must preserve n
 
 This Settings architecture is Development work. Source/build/runtime CI is necessary but does not establish representative physical-device visual quality, TalkBack/Switch Access, keyboard/D-pad, large-text, RTL/localization, phone/tablet/foldable, performance/power, protected Development signing/update continuity, complete portable recovery, Release Candidate, Production, Stable, Seal, or Anchor acceptance.
 
-## Pending App Drawer Tabs and glyph refinement (draft PR #280)
+## App Drawer Tabs and Settings glyph refinement
 
-App Drawer Tabs default off. Settings and onboarding allow explicit opt-in. The enabled horizontal tabs sit beside Apps; disabling hides the entire control strip without deleting existing tab names or memberships. The v1 portable preference snapshot cannot yet export/import the tab settings and definitions.
+App Drawer Tabs and the October 7 Settings glyph refinements are integrated Development behavior from PR #280, merged to protected main as `142cbe8843041a14c22cc5eba5915b250f953999`. Tabs default off. Settings and onboarding allow explicit opt-in. The enabled horizontal tabs sit beside Apps; disabling hides the entire control strip without deleting existing tab names or memberships. The v1 portable preference snapshot cannot yet export/import the tab settings and definitions.
 
-The thirteen category icons use the shared `LauncherOutlineGlyph` Canvas/vector family, a uniform rounded stroke and theme-derived colors. Draft PR #280 refines Dock, Folders, Gestures, and Advanced geometry. Remaining submenu vector and device/theme/font/density acceptance are open. This candidate is not on protected main or in the previously delivered APK.
+The thirteen category icons use the shared `LauncherOutlineGlyph` Canvas/vector family, a uniform rounded stroke and theme-derived colors; the accepted refinement covers Dock, Folders, Gestures, and Advanced geometry. Remaining submenu vector and representative-device theme/font/density/accessibility acceptance are open.
 
 
-## Universal Search profile and provider corrections (draft Development candidate)
+## Universal Search profile and provider corrections
 
-The stacked Development source candidate for owner screenshot feedback introduces the following source changes, which remain **unmerged and not delivered as an APK**:
+Protected Development source includes the following profile/provider corrections from PR #283, merged to main as `61c169d5a0c0255d2709c1a5d5fb7c1d90134467`:
 
 - Newly Installed/Updated, Frequent, and Recent suggestion icons now show the same Android User/Work profile badge as other app and shortcut Search results. App keys and de-duplication remain profile-qualified. The freshness loader uses each non-primary profile's LauncherActivityInfo install timestamp rather than applying the calling user's package timestamp to Work apps.
 - The Bing and Microsoft Copilot Search provider identities and registrations are retired; persisted provider IDs are excluded from active source controls by the existing known-provider normalization. Ordinary locally installed Microsoft apps are not affected.
@@ -238,4 +238,4 @@ The stacked Development source candidate for owner screenshot feedback introduce
 - Search Sources distinguishes unconfigured OAuth signing, missing handoff support, profile visibility, and external app/browser behavior. Provider settings re-evaluate when the LauncherApps inventory updates.
 - Direct API Answers already supports explicitly configured, credentialed inline OpenAI/Anthropic/Gemini/Perplexity/custom APIs in a separate user-controlled panel; it does not imply that provider-app handoffs offer authenticated inline integration.
 
-**Unfinished:** A reviewed Dropbox OAuth adapter and provider-supported authenticated inline adapters for other app-only services are not part of this code change. No OAuth client, redirect registration, provider credentials, user consent, token refresh/revocation or real provider API test results are claimed. Android 16 instrumented User/Work/Shelter/quiet-profile tests, physical UI/accessibility testing, and all exact-head CI gates remain required before merge or release. On profiles blocked by enterprise policy, Launcher cannot infer whether the package is physically installed.
+**Unfinished:** A reviewed Dropbox OAuth adapter and provider-supported authenticated inline adapters for other app-only services are not part of the integrated change. No OAuth client, redirect registration, provider credentials, user consent, token refresh/revocation or real provider API test results are claimed. Representative-device User/Work/Shelter/quiet-profile behavior, physical UI/accessibility testing, protected Development signing/update continuity, and later release gates remain open. On profiles blocked by enterprise policy, Launcher cannot infer whether the package is physically installed.

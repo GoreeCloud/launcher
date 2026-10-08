@@ -66,6 +66,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.After
+import org.junit.AfterClass
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -74,6 +75,36 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class ActivatedHomeLifecycleRuntimeTest {
+    companion object {
+        private var suiteAcquiredHomeRole = false
+
+        @JvmStatic
+        @AfterClass
+        fun restoreHomeRoleAfterRuntimeSuite() = runBlocking {
+            if (!suiteAcquiredHomeRole) return@runBlocking
+
+            val context = InstrumentationRegistry.getInstrumentation().targetContext
+            val roleManager = context.getSystemService(RoleManager::class.java)
+            val descriptor = InstrumentationRegistry.getInstrumentation()
+                .uiAutomation
+                .executeShellCommand(
+                    "toybox timeout 8 cmd role remove-role-holder " +
+                        "${RoleManager.ROLE_HOME} ${context.packageName}",
+                )
+            try {
+                withTimeout(10_000) {
+                    while (roleManager.isRoleHeld(RoleManager.ROLE_HOME)) {
+                        delay(100)
+                    }
+                }
+                delay(500)
+            } finally {
+                descriptor.close()
+                suiteAcquiredHomeRole = false
+            }
+        }
+    }
+
     @get:Rule
     val composeRule = createEmptyComposeRule()
 
@@ -2440,17 +2471,26 @@ class ActivatedHomeLifecycleRuntimeTest {
         roleManager: RoleManager,
         packageName: String,
     ) {
+        if (roleManager.isRoleHeld(RoleManager.ROLE_HOME)) return
+
         mutateHomeRoleAndAwait(
             roleManager = roleManager,
             packageName = packageName,
             shouldBeHeld = true,
         )
+        // All HOME-sensitive methods in this class require Launcher ownership. Retain the role
+        // once this suite acquires it so adjacent methods cannot race remove -> add transitions.
+        suiteAcquiredHomeRole = true
     }
 
     private suspend fun removeHomeRoleAndAwait(
         roleManager: RoleManager,
         packageName: String,
     ) {
+        if (suiteAcquiredHomeRole) {
+            // Restored once by @AfterClass after every HOME-sensitive method has completed.
+            return
+        }
         mutateHomeRoleAndAwait(
             roleManager = roleManager,
             packageName = packageName,
@@ -2465,8 +2505,8 @@ class ActivatedHomeLifecycleRuntimeTest {
     ) {
         val operation = if (shouldBeHeld) "add-role-holder" else "remove-role-holder"
         // UiAutomation shell execution is asynchronous. Keep the descriptor alive so closing the
-        // read side cannot cancel the command, but never drain stdout: Android 16 can leave that
-        // pipe open while RoleManager finishes a holder transition. RoleManager is the bounded,
+        // read side cannot cancel the role command, but never drain stdout: Android 16 can leave
+        // that pipe open while RoleManager finishes the transition. RoleManager is the bounded,
         // observable authority for completion.
         val descriptor = InstrumentationRegistry.getInstrumentation()
             .uiAutomation
@@ -2480,8 +2520,6 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
             }
             if (!shouldBeHeld) {
-                // Avoid immediate remove/add contention between adjacent test cases while keeping
-                // the settle interval deterministic and far below the suite watchdog.
                 delay(500)
             }
         } finally {
