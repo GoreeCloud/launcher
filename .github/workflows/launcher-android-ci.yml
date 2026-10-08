@@ -1,0 +1,246 @@
+name: Launcher Android CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: launcher-android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  launcher:
+    name: Launcher validation, unit tests, lint, and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.11.1'
+      - name: Set Launcher Development artifact identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION_CODE=$((1000000 + GITHUB_RUN_NUMBER))
+          test "$VERSION_CODE" -gt 1439
+          echo "GOREECLOUD_DEV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "EXPECTED_LAUNCHER_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+      - name: Validate Launcher privacy, identity, UI, motion, and Room boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_privacy.py
+          python3 scripts/check_manifest.py
+          python3 scripts/check_identity.py
+          python3 scripts/check_glaze_ui.py
+          python3 scripts/check_glaze_motion_evaluation.py
+          python3 scripts/check_room_cutover.py
+      - name: Test, lint, and build Launcher
+        run: gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
+      - name: Verify Launcher Room schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/check_room_schema.py
+          if [ -n "$(git status --porcelain -- app/schemas)" ]; then
+            echo "Room schema history changed during generation and is not committed exactly."
+            git status --short -- app/schemas
+            exit 1
+          fi
+      - name: Stage Launcher Development APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find app/build/outputs/apk/debug -type f -name '*.apk' -print -quit)"
+          test -n "$APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$AAPT"
+          test -x "$APKSIGNER"
+          BADGING="$("$AAPT" dump badging "$APK" | head -n 1)"
+          APPLICATION_ID="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+          VERSION_CODE="$(printf '%s\n' "$BADGING" | sed -n "s/.* versionCode='\([^']*\)'.*/\1/p")"
+          VERSION_NAME="$(printf '%s\n' "$BADGING" | sed -n "s/.* versionName='\([^']*\)'.*/\1/p")"
+          echo "Launcher APK identity: package=$APPLICATION_ID versionName=$VERSION_NAME versionCode=$VERSION_CODE"
+          test "$APPLICATION_ID" = "com.goreecloud.launcher.dev"
+          test "$VERSION_NAME" = "0.1.0-dev"
+          test "$VERSION_CODE" = "$EXPECTED_LAUNCHER_VERSION_CODE"
+          "$APKSIGNER" verify --verbose "$APK"
+          ARTIFACT_ROOT="artifact-launcher-android"
+          rm -rf "$ARTIFACT_ROOT"
+          mkdir -p "$ARTIFACT_ROOT"
+          cp "$APK" "$ARTIFACT_ROOT/GoreeCloud-Launcher-Dev.apk"
+          cat > "$ARTIFACT_ROOT/BUILD-PROVENANCE.txt" <<EOF
+          repository=GoreeCloud/launcher
+          component_path=.
+          source_sha=$(git rev-parse HEAD)
+          application_id=$APPLICATION_ID
+          version_name=$VERSION_NAME
+          version_code=$VERSION_CODE
+          workflow=$GITHUB_WORKFLOW
+          run_id=$GITHUB_RUN_ID
+          run_number=$GITHUB_RUN_NUMBER
+          run_attempt=$GITHUB_RUN_ATTEMPT
+          signing_role=ci-debug-installability-only
+          update_in_place_continuity=not-established
+          stable_release_authority=none
+          EOF
+          (
+            cd "$ARTIFACT_ROOT"
+            sha256sum ./*.apk > SHA256SUMS
+            sha256sum --check SHA256SUMS
+          )
+      - name: Upload Launcher Development sidecar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: goreecloud-launcher-android-dev-sidecar
+          if-no-files-found: error
+          retention-days: 14
+          path: artifact-launcher-android/*
+
+  launcher-runtime:
+    needs: launcher
+    name: Launcher Android 16 runtime instrumentation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.11.1'
+      - name: Detect Android emulator acceleration
+        id: emulator-accel
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 0666 /dev/kvm || true
+          fi
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            echo "kvm_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "kvm_available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::KVM acceleration is unavailable; Launcher Android 16 instrumentation will use software acceleration."
+          fi
+      - name: Validate Launcher runtime harness
+        shell: bash
+        run: bash -n scripts/run_android16_runtime.sh
+      - name: Run complete Launcher Android 16 instrumentation suite
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: default
+          arch: x86_64
+          disable-animations: true
+          disable-linux-hw-accel: ${{ steps.emulator-accel.outputs.kvm_available != 'true' }}
+          script: bash "$GITHUB_WORKSPACE/scripts/run_android16_runtime.sh"
+      - name: Upload Launcher Android 16 test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-android16-runtime-reports
+          path: |
+            ci-runtime/**
+            app/build/reports/androidTests/connected/**
+            app/build/outputs/androidTest-results/connected/**
+          if-no-files-found: warn
+          retention-days: 14
+
+  launcher-transition-performance:
+    needs: launcher
+    name: Launcher Android 16 transition performance diagnostics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify exact source revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '8.11.1'
+      - name: Detect Android emulator acceleration
+        id: emulator-accel
+        shell: bash
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 0666 /dev/kvm || true
+          fi
+          if [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
+            echo "kvm_available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "kvm_available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::KVM acceleration is unavailable; Launcher transition diagnostics will use software acceleration."
+          fi
+      - name: Measure Launcher Home and Apps transition frame timing on Android 16
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 36
+          target: default
+          arch: x86_64
+          disable-animations: false
+          disable-linux-hw-accel: ${{ steps.emulator-accel.outputs.kvm_available != 'true' }}
+          script: |
+            adb logcat -c
+            gradle --project-dir "$GITHUB_WORKSPACE/" --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.goreecloud.launcher.ui.LauncherTransitionPerformanceRuntimeTest
+            mkdir -p "$GITHUB_WORKSPACE/ci-performance"
+            adb logcat -d -s LauncherTransitionPerf:I '*:S' | tee "$GITHUB_WORKSPACE/ci-performance/transition-performance.log"
+      - name: Upload Launcher transition-performance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-android16-transition-performance
+          path: |
+            ci-performance/**
+            app/build/reports/androidTests/connected/**
+            app/build/outputs/androidTest-results/connected/**
+          if-no-files-found: warn
+          retention-days: 14
