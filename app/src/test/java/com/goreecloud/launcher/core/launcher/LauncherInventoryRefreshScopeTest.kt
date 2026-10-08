@@ -7,6 +7,33 @@ import org.junit.Test
 
 class LauncherInventoryRefreshScopeTest {
     @Test
+    fun identicalUserAndWorkAppsAlwaysSortInSameOrderRegardlessOfScanOrder() {
+        data class Entry(
+            val label: String,
+            val pkg: String,
+            val component: String,
+            val profileId: Int,
+        )
+        val user = Entry("Browser", "com.example.browser", "Main", 0)
+        val work = Entry("Browser", "com.example.browser", "Main", 10)
+        val other = Entry("Calculator", "com.example.calc", "Main", 0)
+
+        fun ordered(items: List<Entry>) = launcherInventoryStableOrder(
+            items = items,
+            labelOf = Entry::label,
+            packageOf = Entry::pkg,
+            classOf = Entry::component,
+            profileOf = Entry::profileId,
+        )
+
+        val expected = listOf(user, work, other)
+        assertEquals(expected, ordered(listOf(work, other, user)))
+        assertEquals(expected, ordered(listOf(user, other, work)))
+        assertEquals(expected, ordered(listOf(other, work, user)))
+        assertEquals(3, ordered(listOf(work, other, user)).size)
+    }
+
+    @Test
     fun packageRemovalUsesPackageScopedRefresh() {
         assertEquals(
             LauncherInventoryRefreshScope.PACKAGE,

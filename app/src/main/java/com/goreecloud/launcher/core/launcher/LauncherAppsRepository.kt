@@ -28,6 +28,28 @@ import kotlinx.coroutines.launch
 internal fun launcherLabelSortKey(label: CharSequence): String =
     Normalizer.normalize(label.toString(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
 
+/**
+ * Applies a stable, profile-qualified total order to independently enumerated Android apps.
+ *
+ * An identical activity can appear in User and Work profiles with the same visible label,
+ * package, and class name. Without the profile tie-breaker, LauncherApps enumeration order
+ * affects the final drawer position on every refresh, causing needless LazyGrid reordering.
+ */
+internal fun <T> launcherInventoryStableOrder(
+    items: List<T>,
+    labelOf: (T) -> CharSequence,
+    packageOf: (T) -> String,
+    classOf: (T) -> String,
+    profileOf: (T) -> Int,
+): List<T> = items.sortedWith(
+    compareBy(
+        { launcherLabelSortKey(labelOf(it)) },
+        packageOf,
+        classOf,
+        profileOf,
+    ),
+)
+
 internal enum class LauncherInventoryChange {
     PACKAGE_ADDED,
     PACKAGE_REMOVED,
@@ -451,11 +473,13 @@ class LauncherAppsRepository(context: Context) {
     ): List<LauncherActivityInfo> =
         apps.distinctBy { app ->
             "${app.user.hashCode()}:${app.componentName.flattenToString()}"
-        }.sortedWith(
-            compareBy(
-                { launcherLabelSortKey(it.label) },
-                { it.componentName.packageName },
-                { it.componentName.className },
-            ),
-        )
+        }.let { deduplicated ->
+            launcherInventoryStableOrder(
+                items = deduplicated,
+                labelOf = { it.label },
+                packageOf = { it.componentName.packageName },
+                classOf = { it.componentName.className },
+                profileOf = { it.user.hashCode() },
+            )
+        }
 }
