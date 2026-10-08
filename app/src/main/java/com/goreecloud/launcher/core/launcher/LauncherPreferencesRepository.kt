@@ -1,0 +1,1531 @@
+package com.goreecloud.launcher.core.launcher
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicLong
+
+private val Context.launcherPreferencesStore by preferencesDataStore(name = "launcher_preferences")
+
+enum class LauncherUniversalSearchHomeMode(val storageValue: String) {
+    PERMANENT("permanent"),
+    SWIPE_DOWN_ONLY("swipe_down_only");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherUniversalSearchHomeMode =
+            entries.firstOrNull { it.storageValue == value } ?: SWIPE_DOWN_ONLY
+    }
+}
+
+enum class LauncherDrawerLayoutMode(val storageValue: String) {
+    GRID("grid"),
+    COMPACT("compact"),
+    LIST("list"),
+    CATEGORY("category");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerLayoutMode =
+            entries.firstOrNull { it.storageValue == value } ?: GRID
+    }
+}
+
+enum class LauncherHomeCardStyle(val storageValue: String) {
+    CLOCK("clock"),
+    COMPACT("compact"),
+    OFF("off");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeCardStyle =
+            entries.firstOrNull { it.storageValue == value } ?: CLOCK
+    }
+}
+
+enum class LauncherDrawerBackdrop(val storageValue: String) {
+    GLASS("glass"),
+    SOLID("solid");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerBackdrop =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+enum class LauncherDrawerSearchPlacement(val storageValue: String) {
+    OFF("off"),
+    TOP("top"),
+    BOTTOM("bottom");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSearchPlacement =
+            entries.firstOrNull { it.storageValue == value } ?: OFF
+    }
+}
+
+enum class LauncherDrawerNavigation(val storageValue: String) {
+    SCROLL("scroll"),
+    PAGES("pages");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerNavigation =
+            entries.firstOrNull { it.storageValue == value } ?: SCROLL
+    }
+}
+
+enum class LauncherDrawerEntryMode(val storageValue: String) {
+    BROWSE("browse"),
+    SEARCH_FIRST("search_first");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerEntryMode =
+            entries.firstOrNull { it.storageValue == value } ?: BROWSE
+    }
+}
+
+enum class LauncherDrawerSpacing(val storageValue: String) {
+    TIGHT("tight"),
+    STANDARD("standard"),
+    RELAXED("relaxed");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDrawerSpacing =
+            entries.firstOrNull { it.storageValue == value } ?: STANDARD
+    }
+}
+
+enum class LauncherHomeGlanceAlignment(val storageValue: String) {
+    LEFT("left"),
+    CENTER("center");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeGlanceAlignment =
+            entries.firstOrNull { it.storageValue == value } ?: LEFT
+    }
+}
+
+enum class LauncherHomeSearchPlacement(val storageValue: String) {
+    MOVABLE("movable"),
+    TOP("top"),
+    BOTTOM("bottom");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeSearchPlacement =
+            entries.firstOrNull { it.storageValue == value } ?: BOTTOM
+    }
+}
+
+internal enum class LauncherHomeSearchSurface {
+    SWIPE_DOWN_ONLY,
+    MOVABLE,
+    FIXED_TOP,
+    FIXED_BOTTOM,
+}
+
+internal fun launcherHomeSearchSurface(
+    mode: LauncherUniversalSearchHomeMode,
+    placement: LauncherHomeSearchPlacement,
+): LauncherHomeSearchSurface = when {
+    mode != LauncherUniversalSearchHomeMode.PERMANENT ->
+        LauncherHomeSearchSurface.SWIPE_DOWN_ONLY
+    placement == LauncherHomeSearchPlacement.MOVABLE ->
+        LauncherHomeSearchSurface.MOVABLE
+    placement == LauncherHomeSearchPlacement.TOP ->
+        LauncherHomeSearchSurface.FIXED_TOP
+    else ->
+        LauncherHomeSearchSurface.FIXED_BOTTOM
+}
+
+enum class LauncherHomeSearchStyle(val storageValue: String) {
+    GLASS("glass"),
+    CLEAR("clear"),
+    SOLID("solid");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeSearchStyle =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+enum class LauncherHomeSpacing(val storageValue: String) {
+    COMPACT("compact"),
+    BALANCED("balanced"),
+    AIRY("airy");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeSpacing =
+            entries.firstOrNull { it.storageValue == value } ?: BALANCED
+    }
+}
+
+enum class LauncherHomeAppMode(
+    val storageValue: String,
+    val displayName: String,
+) {
+    NONE("none", "No automatic apps"),
+    RECENT("recent", "10 most recent"),
+    MOST_USED("most_used", "10 most used");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherHomeAppMode =
+            entries.firstOrNull { it.storageValue == value } ?: NONE
+    }
+}
+
+enum class LauncherDockStyle(val storageValue: String) {
+    GLASS("glass"),
+    CLEAR("clear"),
+    SOLID("solid"),
+    RAISED("raised"),
+    EDGE("edge");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherDockStyle =
+            entries.firstOrNull { it.storageValue == value } ?: GLASS
+    }
+}
+
+enum class LauncherWallpaperShade(val storageValue: String) {
+    OFF("off"),
+    SOFT("soft"),
+    STRONG("strong");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherWallpaperShade =
+            entries.firstOrNull { it.storageValue == value } ?: SOFT
+    }
+}
+
+enum class LauncherIconShape(
+    val storageValue: String,
+    val displayName: String,
+) {
+    ROUNDED_SQUARE("rounded_square", "Rounded square"),
+    ORIGINAL("original", "Original"),
+    SQUIRCLE("squircle", "Squircle"),
+    CIRCLE("circle", "Circle"),
+    TEARDROP("teardrop", "Teardrop");
+
+    companion object {
+        fun fromStorage(value: String?): LauncherIconShape =
+            entries.firstOrNull { it.storageValue == value } ?: ROUNDED_SQUARE
+    }
+}
+
+enum class LauncherHomeGesture(val displayName: String) {
+    SWIPE_UP("Swipe up"),
+    SWIPE_DOWN("Swipe down"),
+    SWIPE_LEFT("Swipe left"),
+    SWIPE_RIGHT("Swipe right"),
+    DOUBLE_TAP("Double-tap"),
+    TAP_AND_HOLD("Tap and hold"),
+}
+
+enum class LauncherGestureSensitivity(
+    val storageValue: String,
+    val displayName: String,
+    val activationDistanceMultiplier: Float,
+) {
+    RESPONSIVE("responsive", "Responsive", 0.75f),
+    STANDARD("standard", "Standard", 1.0f),
+    DELIBERATE("deliberate", "Deliberate", 1.25f);
+
+    fun activationDistancePx(baseDistancePx: Float): Float =
+        if (baseDistancePx.isFinite() && baseDistancePx > 0f) {
+            baseDistancePx * activationDistanceMultiplier
+        } else {
+            baseDistancePx
+        }
+
+    companion object {
+        fun fromStorage(value: String?): LauncherGestureSensitivity =
+            entries.firstOrNull { it.storageValue == value } ?: STANDARD
+    }
+}
+
+enum class LauncherGestureActionType(
+    val storageValue: String,
+    val displayName: String,
+) {
+    NONE("none", "None"),
+    APPS("apps", "Apps"),
+    UNIVERSAL_SEARCH("universal_search", "Universal Search"),
+    LAUNCHER_SETTINGS("launcher_settings", "Launcher settings"),
+    HOME_EDITOR("home_editor", "Home editor"),
+    WALLPAPER("wallpaper", "Wallpaper"),
+    THEME_MANAGER("theme_manager", "Theme Manager"),
+    OPEN_APP("open_app", "Open app"),
+}
+
+data class LauncherGestureAction(
+    val type: LauncherGestureActionType,
+    val appKey: String? = null,
+) {
+    val storageValue: String
+        get() = when (type) {
+            LauncherGestureActionType.OPEN_APP ->
+                appKey?.takeIf { it.isNotBlank() }?.let { "app:$it" }
+                    ?: LauncherGestureActionType.NONE.storageValue
+            else -> type.storageValue
+        }
+
+    companion object {
+        fun builtIn(type: LauncherGestureActionType): LauncherGestureAction =
+            LauncherGestureAction(type = type)
+
+        fun openApp(appKey: String): LauncherGestureAction =
+            LauncherGestureAction(
+                type = LauncherGestureActionType.OPEN_APP,
+                appKey = appKey,
+            )
+
+        fun fromStorage(
+            value: String?,
+            fallback: LauncherGestureAction,
+        ): LauncherGestureAction {
+            if (value == null) return fallback
+            if (value.startsWith("app:")) {
+                val key = value.removePrefix("app:")
+                return if (key.isBlank()) fallback else openApp(key)
+            }
+
+            val type = LauncherGestureActionType.entries
+                .firstOrNull { it != LauncherGestureActionType.OPEN_APP && it.storageValue == value }
+                ?: return fallback
+            return builtIn(type)
+        }
+    }
+}
+
+data class LauncherDrawerPosition(
+    val contextKey: String,
+    val itemIndex: Int = 0,
+    val itemScrollOffset: Int = 0,
+    val page: Int = 0,
+) {
+    fun sanitized(): LauncherDrawerPosition? {
+        val normalizedContext = contextKey.trim().takeIf(String::isNotEmpty)?.take(512) ?: return null
+        return copy(
+            contextKey = normalizedContext,
+            itemIndex = itemIndex.coerceIn(0, 100_000),
+            itemScrollOffset = itemScrollOffset.coerceIn(0, 100_000),
+            page = page.coerceIn(0, 10_000),
+        )
+    }
+}
+
+data class LauncherExperiencePreferences(
+    val homeCardStyle: LauncherHomeCardStyle = LauncherHomeCardStyle.CLOCK,
+    val showHomeQuickActions: Boolean = false,
+    val showHomePageIndicator: Boolean = true,
+    val showHomeLabels: Boolean = true,
+    val showDrawerLabels: Boolean = true,
+    val showDrawerPageIndicator: Boolean = true,
+    val drawerBackdrop: LauncherDrawerBackdrop = LauncherDrawerBackdrop.GLASS,
+    val drawerSearchPlacement: LauncherDrawerSearchPlacement = LauncherDrawerSearchPlacement.OFF,
+    val drawerNavigation: LauncherDrawerNavigation = LauncherDrawerNavigation.SCROLL,
+    val drawerEntryMode: LauncherDrawerEntryMode = LauncherDrawerEntryMode.BROWSE,
+    val rememberDrawerPosition: Boolean = true,
+    val drawerSpacing: LauncherDrawerSpacing = LauncherDrawerSpacing.STANDARD,
+    val drawerPageRows: Int = 5,
+    val showDrawerAppCount: Boolean = false,
+    val showDrawerSuggestions: Boolean = false,
+    val enableDrawerTabs: Boolean = false,
+    val homeGlanceAlignment: LauncherHomeGlanceAlignment = LauncherHomeGlanceAlignment.LEFT,
+    val homeSearchPlacement: LauncherHomeSearchPlacement = LauncherHomeSearchPlacement.BOTTOM,
+    val homeSearchStyle: LauncherHomeSearchStyle = LauncherHomeSearchStyle.GLASS,
+    val homeSpacing: LauncherHomeSpacing = LauncherHomeSpacing.BALANCED,
+    val dockStyle: LauncherDockStyle = LauncherDockStyle.GLASS,
+    val dockPageSize: Int = 5,
+    val dockLoopPages: Boolean = false,
+    val showDockLabels: Boolean = false,
+    val showDockSearch: Boolean = false,
+    val wallpaperShade: LauncherWallpaperShade = LauncherWallpaperShade.SOFT,
+    val iconShape: LauncherIconShape = LauncherIconShape.ROUNDED_SQUARE,
+    val iconPackPackage: String? = null,
+    val gestureSensitivity: LauncherGestureSensitivity = LauncherGestureSensitivity.STANDARD,
+    val swipeUpAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+    val swipeDownAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH),
+    val swipeLeftAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val swipeRightAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val doubleTapAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+    val tapAndHoldAction: LauncherGestureAction =
+        LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
+    val starterLayoutApplied: Boolean = false,
+    val homeAppMode: LauncherHomeAppMode = LauncherHomeAppMode.NONE,
+    val useLocalUsageForSuggestions: Boolean = false,
+    val addNewAppsToHome: Boolean = false,
+    val startupWizardStep: Int = 0,
+    val startupWizardCompleted: Boolean = false,
+    val homeHintsDismissed: Boolean = false,
+)
+
+data class LauncherPreferences(
+    val homeColumns: Int = 5,
+    val homeRows: Int = 6,
+    val drawerColumns: Int = 5,
+    val showLabels: Boolean = true,
+    val iconScale: Float = 1.0f,
+    val layoutLocked: Boolean = false,
+    val universalSearchHomeMode: LauncherUniversalSearchHomeMode = LauncherUniversalSearchHomeMode.SWIPE_DOWN_ONLY,
+) {
+    val homeCapacity: Int get() = homeColumns * homeRows
+
+    fun sanitized(): LauncherPreferences = copy(
+        homeColumns = homeColumns.coerceIn(4, 6),
+        homeRows = homeRows.coerceIn(4, 7),
+        drawerColumns = drawerColumns.coerceIn(4, 6),
+        iconScale = iconScale.coerceIn(0.85f, 1.15f),
+    )
+}
+
+class LauncherPreferencesRepository(
+    private val dataStore: DataStore<Preferences>,
+) : LauncherPortablePreferenceWriter {
+    constructor(context: Context) : this(context.launcherPreferencesStore)
+
+    private object Keys {
+        val homeColumns = intPreferencesKey("home_columns")
+        val homeRows = intPreferencesKey("home_rows")
+        val drawerColumns = intPreferencesKey("drawer_columns")
+        val showLabels = booleanPreferencesKey("show_labels")
+        val iconScale = floatPreferencesKey("icon_scale")
+        val layoutLocked = booleanPreferencesKey("layout_locked")
+        // Legacy DataStore key is retained for strict v1 backup/recovery compatibility.
+        val universalSearchHomeMode = stringPreferencesKey("index_home_mode")
+        val drawerLayoutMode = stringPreferencesKey("drawer_layout_mode")
+        val homeCardStyle = stringPreferencesKey("home_card_style")
+        val showHomeQuickActions = booleanPreferencesKey("show_home_quick_actions")
+        val showHomePageIndicator = booleanPreferencesKey("show_home_page_indicator")
+        val showHomeLabels = booleanPreferencesKey("show_home_labels")
+        val showDrawerLabels = booleanPreferencesKey("show_drawer_labels")
+        val showDrawerPageIndicator = booleanPreferencesKey("show_drawer_page_indicator")
+        val drawerBackdrop = stringPreferencesKey("drawer_backdrop")
+        val drawerSearchPlacement = stringPreferencesKey("drawer_search_placement")
+        val drawerNavigation = stringPreferencesKey("drawer_navigation")
+        val drawerEntryMode = stringPreferencesKey("drawer_entry_mode")
+        val rememberDrawerPosition = booleanPreferencesKey("remember_drawer_position_v1")
+        val drawerPositionContext = stringPreferencesKey("drawer_position_context_v1")
+        val drawerPositionItemIndex = intPreferencesKey("drawer_position_item_index_v1")
+        val drawerPositionItemOffset = intPreferencesKey("drawer_position_item_offset_v1")
+        val drawerPositionPage = intPreferencesKey("drawer_position_page_v1")
+        val drawerSpacing = stringPreferencesKey("drawer_spacing")
+        val drawerPageRows = intPreferencesKey("drawer_page_rows")
+        val showDrawerAppCount = booleanPreferencesKey("show_drawer_app_count")
+        val showDrawerSuggestions = booleanPreferencesKey("show_drawer_suggestions_v1")
+        val enableDrawerTabs = booleanPreferencesKey("drawer_tabs_enabled_v1")
+        val homeGlanceAlignment = stringPreferencesKey("home_glance_alignment")
+        val homeSearchPlacement = stringPreferencesKey("home_search_placement")
+        val homeSearchStyle = stringPreferencesKey("home_search_style")
+        val homeSpacing = stringPreferencesKey("home_spacing")
+        val dockStyle = stringPreferencesKey("dock_style")
+        val dockPageSize = intPreferencesKey("dock_page_size_v1")
+        val dockLoopPages = booleanPreferencesKey("dock_loop_pages_v1")
+        val showDockLabels = booleanPreferencesKey("show_dock_labels_v1")
+        val showDockSearch = booleanPreferencesKey("show_dock_search_v1")
+        val wallpaperShade = stringPreferencesKey("wallpaper_shade")
+        val iconShape = stringPreferencesKey("icon_shape")
+        val iconPackPackage = stringPreferencesKey("icon_pack_package")
+        val gestureSensitivity = stringPreferencesKey("gesture_sensitivity_v1")
+        val gestureSwipeUpAction = stringPreferencesKey("gesture_swipe_up_action")
+        val gestureSwipeDownAction = stringPreferencesKey("gesture_swipe_down_action")
+        val gestureSwipeLeftAction = stringPreferencesKey("gesture_swipe_left_action")
+        val gestureSwipeRightAction = stringPreferencesKey("gesture_swipe_right_action")
+        val gestureDoubleTapAction = stringPreferencesKey("gesture_double_tap_action")
+        val gestureTapAndHoldAction = stringPreferencesKey("gesture_tap_and_hold_action")
+        val starterLayoutApplied = booleanPreferencesKey("starter_layout_applied")
+        val homeAppMode = stringPreferencesKey("home_app_mode_v1")
+        val useLocalUsageForSuggestions =
+            booleanPreferencesKey("use_local_usage_for_suggestions")
+        val addNewAppsToHome = booleanPreferencesKey("add_new_apps_to_home")
+        val startupWizardStep = intPreferencesKey("startup_wizard_step_v1")
+        val startupWizardCompleted = booleanPreferencesKey("startup_wizard_completed_v1")
+        val homeHintsDismissed = booleanPreferencesKey("home_hints_dismissed_v1")
+        val homeLabelOverrides = stringPreferencesKey("home_label_overrides_v1")
+        val hiddenHomeSuggestionKeys = stringSetPreferencesKey("hidden_home_suggestion_keys_v1")
+        val hiddenAppKeys = stringSetPreferencesKey("hidden_app_keys_v1")
+        val lockedAppKeys = stringSetPreferencesKey("locked_app_keys_v1")
+        val drawerPinnedAppKeys = stringSetPreferencesKey("drawer_pinned_app_keys_v1")
+        val drawerPinnedAppOrder = stringPreferencesKey("drawer_pinned_app_order_v1")
+        val drawerSortOrderName = stringPreferencesKey("drawer_sort_order_name_v1")
+        val drawerTabs = stringPreferencesKey("drawer_tabs_v1")
+        val drawerSmartFolderExclusions = stringSetPreferencesKey("drawer_smart_folder_exclusions_v1")
+        val portableRestoreJournal = stringPreferencesKey("portable_restore_journal_v1")
+    }
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val drawerPositionWriteEpoch = AtomicLong(0L)
+    val defaults = LauncherPreferences()
+
+    val preferences: Flow<LauncherPreferences> = dataStore.data
+        .map(::portablePreferencesFrom)
+        .distinctUntilChanged()
+
+    /**
+     * Launcher-local Home label overrides. These are presentation metadata only and intentionally
+     * remain outside the strict portable-preference v1 backup/recovery contract.
+     */
+    val homeLabelOverrides: Flow<Map<String, String>> = dataStore.data
+        .map { values -> LauncherHomeLabelOverridesCodec.decode(values[Keys.homeLabelOverrides]) }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local suppression for automatic Home suggestions explicitly removed by the user.
+     *
+     * This does not hide the app from the drawer and does not change manual Home/Dock placement.
+     * The state intentionally remains outside the strict portable-preference v1 contract.
+     */
+    val hiddenHomeSuggestionKeys: Flow<Set<String>> = dataStore.data
+        .map { values ->
+            values[Keys.hiddenHomeSuggestionKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local App Drawer pin presentation state. Workspace keys include Android profile
+     * identity. Membership and manual order are decoded from one preference snapshot.
+     */
+    val drawerPinnedState: Flow<LauncherDrawerPinnedState> = dataStore.data
+        .map { values ->
+            val keys = values[Keys.drawerPinnedAppKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+            LauncherDrawerPinnedState(
+                keys = keys,
+                order = LauncherDrawerPinnedOrder.reconcile(
+                    order = LauncherDrawerPinnedOrder.decode(values[Keys.drawerPinnedAppOrder]),
+                    pinnedKeys = keys,
+                ),
+                hiddenKeys = values[Keys.hiddenAppKeys]
+                    .orEmpty()
+                    .filterNot(String::isBlank)
+                    .toSet(),
+                lockedKeys = values[Keys.lockedAppKeys]
+                    .orEmpty()
+                    .filterNot(String::isBlank)
+                    .toSet(),
+            )
+        }
+        .distinctUntilChanged()
+
+    val drawerPinnedAppKeys: Flow<Set<String>> = drawerPinnedState
+        .map { it.keys }
+        .distinctUntilChanged()
+
+    val drawerPinnedAppOrder: Flow<List<String>> = drawerPinnedState
+        .map { it.order }
+        .distinctUntilChanged()
+
+    /**
+     * User-controlled discovery suppression keyed by exact profile-qualified app identity.
+     * Derived from the same snapshot as Drawer pins to keep Activity collection atomic.
+     */
+    val hiddenAppKeys: Flow<Set<String>> = drawerPinnedState
+        .map { it.hiddenKeys }
+        .distinctUntilChanged()
+
+    /**
+     * Launcher App Lock membership keyed by exact profile-qualified app identity.
+     *
+     * This state is device-local and intentionally excluded from portable preference v1. Launcher
+     * uses Android authentication only when a launch originates inside Launcher; it does not claim
+     * authority over notifications, Settings, other launchers, deep links, or another app.
+     */
+    val lockedAppKeys: Flow<Set<String>> = drawerPinnedState
+        .map { it.lockedKeys }
+        .distinctUntilChanged()
+
+    /**
+     * Persisted Drawer sort selection. The UI owns the concrete sort enum so core preferences store
+     * only its stable name and let the UI fail closed to A–Z when an unknown value is encountered.
+     */
+    val drawerSortOrderName: Flow<String?> = dataStore.data
+        .map { values -> values[Keys.drawerSortOrderName]?.takeIf(String::isNotBlank) }
+        .distinctUntilChanged()
+
+    /**
+     * User-created App Drawer tabs. Membership keys are exact profile-qualified Launcher app
+     * identities, so the same package installed in User and Work profiles can be organized
+     * independently. This remains device-local presentation state and is outside portable v1.
+     */
+    val drawerTabs: Flow<List<LauncherDrawerTab>> = dataStore.data
+        .map { values -> LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]) }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local, profile-qualified exclusions for dynamic Smart Folder presentation.
+     * These preferences intentionally remain outside the strict portable-v1 contract.
+     */
+    val drawerSmartFolderExclusions:
+        Flow<Map<LauncherDrawerSmartFolderKind, Set<String>>> = dataStore.data
+        .map { values ->
+            LauncherDrawerSmartFolderExclusions.decode(
+                values[Keys.drawerSmartFolderExclusions].orEmpty(),
+            )
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Drawer presentation mode is intentionally stored outside the strict v1 portable preference
+     * subset. Adding it here must not silently change the seven-field backup/recovery contract.
+     */
+    val drawerLayoutMode: Flow<LauncherDrawerLayoutMode> = dataStore.data
+        .map { values -> LauncherDrawerLayoutMode.fromStorage(values[Keys.drawerLayoutMode]) }
+        .distinctUntilChanged()
+
+    /**
+     * Device-local App Drawer location captured when the Drawer leaves composition. The location is
+     * deliberately outside portable preference backup/restore: it is ephemeral presentation state,
+     * not workspace organization. Corrupt or incomplete stored state fails closed to no position.
+     */
+    val drawerPosition: Flow<LauncherDrawerPosition?> = dataStore.data
+        .map { values ->
+            values[Keys.drawerPositionContext]
+                ?.let { contextKey ->
+                    LauncherDrawerPosition(
+                        contextKey = contextKey,
+                        itemIndex = values[Keys.drawerPositionItemIndex] ?: 0,
+                        itemScrollOffset = values[Keys.drawerPositionItemOffset] ?: 0,
+                        page = values[Keys.drawerPositionPage] ?: 0,
+                    ).sanitized()
+                }
+        }
+        .distinctUntilChanged()
+
+    /**
+     * Launcher-owned visual preferences that intentionally remain outside the strict seven-field
+     * v1 portable preference subset. These settings may evolve during Development without silently
+     * changing backup/recovery compatibility.
+     */
+    val experiencePreferences: Flow<LauncherExperiencePreferences> = dataStore.data
+        .map { values ->
+            LauncherExperiencePreferences(
+                homeCardStyle = LauncherHomeCardStyle.fromStorage(values[Keys.homeCardStyle]),
+                showHomeQuickActions = values[Keys.showHomeQuickActions] ?: false,
+                showHomePageIndicator = values[Keys.showHomePageIndicator] ?: true,
+                showHomeLabels = values[Keys.showHomeLabels] ?: (values[Keys.showLabels] ?: true),
+                showDrawerLabels = values[Keys.showDrawerLabels] ?: (values[Keys.showLabels] ?: true),
+                showDrawerPageIndicator = values[Keys.showDrawerPageIndicator] ?: true,
+                drawerBackdrop = LauncherDrawerBackdrop.fromStorage(values[Keys.drawerBackdrop]),
+                drawerSearchPlacement = LauncherDrawerSearchPlacement.fromStorage(values[Keys.drawerSearchPlacement]),
+                drawerNavigation = LauncherDrawerNavigation.fromStorage(values[Keys.drawerNavigation]),
+                drawerEntryMode = LauncherDrawerEntryMode.fromStorage(values[Keys.drawerEntryMode]),
+                rememberDrawerPosition = values[Keys.rememberDrawerPosition] ?: true,
+                drawerSpacing = LauncherDrawerSpacing.fromStorage(values[Keys.drawerSpacing]),
+                drawerPageRows = (values[Keys.drawerPageRows] ?: 5).coerceIn(4, 6),
+                showDrawerAppCount = values[Keys.showDrawerAppCount] ?: false,
+                showDrawerSuggestions = values[Keys.showDrawerSuggestions] ?: false,
+                enableDrawerTabs = values[Keys.enableDrawerTabs]
+                    ?: LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).isNotEmpty(),
+                homeGlanceAlignment = LauncherHomeGlanceAlignment.fromStorage(values[Keys.homeGlanceAlignment]),
+                homeSearchPlacement = LauncherHomeSearchPlacement.fromStorage(values[Keys.homeSearchPlacement]),
+                homeSearchStyle = LauncherHomeSearchStyle.fromStorage(values[Keys.homeSearchStyle]),
+                homeSpacing = LauncherHomeSpacing.fromStorage(values[Keys.homeSpacing]),
+                dockStyle = LauncherDockStyle.fromStorage(values[Keys.dockStyle]),
+                dockPageSize = (values[Keys.dockPageSize] ?: 5).coerceIn(4, 7),
+                dockLoopPages = values[Keys.dockLoopPages] ?: false,
+                showDockLabels = values[Keys.showDockLabels] ?: false,
+                showDockSearch = values[Keys.showDockSearch] ?: false,
+                wallpaperShade = LauncherWallpaperShade.fromStorage(values[Keys.wallpaperShade]),
+                iconShape = LauncherIconShape.fromStorage(values[Keys.iconShape]),
+                iconPackPackage = values[Keys.iconPackPackage]?.takeIf { it.isNotBlank() },
+                gestureSensitivity = LauncherGestureSensitivity.fromStorage(values[Keys.gestureSensitivity]),
+                swipeUpAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeUpAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.APPS),
+                ),
+                swipeDownAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeDownAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.UNIVERSAL_SEARCH),
+                ),
+                swipeLeftAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeLeftAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                swipeRightAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureSwipeRightAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                doubleTapAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureDoubleTapAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.NONE),
+                ),
+                tapAndHoldAction = LauncherGestureAction.fromStorage(
+                    values[Keys.gestureTapAndHoldAction],
+                    LauncherGestureAction.builtIn(LauncherGestureActionType.HOME_EDITOR),
+                ),
+                starterLayoutApplied = values[Keys.starterLayoutApplied] ?: false,
+                homeAppMode = LauncherHomeAppMode.fromStorage(values[Keys.homeAppMode]),
+                useLocalUsageForSuggestions =
+                    values[Keys.useLocalUsageForSuggestions]
+                        ?: (LauncherHomeAppMode.fromStorage(values[Keys.homeAppMode]) != LauncherHomeAppMode.NONE),
+                addNewAppsToHome = values[Keys.addNewAppsToHome] ?: false,
+                startupWizardStep = (values[Keys.startupWizardStep] ?: 0).coerceIn(0, 2),
+                startupWizardCompleted =
+                    values[Keys.startupWizardCompleted]
+                        ?: (values[Keys.starterLayoutApplied] ?: false),
+                homeHintsDismissed =
+                    values[Keys.homeHintsDismissed]
+                        ?: (values[Keys.starterLayoutApplied] ?: false),
+            )
+        }
+        .distinctUntilChanged()
+
+    fun setHomeLabelOverride(appKey: String, rawLabel: String?) {
+        if (appKey.isBlank()) return
+        scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherHomeLabelOverridesCodec
+                    .decode(values[Keys.homeLabelOverrides])
+                    .toMutableMap()
+                val label = rawLabel?.let(LauncherHomeLabelPolicy::normalize)
+                if (label == null) {
+                    updated.remove(appKey)
+                } else {
+                    updated[appKey] = label
+                }
+                if (updated.isEmpty()) {
+                    values.remove(Keys.homeLabelOverrides)
+                } else {
+                    values[Keys.homeLabelOverrides] = LauncherHomeLabelOverridesCodec.encode(updated)
+                }
+            }
+        }
+    }
+
+    fun setHomeGrid(columns: Int, rows: Int) {
+        val normalized = LauncherPreferences(homeColumns = columns, homeRows = rows).sanitized()
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeColumns] = normalized.homeColumns
+                values[Keys.homeRows] = normalized.homeRows
+            }
+        }
+    }
+
+    fun setDrawerColumns(columns: Int) {
+        val normalized = columns.coerceIn(4, 6)
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerColumns] = normalized
+            }
+        }
+    }
+
+    fun setDrawerLayoutMode(mode: LauncherDrawerLayoutMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerLayoutMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setShowLabels(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showLabels] = show
+            }
+        }
+    }
+
+    fun setIconScale(scale: Float) {
+        val normalized = scale.coerceIn(0.85f, 1.15f)
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.iconScale] = normalized
+            }
+        }
+    }
+
+    fun setLayoutLocked(locked: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.layoutLocked] = locked
+            }
+        }
+    }
+
+    fun setUniversalSearchHomeMode(mode: LauncherUniversalSearchHomeMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.universalSearchHomeMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setHomeCardStyle(style: LauncherHomeCardStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeCardStyle] = style.storageValue
+            }
+        }
+    }
+
+    fun setShowHomeQuickActions(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomeQuickActions] = show
+            }
+        }
+    }
+
+    fun setShowHomePageIndicator(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomePageIndicator] = show
+            }
+        }
+    }
+
+    fun setShowHomeLabels(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showHomeLabels] = show
+            }
+        }
+    }
+
+    fun setShowDrawerLabels(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerLabels] = show
+            }
+        }
+    }
+
+    fun setShowDrawerPageIndicator(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerPageIndicator] = show
+            }
+        }
+    }
+
+    fun setDrawerBackdrop(backdrop: LauncherDrawerBackdrop) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerBackdrop] = backdrop.storageValue
+            }
+        }
+    }
+
+    fun setDrawerSearchPlacement(placement: LauncherDrawerSearchPlacement) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSearchPlacement] = placement.storageValue
+            }
+        }
+    }
+
+    fun setDrawerNavigation(navigation: LauncherDrawerNavigation) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerNavigation] = navigation.storageValue
+            }
+        }
+    }
+
+    fun setDrawerEntryMode(mode: LauncherDrawerEntryMode) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerEntryMode] = mode.storageValue
+            }
+        }
+    }
+
+    fun setRememberDrawerPosition(enabled: Boolean): Job {
+        drawerPositionWriteEpoch.incrementAndGet()
+        return scope.launch {
+            dataStore.edit { values ->
+                values[Keys.rememberDrawerPosition] = enabled
+                if (!enabled) {
+                    clearDrawerPosition(values)
+                }
+            }
+        }
+    }
+
+    fun setDrawerPosition(position: LauncherDrawerPosition?): Job {
+        val writeEpoch = drawerPositionWriteEpoch.get()
+        return scope.launch {
+            dataStore.edit { values ->
+                val rememberPosition = values[Keys.rememberDrawerPosition] ?: true
+                val normalized = position?.sanitized()
+                when {
+                    !rememberPosition || normalized == null -> clearDrawerPosition(values)
+                    writeEpoch != drawerPositionWriteEpoch.get() -> Unit
+                    else -> {
+                        values[Keys.drawerPositionContext] = normalized.contextKey
+                        values[Keys.drawerPositionItemIndex] = normalized.itemIndex
+                        values[Keys.drawerPositionItemOffset] = normalized.itemScrollOffset
+                        values[Keys.drawerPositionPage] = normalized.page
+                    }
+                }
+            }
+        }
+    }
+
+    private fun clearDrawerPosition(values: MutablePreferences) {
+        values.remove(Keys.drawerPositionContext)
+        values.remove(Keys.drawerPositionItemIndex)
+        values.remove(Keys.drawerPositionItemOffset)
+        values.remove(Keys.drawerPositionPage)
+    }
+
+    fun setDrawerSpacing(spacing: LauncherDrawerSpacing) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerSpacing] = spacing.storageValue
+            }
+        }
+    }
+
+    fun setDrawerPageRows(rows: Int) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.drawerPageRows] = rows.coerceIn(4, 6)
+            }
+        }
+    }
+
+    fun setHomeGlanceAlignment(alignment: LauncherHomeGlanceAlignment) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeGlanceAlignment] = alignment.storageValue
+            }
+        }
+    }
+
+    fun setShowDrawerAppCount(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerAppCount] = show
+            }
+        }
+    }
+
+    fun setDrawerTabsEnabled(enabled: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.enableDrawerTabs] = enabled
+        }
+    }
+
+    fun setShowDrawerSuggestions(show: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.showDrawerSuggestions] = show
+            }
+        }
+    }
+
+    fun setHomeSearchPlacement(placement: LauncherHomeSearchPlacement) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeSearchPlacement] = placement.storageValue
+            }
+        }
+    }
+
+    fun setHomeSearchStyle(style: LauncherHomeSearchStyle) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeSearchStyle] = style.storageValue
+            }
+        }
+    }
+
+    fun setHomeSpacing(spacing: LauncherHomeSpacing) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.homeSpacing] = spacing.storageValue
+            }
+        }
+    }
+
+    fun setDockStyle(style: LauncherDockStyle): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockStyle] = style.storageValue
+        }
+    }
+
+    fun setDockPageSize(size: Int): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockPageSize] = size.coerceIn(4, 7)
+        }
+    }
+
+    fun setDockLoopPages(loop: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.dockLoopPages] = loop
+        }
+    }
+
+    fun setShowDockLabels(show: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.showDockLabels] = show
+        }
+    }
+
+    fun setShowDockSearch(show: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.showDockSearch] = show
+        }
+    }
+
+    fun setWallpaperShade(shade: LauncherWallpaperShade) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.wallpaperShade] = shade.storageValue
+            }
+        }
+    }
+
+    fun setIconShape(shape: LauncherIconShape) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.iconShape] = shape.storageValue
+            }
+        }
+    }
+
+    fun setIconPackPackage(packageName: String?) {
+        scope.launch {
+            dataStore.edit { values ->
+                val normalized = packageName?.trim()?.takeIf { it.isNotEmpty() }
+                if (normalized == null) {
+                    values.remove(Keys.iconPackPackage)
+                } else {
+                    values[Keys.iconPackPackage] = normalized
+                }
+            }
+        }
+    }
+
+    fun setGestureSensitivity(value: LauncherGestureSensitivity): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.gestureSensitivity] = value.storageValue
+        }
+    }
+
+    fun setGestureAction(
+        gesture: LauncherHomeGesture,
+        action: LauncherGestureAction,
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val key = when (gesture) {
+                LauncherHomeGesture.SWIPE_UP -> Keys.gestureSwipeUpAction
+                LauncherHomeGesture.SWIPE_DOWN -> Keys.gestureSwipeDownAction
+                LauncherHomeGesture.SWIPE_LEFT -> Keys.gestureSwipeLeftAction
+                LauncherHomeGesture.SWIPE_RIGHT -> Keys.gestureSwipeRightAction
+                LauncherHomeGesture.DOUBLE_TAP -> Keys.gestureDoubleTapAction
+                LauncherHomeGesture.TAP_AND_HOLD -> Keys.gestureTapAndHoldAction
+            }
+            values[key] = action.storageValue
+        }
+    }
+
+    fun setHomeAppMode(mode: LauncherHomeAppMode): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.homeAppMode] = mode.storageValue
+            values[Keys.useLocalUsageForSuggestions] = mode != LauncherHomeAppMode.NONE
+        }
+    }
+
+    /**
+     * Atomically commits first-run Launcher choices and completion so Home never observes a
+     * completed wizard with only a subset of the selected configuration persisted.
+     */
+    suspend fun applyStartupConfiguration(
+        homeAppMode: LauncherHomeAppMode,
+        homeColumns: Int,
+        homeRows: Int,
+        showHomeLabels: Boolean,
+        universalSearchHomeMode: LauncherUniversalSearchHomeMode,
+        addNewAppsToHome: Boolean,
+        showHints: Boolean,
+        enableDrawerTabs: Boolean = false,
+    ) {
+        val normalizedGrid = LauncherPreferences(
+            homeColumns = homeColumns,
+            homeRows = homeRows,
+        ).sanitized()
+        dataStore.edit { values ->
+            values[Keys.homeAppMode] = homeAppMode.storageValue
+            values[Keys.useLocalUsageForSuggestions] = homeAppMode != LauncherHomeAppMode.NONE
+            values[Keys.homeColumns] = normalizedGrid.homeColumns
+            values[Keys.homeRows] = normalizedGrid.homeRows
+            values[Keys.showHomeLabels] = showHomeLabels
+            values[Keys.universalSearchHomeMode] = universalSearchHomeMode.storageValue
+            values[Keys.addNewAppsToHome] = addNewAppsToHome
+            values[Keys.homeHintsDismissed] = !showHints
+            values[Keys.enableDrawerTabs] = enableDrawerTabs
+            values[Keys.startupWizardStep] = 0
+            values[Keys.startupWizardCompleted] = true
+        }
+    }
+
+    /**
+     * Compatibility setter for older call sites. New UI should use [setHomeAppMode].
+     */
+    fun setUseLocalUsageForSuggestions(enabled: Boolean): Job =
+        setHomeAppMode(
+            if (enabled) LauncherHomeAppMode.RECENT else LauncherHomeAppMode.NONE,
+        )
+
+    fun setStartupWizardStep(step: Int): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.startupWizardStep] = step.coerceIn(0, 2)
+        }
+    }
+
+    fun markStartupWizardCompleted(): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.startupWizardStep] = 0
+            values[Keys.startupWizardCompleted] = true
+        }
+    }
+
+    fun replayStartupWizard(): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.startupWizardStep] = 0
+            values[Keys.startupWizardCompleted] = false
+        }
+    }
+
+    fun setHomeHintsDismissed(dismissed: Boolean): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.homeHintsDismissed] = dismissed
+        }
+    }
+
+    fun setHomeSuggestionHidden(appKey: String, hidden: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.hiddenHomeSuggestionKeys].orEmpty().toMutableSet()
+            if (hidden) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.hiddenHomeSuggestionKeys)
+            } else {
+                values[Keys.hiddenHomeSuggestionKeys] = updated
+            }
+        }
+    }
+
+    fun setDrawerSortOrderName(sortOrderName: String?): Job = scope.launch {
+        dataStore.edit { values ->
+            val normalized = sortOrderName?.trim()?.takeIf(String::isNotEmpty)
+            if (normalized == null) {
+                values.remove(Keys.drawerSortOrderName)
+            } else {
+                values[Keys.drawerSortOrderName] = normalized
+            }
+        }
+    }
+
+    fun setAppHidden(appKey: String, hidden: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.hiddenAppKeys].orEmpty().toMutableSet()
+            if (hidden) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.hiddenAppKeys)
+            } else {
+                values[Keys.hiddenAppKeys] = updated
+            }
+        }
+    }
+
+    fun setAppLocked(appKey: String, locked: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.lockedAppKeys].orEmpty().toMutableSet()
+            if (locked) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.lockedAppKeys)
+            } else {
+                values[Keys.lockedAppKeys] = updated
+            }
+        }
+    }
+
+    fun setDrawerAppPinned(appKey: String, pinned: Boolean): Job = scope.launch {
+        if (appKey.isBlank()) return@launch
+        dataStore.edit { values ->
+            val updated = values[Keys.drawerPinnedAppKeys].orEmpty().toMutableSet()
+            if (pinned) {
+                updated += appKey
+            } else {
+                updated -= appKey
+            }
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerPinnedAppKeys)
+                values.remove(Keys.drawerPinnedAppOrder)
+            } else {
+                values[Keys.drawerPinnedAppKeys] = updated
+                val reconciled = LauncherDrawerPinnedOrder.reconcile(
+                    order = LauncherDrawerPinnedOrder.decode(values[Keys.drawerPinnedAppOrder]),
+                    pinnedKeys = updated,
+                )
+                values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(reconciled)
+            }
+        }
+    }
+
+    fun moveDrawerPinnedApp(appKey: String, delta: Int): Job = scope.launch {
+        if (appKey.isBlank() || delta == 0) return@launch
+        dataStore.edit { values ->
+            val pinnedKeys = values[Keys.drawerPinnedAppKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+            if (appKey !in pinnedKeys) return@edit
+            val moved = LauncherDrawerPinnedOrder.move(
+                order = LauncherDrawerPinnedOrder.decode(values[Keys.drawerPinnedAppOrder]),
+                pinnedKeys = pinnedKeys,
+                appKey = appKey,
+                delta = delta,
+            )
+            values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(moved)
+        }
+    }
+
+    fun setDrawerPinnedAppOrder(order: List<String>): Job = scope.launch {
+        dataStore.edit { values ->
+            val pinnedKeys = values[Keys.drawerPinnedAppKeys]
+                .orEmpty()
+                .filterNot(String::isBlank)
+                .toSet()
+            if (pinnedKeys.isEmpty()) {
+                values.remove(Keys.drawerPinnedAppOrder)
+                return@edit
+            }
+            val reconciled = LauncherDrawerPinnedOrder.reconcile(
+                order = order,
+                pinnedKeys = pinnedKeys,
+            )
+            values[Keys.drawerPinnedAppOrder] = LauncherDrawerPinnedOrder.encode(reconciled)
+        }
+    }
+
+    fun setDrawerSmartFolderExcluded(
+        kind: LauncherDrawerSmartFolderKind,
+        appKey: String,
+        excluded: Boolean,
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val updated = LauncherDrawerSmartFolderExclusions.setExcluded(
+                raw = values[Keys.drawerSmartFolderExclusions].orEmpty(),
+                kind = kind,
+                appKey = appKey,
+                excluded = excluded,
+            )
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerSmartFolderExclusions)
+            } else {
+                values[Keys.drawerSmartFolderExclusions] = updated
+            }
+        }
+    }
+
+    fun clearDrawerSmartFolderExclusions(
+        kind: LauncherDrawerSmartFolderKind,
+    ): Job = scope.launch {
+        dataStore.edit { values ->
+            val updated = LauncherDrawerSmartFolderExclusions.clearKind(
+                raw = values[Keys.drawerSmartFolderExclusions].orEmpty(),
+                kind = kind,
+            )
+            if (updated.isEmpty()) {
+                values.remove(Keys.drawerSmartFolderExclusions)
+            } else {
+                values[Keys.drawerSmartFolderExclusions] = updated
+            }
+        }
+    }
+
+    fun createDrawerTab(name: String): Job {
+        val normalizedName = LauncherDrawerTabsCodec.sanitizeName(name)
+        if (normalizedName.isBlank()) return scope.launch { }
+        val tabId = "tab-" + UUID.randomUUID().toString()
+        return scope.launch {
+            dataStore.edit { values ->
+                val current = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs])
+                if (current.size >= LauncherDrawerTabsCodec.MAX_TABS) return@edit
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(
+                    current + LauncherDrawerTab(
+                        id = tabId,
+                        name = normalizedName,
+                        memberKeys = emptySet(),
+                    ),
+                )
+            }
+        }
+    }
+
+    fun renameDrawerTab(tabId: String, name: String): Job {
+        val normalizedName = LauncherDrawerTabsCodec.sanitizeName(name)
+        if (tabId.isBlank() || normalizedName.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).map { tab ->
+                    if (tab.id == tabId) tab.copy(name = normalizedName) else tab
+                }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
+        }
+    }
+
+    fun deleteDrawerTab(tabId: String): Job {
+        if (tabId.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs])
+                    .filterNot { it.id == tabId }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
+        }
+    }
+
+    fun setDrawerTabMembership(
+        tabId: String,
+        appKey: String,
+        enabled: Boolean,
+    ): Job {
+        if (tabId.isBlank() || appKey.isBlank()) return scope.launch { }
+        return scope.launch {
+            dataStore.edit { values ->
+                val updated = LauncherDrawerTabsCodec.decode(values[Keys.drawerTabs]).map { tab ->
+                    if (tab.id != tabId) {
+                        tab
+                    } else {
+                        val members = tab.memberKeys.toMutableSet()
+                        if (enabled) members += appKey else members -= appKey
+                        tab.copy(memberKeys = members)
+                    }
+                }
+                values[Keys.drawerTabs] = LauncherDrawerTabsCodec.encode(updated)
+            }
+        }
+    }
+
+    fun setAddNewAppsToHome(enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { values ->
+                values[Keys.addNewAppsToHome] = enabled
+            }
+        }
+    }
+
+    fun markStarterLayoutApplied(): Job = scope.launch {
+        dataStore.edit { values ->
+            values[Keys.starterLayoutApplied] = true
+        }
+    }
+
+    suspend fun readPortablePreferences(): LauncherPreferences = preferences.first()
+
+    /**
+     * Strict recovery-only read of the seven persisted portable preferences.
+     *
+     * Ordinary UI reads intentionally sanitize legacy/out-of-range local values for resilience.
+     * Recovery cannot use that behavior as evidence: an interrupted restore may be finalized or
+     * cleared only when the raw persisted values are already inside the canonical portable domain.
+     */
+    suspend fun readPortablePreferencesForRecovery(): LauncherPortableRecoveryPreferenceReadResult {
+        return when (val decoded = portableRecoveryPreferencesFrom(dataStore.data.first())) {
+            is LauncherPortableStoredPreferencePolicy.DecodeResult.Success ->
+                LauncherPortableRecoveryPreferenceReadResult.Success(decoded.preferences)
+            is LauncherPortableStoredPreferencePolicy.DecodeResult.Invalid ->
+                LauncherPortableRecoveryPreferenceReadResult.Invalid(decoded.reason)
+        }
+    }
+
+    suspend fun readPortableRestoreJournal(): LauncherPortableRestoreJournalReadResult {
+        val raw = dataStore.data.first()[Keys.portableRestoreJournal]
+            ?: return LauncherPortableRestoreJournalReadResult.Absent
+        return when (val decoded = LauncherPortableRestoreJournalCodec.decode(raw)) {
+            is LauncherPortableRestoreJournalCodec.DecodeResult.Success ->
+                LauncherPortableRestoreJournalReadResult.Present(decoded.journal)
+            is LauncherPortableRestoreJournalCodec.DecodeResult.Invalid ->
+                LauncherPortableRestoreJournalReadResult.Invalid(decoded.reason)
+        }
+    }
+
+    /**
+     * Persist one recovery journal before Room mutation. Any pre-existing journal fails closed so a
+     * new restore cannot hide unresolved recovery evidence from an earlier attempt.
+     */
+    suspend fun beginPortableRestoreJournal(journal: LauncherPortableRestoreJournal): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var stored = false
+        dataStore.edit { values ->
+            if (values[Keys.portableRestoreJournal] == null) {
+                values[Keys.portableRestoreJournal] = encoded
+                stored = true
+            }
+        }
+        return stored
+    }
+
+    /**
+     * Atomically write the target portable preferences and clear the exact matching journal.
+     *
+     * Finalization is refused if either the journal changed or the raw current portable preferences
+     * are not canonically equal to the journal's previous state, protecting both concurrent edits
+     * and recovery from silently sanitized/corrupted persisted values.
+     */
+    suspend fun finalizePortableRestoreJournal(journal: LauncherPortableRestoreJournal): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var finalized = false
+        dataStore.edit { values ->
+            val current = portableRecoveryPreferencesFrom(values)
+            if (
+                values[Keys.portableRestoreJournal] == encoded &&
+                current is LauncherPortableStoredPreferencePolicy.DecodeResult.Success &&
+                current.preferences == journal.previousPreferences
+            ) {
+                writePortablePreferences(values, journal.targetPreferences)
+                values.remove(Keys.portableRestoreJournal)
+                finalized = true
+            }
+        }
+        return finalized
+    }
+
+    /** Remove only the caller's exact journal. An absent journal is already a safe cleared state. */
+    suspend fun clearPortableRestoreJournalIfMatches(
+        journal: LauncherPortableRestoreJournal,
+    ): Boolean {
+        val encoded = LauncherPortableRestoreJournalCodec.encode(journal)
+        var safe = false
+        dataStore.edit { values ->
+            when (values[Keys.portableRestoreJournal]) {
+                null -> safe = true
+                encoded -> {
+                    values.remove(Keys.portableRestoreJournal)
+                    safe = true
+                }
+                else -> safe = false
+            }
+        }
+        return safe
+    }
+
+    /**
+     * Replace the complete v1 portable preference subset in one DataStore transaction.
+     *
+     * The portable codec is reused as the defensive validation authority so this path never
+     * silently clamps malformed external values through [LauncherPreferences.sanitized].
+     */
+    override suspend fun replacePortablePreferences(preferences: LauncherPreferences) {
+        LauncherPortablePreferences.encode(preferences)
+        dataStore.edit { values ->
+            writePortablePreferences(values, preferences)
+        }
+    }
+
+    /**
+     * Compensate a failed Room/DataStore restore without overwriting a concurrent preference edit.
+     *
+     * The rollback is safe when the store still contains either the just-applied portable value or
+     * the original value (for example when the failed DataStore edit never committed). Any third
+     * state is treated as a concurrent change and is left untouched.
+     */
+    suspend fun rollbackPortablePreferencesAfterFailedApply(
+        expectedApplied: LauncherPreferences,
+        previous: LauncherPreferences,
+    ): Boolean {
+        LauncherPortablePreferences.encode(expectedApplied)
+        LauncherPortablePreferences.encode(previous)
+
+        var safe = false
+        dataStore.edit { values ->
+            when (portablePreferencesFrom(values)) {
+                previous -> safe = true
+                expectedApplied -> {
+                    writePortablePreferences(values, previous)
+                    safe = true
+                }
+                else -> safe = false
+            }
+        }
+        return safe
+    }
+
+    private fun portablePreferencesFrom(values: Preferences): LauncherPreferences =
+        LauncherPreferences(
+            homeColumns = values[Keys.homeColumns] ?: defaults.homeColumns,
+            homeRows = values[Keys.homeRows] ?: defaults.homeRows,
+            drawerColumns = values[Keys.drawerColumns] ?: defaults.drawerColumns,
+            showLabels = values[Keys.showLabels] ?: defaults.showLabels,
+            iconScale = values[Keys.iconScale] ?: defaults.iconScale,
+            layoutLocked = values[Keys.layoutLocked] ?: defaults.layoutLocked,
+            universalSearchHomeMode = LauncherUniversalSearchHomeMode.fromStorage(values[Keys.universalSearchHomeMode]),
+        ).sanitized()
+
+    private fun portableRecoveryPreferencesFrom(
+        values: Preferences,
+    ): LauncherPortableStoredPreferencePolicy.DecodeResult =
+        LauncherPortableStoredPreferencePolicy.decode(
+            stored = LauncherPortableStoredPreferences(
+                homeColumns = values[Keys.homeColumns],
+                homeRows = values[Keys.homeRows],
+                drawerColumns = values[Keys.drawerColumns],
+                showLabels = values[Keys.showLabels],
+                iconScale = values[Keys.iconScale],
+                layoutLocked = values[Keys.layoutLocked],
+                universalSearchHomeMode = values[Keys.universalSearchHomeMode],
+            ),
+            defaults = defaults,
+        )
+
+    private fun writePortablePreferences(
+        values: MutablePreferences,
+        preferences: LauncherPreferences,
+    ) {
+        values[Keys.homeColumns] = preferences.homeColumns
+        values[Keys.homeRows] = preferences.homeRows
+        values[Keys.drawerColumns] = preferences.drawerColumns
+        values[Keys.showLabels] = preferences.showLabels
+        values[Keys.iconScale] = preferences.iconScale
+        values[Keys.layoutLocked] = preferences.layoutLocked
+        values[Keys.universalSearchHomeMode] = preferences.universalSearchHomeMode.storageValue
+    }
+}
