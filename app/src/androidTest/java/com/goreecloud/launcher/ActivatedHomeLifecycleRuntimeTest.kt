@@ -159,7 +159,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         // coroutine scheduling; it cannot modify state, pass, skip or end a test.
         val observingThread = Thread.currentThread()
         val homePageObservationFinished = java.util.concurrent.CountDownLatch(1)
-        val homePageWatchdog = Thread({
+        Thread({
             if (homePageObservationFinished.await(15, TimeUnit.SECONDS).not()) {
                 val stack = observingThread.stackTrace.take(12).joinToString(" > ") { frame ->
                     frame.className + "." + frame.methodName + ":" + frame.lineNumber
@@ -197,8 +197,9 @@ class ActivatedHomeLifecycleRuntimeTest {
                 }
             }
         } finally {
+            // Releasing the latch exits the watchdog without interrupting the
+            // background thread or risking an uncaught InterruptedException.
             homePageObservationFinished.countDown()
-            homePageWatchdog.interrupt()
         }
         android.util.Log.i("LauncherRuntimeFixture", "prepare:home-pages-ready")
 
