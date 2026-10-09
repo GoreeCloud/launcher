@@ -10,6 +10,11 @@ import org.junit.Test
 
 class LauncherDrawerViewportPolicyTest {
     @Test
+    fun userAndWorkProfileTabsRespectGlazeInteractionFloor() {
+        assertTrue(LAUNCHER_DRAWER_PROFILE_TAB_TOUCH_TARGET_DP >= 48)
+    }
+
+    @Test
     fun representativeProfileInventoriesStayComposedWhileScrolling() {
         assertTrue(launcherDrawerUsesEagerGrid(0))
         assertTrue(launcherDrawerUsesEagerGrid(76))
