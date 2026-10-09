@@ -13,6 +13,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
+import android.os.UserManager
 import androidx.core.content.ContextCompat
 import java.text.Normalizer
 import java.util.Locale
@@ -102,6 +103,45 @@ internal fun <T, U, K> launcherInventoryHasActiveProfileLoss(
         .any { key -> key !in candidateKeys }
 }
 
+/**
+ * Query package-scoped inventory only for activities absent from the broad result.
+ * Ignore previous entries from profiles Android no longer reports as active.
+ */
+internal fun <T, U, K> launcherInventoryMissingPreviousActivities(
+    previous: List<T>,
+    candidate: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+    keyOf: (T) -> K,
+): List<T> {
+    val active = activeProfiles.toHashSet()
+    val observed = candidate.mapTo(hashSetOf(), keyOf)
+    return previous.filter { item ->
+        userOf(item) in active && keyOf(item) !in observed
+    }.distinctBy(keyOf)
+}
+
+/**
+ * A repeated enumeration omission does not prove app removal. Retain only entries
+ * Android verifies are enabled within profiles that remain available.
+ */
+internal fun <T, U, K> launcherInventoryRetainVerifiedActive(
+    previous: List<T>,
+    candidate: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+    keyOf: (T) -> K,
+    stillEnabled: (T) -> Boolean,
+): List<T> {
+    val active = activeProfiles.toHashSet()
+    val seen = candidate.mapTo(hashSetOf(), keyOf)
+    val retained = previous.filter { item ->
+        val key = keyOf(item)
+        userOf(item) in active && key !in seen && stillEnabled(item) && seen.add(key)
+    }
+    return candidate + retained
+}
+
 /** A missing profile also merits a second scan, even if no active-profile key was lost. */
 internal fun <T, U> launcherInventoryHasMissingPreviousProfile(
     previous: List<T>,
@@ -183,6 +223,7 @@ class LauncherAppsRepository(context: Context) {
 
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(LauncherApps::class.java)
+    private val userManager = appContext.getSystemService(UserManager::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
     private val explicitRefreshRequests = Channel<Unit>(Channel.CONFLATED)
 
@@ -242,7 +283,26 @@ class LauncherAppsRepository(context: Context) {
                         val confirmedScan =
                             runCatching { loadApps(previous = currentSnapshot) }.getOrNull()
                                 ?: continue
-                        snapshot = confirmedScan.apps
+                        snapshot = normalizeSnapshot(
+                            launcherInventoryRetainVerifiedActive(
+                                previous = currentSnapshot,
+                                candidate = confirmedScan.apps,
+                                activeProfiles = confirmedScan.activeProfiles,
+                                userOf = { it.user },
+                                keyOf = { it.user to it.componentName },
+                                stillEnabled = { app ->
+                                    runCatching {
+                                        !userManager.isQuietModeEnabled(app.user) &&
+                                            launcherApps.isPackageEnabled(
+                                                app.componentName.packageName, app.user,
+                                            ) &&
+                                            launcherApps.isActivityEnabled(
+                                                app.componentName, app.user,
+                                            )
+                                    }.getOrDefault(false)
+                                },
+                            ),
+                        )
                     }
                     currentSnapshot = snapshot
                     initialized = true
@@ -443,17 +503,29 @@ class LauncherAppsRepository(context: Context) {
             launcherApps.getActivityList(null, profile)
         }
         val recoveryScopes = linkedSetOf<LauncherPackageScope>()
-        // Do not resurrect activities from a profile absent from Android's live inventory.
-        previous.filter { app -> app.user in activeProfiles }.forEach { app ->
+        // Recover only previously observed activities that the broad scan missed.
+        launcherInventoryMissingPreviousActivities(
+            previous = previous,
+            candidate = broadSnapshot,
+            activeProfiles = activeProfiles,
+            userOf = { it.user },
+            keyOf = { it.user to it.componentName },
+        ).forEach { app ->
             recoveryScopes += LauncherPackageScope(
                 packageName = app.componentName.packageName,
                 user = app.user,
             )
         }
         val primaryUser = Process.myUserHandle()
-        visiblePrimaryLauncherPackages().forEach { packageName ->
-            recoveryScopes += LauncherPackageScope(packageName, primaryUser)
-        }
+        val observedPrimaryPackages = broadSnapshot.asSequence()
+            .filter { it.user == primaryUser }
+            .map { it.componentName.packageName }
+            .toSet()
+        visiblePrimaryLauncherPackages()
+            .filterNot { it in observedPrimaryPackages }
+            .forEach { packageName ->
+                recoveryScopes += LauncherPackageScope(packageName, primaryUser)
+            }
         val recovered = recoveryScopes.flatMap { scope ->
             runCatching { launcherApps.getActivityList(scope.packageName, scope.user) }
                 .getOrDefault(emptyList())
