@@ -194,6 +194,35 @@ Edit Home -> Launcher customization
 
 Launcher Settings -> detailed configuration
 
+## Standalone source: multi-profile inventory reliability candidate
+
+The maintained Launcher source is `GoreeCloud/launcher`, not the retired
+`GoreeCloud/android-app-defaults/apps/launcher` source path.
+
+[PR #6](https://github.com/GoreeCloud/launcher/pull/6) is an **unmerged Development
+candidate** improving App Drawer completeness across Android-visible personal,
+Work, and other supported profiles. It requests a fresh Android LauncherApps
+inventory when the Drawer is opened, preserves exact profile/component identity,
+reconciles broad scans against previously observed package-scoped activities,
+confirms unexpected inventory losses, and retains only OS-verified, enabled
+activities in active non-quiet profiles. A reported profile removal must never
+resurrect stale package data.
+
+When Android throws during broad or package-specific inventory lookup, bounded
+retries preserve the last accepted snapshot rather than publishing an incomplete
+replacement. If package-scoped retries are exhausted, the batch remains
+unpublished and a full profile reconciliation is requested. An **empty successful
+package result** is different from a failed lookup: it can represent a confirmed
+package removal and must not be converted into an artificial recovery failure.
+No profile-visibility bypass, cross-profile package identity merger, network
+lookup, or background telemetry is introduced.
+
+The automated policy tests are necessary but do not establish real-device
+completeness, Android private-profile compatibility, or update-safe Development
+APK delivery. The candidate must pass fresh exact-head build/JVM/lint, Android 16
+runtime and performance, protected review/merge, and actual two-profile device
+acceptance before the owner-reported disappearance defect can be closed.
+
 ## Acceptance boundary
 
 Current source remains Development. Exact-head automated validation is necessary but insufficient for release qualification. Representative-device visual quality, TalkBack/Switch Access, keyboard/D-pad, large text, RTL/localization, phone/tablet/foldable, profile transitions, direct placement, performance/power, protected Development signing/update continuity, Release Candidate, Production Acceptance, Stable, Seal, and Anchor remain separate gates.
