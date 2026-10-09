@@ -56,6 +56,8 @@ jobs:
           python3 scripts/check_glaze_ui.py
           python3 scripts/check_glaze_motion_evaluation.py
           python3 scripts/check_room_cutover.py
+      - name: Verify Android 16 runtime artifact diagnostics
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
       - name: Test, lint, and build Launcher
         run: gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
       - name: Verify Launcher Room schema
