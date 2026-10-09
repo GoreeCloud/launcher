@@ -6,8 +6,7 @@ mkdir -p "$runtime_dir"
 
 set +e
 timeout --signal=TERM --kill-after=30s 20m \
-  gradle --project-dir "$GITHUB_WORKSPACE" --no-daemon connectedDebugAndroidTest \
-    -Pandroid.testInstrumentationRunnerArguments.timeout_msec=60000
+  gradle --project-dir "$GITHUB_WORKSPACE" --no-daemon connectedDebugAndroidTest
 status=$?
 set -e
 
