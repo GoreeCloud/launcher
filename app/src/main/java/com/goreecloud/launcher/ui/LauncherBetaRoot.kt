@@ -8372,7 +8372,7 @@ internal fun DrawerProfileTabs(
                     )
                     .semantics {
                         role = Role.Tab
-                        selected = isSelected
+                        this.selected = isSelected
                     },
                 onClick = { onSelect(kind) },
                 shape = RoundedCornerShape(GlazeMetrics.radiusPill),
