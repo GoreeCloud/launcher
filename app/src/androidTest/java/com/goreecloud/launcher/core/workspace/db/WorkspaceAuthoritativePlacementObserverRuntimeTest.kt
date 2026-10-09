@@ -77,6 +77,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
             dock = INITIAL_DOCK,
         )
 
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:before-reconcile")
         assertEquals(WorkspaceStartupResult.RoomVerifiedMatch, startup(repository).reconcile())
         assertEquals(
             WorkspaceProductionPromotionResult.PromotedHealthy,
