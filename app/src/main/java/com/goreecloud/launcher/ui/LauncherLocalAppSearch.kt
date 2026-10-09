@@ -4,6 +4,17 @@ import java.text.Normalizer
 import java.util.Locale
 
 /**
+ * Keep two launchable activities in the same package as distinct Universal Search suggestions.
+ * The identity consists of the Android user/profile and the exact launchable component.
+ * Package-only deduplication silently removes valid app entries, particularly with dual profiles.
+ */
+internal fun <T, U, C> launcherUniqueSearchSuggestionActivities(
+    apps: Sequence<T>,
+    profileOf: (T) -> U,
+    componentOf: (T) -> C,
+): Sequence<T> = apps.distinctBy { app -> profileOf(app) to componentOf(app) }
+
+/**
  * Pure local matching policy for the installed-app drawer.
  *
  * This helper consumes only labels and package names supplied by Android's
