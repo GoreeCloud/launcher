@@ -345,7 +345,16 @@ class LauncherAppsRepository(context: Context) {
                 var refreshedAnyScope = false
                 val refreshedActivities = mutableListOf<LauncherActivityInfo>()
                 for (scope in packageScopes) {
-                    val replacement = runCatching { loadPackageApps(scope) }.getOrNull() ?: continue
+                    val replacement = launcherRetryInventoryScan {
+                        loadPackageApps(scope)
+                    }
+                    if (replacement == null) {
+                        // A failed package-scoped query is not proof of package removal.
+                        // Request one complete reconciliation rather than leaving a stale
+                        // snapshot unchanged until the next user-triggered drawer refresh.
+                        requiresFullRefresh = true
+                        continue
+                    }
                     nextSnapshot = replacePackageScope(
                         current = nextSnapshot,
                         scope = scope,
@@ -355,7 +364,11 @@ class LauncherAppsRepository(context: Context) {
                     refreshedAnyScope = true
                 }
 
-                if (refreshedAnyScope) {
+                if (requiresFullRefresh) {
+                    // The current package-batch inventory is incomplete. Do not publish
+                    // its partial snapshot; a full scan will validate all Android profiles.
+                    refreshRequests.trySend(LauncherInventoryRefreshRequest.Full)
+                } else if (refreshedAnyScope) {
                     currentSnapshot = normalizeSnapshot(nextSnapshot)
                     LauncherAppIconCache.preload(
                         refreshedActivities + currentSnapshot,
