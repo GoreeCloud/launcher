@@ -145,11 +145,14 @@ class ActivatedHomeLifecycleRuntimeTest {
         android.util.Log.i("LauncherRuntimeFixture", "prepare:reconciling-workspace")
         runtime.reconcileAndActivate()
         android.util.Log.i("LauncherRuntimeFixture", "prepare:workspace-reconciled")
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:awaiting-room-authority")
         withTimeout(10_000) {
             workspaceRepository.state.first {
                 it.initialized && it.authority == WorkspaceAuthority.ROOM
             }
         }
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:room-authority-ready")
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:awaiting-home-pages")
         withTimeout(10_000) {
             runtime.observeHomePages().first { state ->
                 state is WorkspacePagedHomeState.Ready &&
@@ -158,6 +161,7 @@ class ActivatedHomeLifecycleRuntimeTest {
                     }
             }
         }
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:home-pages-ready")
 
         lifecyclePreferencesRepository.markStarterLayoutApplied().join()
         withTimeout(5_000) {
