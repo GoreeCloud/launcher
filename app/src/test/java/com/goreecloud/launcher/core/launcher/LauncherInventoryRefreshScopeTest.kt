@@ -141,6 +141,36 @@ class LauncherInventoryRefreshScopeTest {
     }
 
     @Test
+    fun missingPreviouslyVisibleWorkProfileTriggersConfirmation() {
+        data class Entry(val key: String, val user: String)
+        val previous = listOf(
+            Entry("personal", "primary"),
+            Entry("work-mail", "work"),
+        )
+        assertTrue(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = previous,
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+            ),
+        )
+        assertFalse(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = previous,
+                activeProfiles = listOf("primary", "work"),
+                userOf = Entry::user,
+            ),
+        )
+        assertFalse(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = emptyList<Entry>(),
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+            ),
+        )
+    }
+
+    @Test
     fun additionsAndStableInventoryDoNotTriggerLossConfirmation() {
         data class Entry(val key: String, val user: String)
 
