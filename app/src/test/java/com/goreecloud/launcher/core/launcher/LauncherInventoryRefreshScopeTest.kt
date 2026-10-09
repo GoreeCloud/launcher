@@ -3,9 +3,71 @@ package com.goreecloud.launcher.core.launcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 class LauncherInventoryRefreshScopeTest {
+    @Test
+    fun transientProfileEnumerationFailureRetriesAndReturnsCompleteSnapshot() = runBlocking {
+        var attempts = 0
+        val snapshot = launcherRetryInventoryScan(retryDelayMillis = 0L) {
+            attempts += 1
+            if (attempts == 1) throw IllegalStateException("Profile enumeration not ready")
+            listOf("personal", "work")
+        }
+
+        assertEquals(listOf("personal", "work"), snapshot)
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun persistentlyFailedProfileScanStopsAfterBudgetWithoutPublishingInventory() = runBlocking {
+        var attempts = 0
+        val snapshot = launcherRetryInventoryScan(retryDelayMillis = 0L) {
+            attempts += 1
+            throw IllegalStateException("Profile unavailable")
+        }
+
+        assertEquals(null, snapshot)
+        assertEquals(3, attempts)
+    }
+
+    @Test
+    fun cancelledInventoryCollectionDoesNotRetryOrSwallowCancellation() = runBlocking {
+        var attempts = 0
+        try {
+            launcherRetryInventoryScan(retryDelayMillis = 0L) {
+                attempts += 1
+                throw CancellationException("Collector disposed")
+            }
+            fail("Cancellation must propagate")
+        } catch (_: CancellationException) {
+            assertEquals(1, attempts)
+        }
+    }
+
+    @Test
+    fun inventoryRetryPolicyRejectsUnboundedAttempts() = runBlocking {
+        try {
+            launcherRetryInventoryScan(attempts = 0, retryDelayMillis = 0L) {
+                listOf("incorrect")
+            }
+            fail("Retry policy must reject zero attempts")
+        } catch (_: IllegalArgumentException) {
+            // Invalid attempt budgets must not silently skip the inventory.
+        }
+        try {
+            launcherRetryInventoryScan(attempts = 6, retryDelayMillis = 0L) {
+                listOf("incorrect")
+            }
+            fail("Retry policy must reject an unbounded attempt budget")
+        } catch (_: IllegalArgumentException) {
+            // Ensure future callers cannot silently run unbounded rescans.
+        }
+    }
+
     @Test
     fun identicalUserAndWorkAppsAlwaysSortInSameOrderRegardlessOfScanOrder() {
         data class Entry(
