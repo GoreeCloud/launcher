@@ -17,6 +17,7 @@ import android.os.UserManager
 import androidx.core.content.ContextCompat
 import java.text.Normalizer
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
@@ -28,6 +29,34 @@ import kotlinx.coroutines.launch
 
 internal fun launcherLabelSortKey(label: CharSequence): String =
     Normalizer.normalize(label.toString(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
+
+/**
+ * Retry a failed LauncherApps enumeration a limited number of times. Profile activation and
+ * package broadcasts can race LauncherApps' visibility snapshot on some Android builds.
+ *
+ * Never publish a failed/partial scan, never loop indefinitely, and propagate cancellation so
+ * closing the drawer or destroying the collector cannot leave stale background work running.
+ */
+internal suspend fun <T : Any> launcherRetryInventoryScan(
+    attempts: Int = 3,
+    retryDelayMillis: Long = 200L,
+    load: suspend () -> T,
+): T? {
+    require(attempts in 1..5) { "Scan attempts must be bounded" }
+    require(retryDelayMillis >= 0L) { "Retry delay must be nonnegative" }
+    repeat(attempts) { attempt ->
+        val result = try {
+            load()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+        if (result != null) return result
+        if (attempt < attempts - 1) delay(retryDelayMillis)
+    }
+    return null
+}
 
 /**
  * Applies a stable, profile-qualified total order to independently enumerated Android apps.
@@ -254,8 +283,9 @@ class LauncherAppsRepository(context: Context) {
                 }
 
                 if (requiresFullRefresh || !initialized) {
-                    val firstScan =
-                        runCatching { loadApps(previous = currentSnapshot) }.getOrNull() ?: continue
+                    val firstScan = launcherRetryInventoryScan {
+                        loadApps(previous = currentSnapshot)
+                    } ?: continue
                     var snapshot = firstScan.apps
                     if (
                         initialized &&
@@ -280,9 +310,9 @@ class LauncherAppsRepository(context: Context) {
                         // some OEM/profile transitions. Confirm an active-profile loss before
                         // publishing it so the drawer does not visibly blank and then repopulate.
                         delay(FULL_REFRESH_CONFIRMATION_DELAY_MS)
-                        val confirmedScan =
-                            runCatching { loadApps(previous = currentSnapshot) }.getOrNull()
-                                ?: continue
+                        val confirmedScan = launcherRetryInventoryScan {
+                            loadApps(previous = currentSnapshot)
+                        } ?: continue
                         snapshot = normalizeSnapshot(
                             launcherInventoryRetainVerifiedActive(
                                 previous = currentSnapshot,
