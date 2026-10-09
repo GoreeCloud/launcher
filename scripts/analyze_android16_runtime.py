@@ -17,6 +17,12 @@ TEST_LINE = re.compile(r"INSTRUMENTATION_STATUS: test=([^\r\n]+)")
 STATUS_CODE = re.compile(r"INSTRUMENTATION_STATUS_CODE: (-?\d+)")
 TEST_RUNNER_START = re.compile(r"TestRunner:\s+started:\s+(\w+)\(")
 FIXTURE_STAGE = re.compile(r"LauncherRuntimeFixture:\s+(prepare:[a-z0-9:-]+)")
+FIXTURE_MILESTONES = frozenset({
+    "prepare:begin", "prepare:preferences-ready", "prepare:reconciling-workspace",
+    "prepare:workspace-reconciled", "prepare:awaiting-room-authority",
+    "prepare:room-authority-ready", "prepare:awaiting-home-pages",
+    "prepare:home-pages-ready", "prepare:complete",
+})
 
 
 def _member(z: zipfile.ZipFile, suffix: str) -> str:
@@ -69,7 +75,7 @@ def analyze_archive(path: str | Path) -> dict[str, object]:
             last_started_runner = begin.group(1)
             last_fixture_stage = None
         stage = FIXTURE_STAGE.search(line)
-        if stage:
+        if stage and stage.group(1) in FIXTURE_MILESTONES:
             last_fixture_stage = stage.group(1)
 
     return {
