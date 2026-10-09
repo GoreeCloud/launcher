@@ -52,6 +52,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
 
     @Test
     fun observationTracksDataStoreBeforeCutoverAndRoomAfterPromotion() = runBlocking {
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:start")
         val repository = WorkspaceRepository(openWorkspaceDataStore())
         val observer = observer(repository) { database.workspaceDao() }
         val router = router(repository) { database.workspaceDao() }
@@ -61,7 +62,9 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
             withTimeout(5_000) { observer.observe().first() },
         )
 
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:before-defaults")
         repository.ensureDefaults(INITIAL_FAVORITES, INITIAL_DOCK)
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:after-defaults")
         assertReady(
             observer = observer,
             source = WorkspacePlacementSource.DATASTORE,
@@ -69,7 +72,9 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
             dock = INITIAL_DOCK,
         )
 
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:before-datastore-write")
         router.toggleFavorite(DATASTORE_ADDED)
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:after-datastore-write")
         assertReady(
             observer = observer,
             source = WorkspacePlacementSource.DATASTORE,
@@ -79,6 +84,8 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
 
         android.util.Log.i("LauncherRoomObserverFixture", "placement:before-reconcile")
         assertEquals(WorkspaceStartupResult.RoomVerifiedMatch, startup(repository).reconcile())
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:after-reconcile")
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:before-promotion")
         assertEquals(
             WorkspaceProductionPromotionResult.PromotedHealthy,
             WorkspaceProductionPromotionCoordinator(
@@ -94,13 +101,16 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
             dock = INITIAL_DOCK,
         )
 
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:before-room-write")
         router.toggleFavorite(ROOM_ADDED)
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:after-room-write")
         assertReady(
             observer = observer,
             source = WorkspacePlacementSource.ROOM,
             favorites = INITIAL_FAVORITES + DATASTORE_ADDED + ROOM_ADDED,
             dock = INITIAL_DOCK,
         )
+        android.util.Log.i("LauncherRoomObserverFixture", "placement:complete")
     }
 
     @Test
