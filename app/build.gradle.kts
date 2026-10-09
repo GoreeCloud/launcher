@@ -77,6 +77,13 @@ android {
                 signingConfig = signingConfigs.getByName("development")
             }
         }
+        // Disposable side-by-side QA install. Never replaces com.goreecloud.launcher.dev
+        // or its private storage; ordinary Android debug signing is intentional here.
+        create("qa") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".qa"
+            matchingFallbacks += listOf("debug")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
