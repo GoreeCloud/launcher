@@ -90,6 +90,21 @@ The Drawer separates User Apps and Work Apps when applicable. Organizational sta
 
 The current Development candidate also gives both identities an explicit Launcher-owned profile badge instead of relying on absence-as-meaning: User apps use a person mark and Work apps use a briefcase mark. The profile mark occupies the **top-left corner of the app or shortcut icon** across Home, Dock, App Drawer, Universal Search, and app-context presentation. Other Launcher marks must use separate slots so pin, notification, and App Lock state cannot displace profile identity. The same profile identity is carried into app-context shortcuts and Universal Search application/shortcut presentation, with explicit **User profile** / **Work profile** accessibility descriptions. Profile badges are presentation-only and do not change Android profile authority, launch identity, package state, App Lock, notification badges, or workspace placement.
 
+### User/Work profile tab accessibility candidate
+
+The standalone `GoreeCloud/launcher` Development candidate
+[`fix/profile-drawer-tabs-accessibility`](https://github.com/GoreeCloud/launcher/tree/fix/profile-drawer-tabs-accessibility)
+adds an explicit minimum 48 dp interaction height, role-as-tab semantics, and
+selected/not-selected accessibility state to each User/Work App Drawer switch.
+The visible labels continue to show the Android-authoritative per-profile app
+counts; selecting a tab does not change package or profile authority.
+
+A dedicated Android Compose instrumentation regression verifies that both
+controls can be activated by non-gesture clicks and that the selected state
+moves between them. This remains unmerged candidate behavior until exact-head
+CI, Glaze accessibility acceptance, representative Android Work/private-profile
+testing, and protected review are satisfied.
+
 ## Suggestions, freshness, and local ordering
 
 Local **Most recent** and **Most frequent** ordering use Launcher-local launch history only. Launcher does not request Android Usage Access for these sorts.
