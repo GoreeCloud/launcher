@@ -272,11 +272,11 @@ internal fun LauncherProviderControlledSearchSurface(
         )
     }
     val suggestionApps = remember(suggestionKeys, appsByKey) {
-        suggestionKeys
-            .asSequence()
-            .mapNotNull(appsByKey::get)
-            .distinctBy { app -> app.user to app.componentName.packageName }
-            .take(LauncherSearchSuggestionPolicy.DEFAULT_LIMIT)
+        launcherUniqueSearchSuggestionActivities(
+            apps = suggestionKeys.asSequence().mapNotNull(appsByKey::get),
+            profileOf = { app -> app.user },
+            componentOf = { app -> app.componentName },
+        ).take(LauncherSearchSuggestionPolicy.DEFAULT_LIMIT)
             .toList()
     }
 
