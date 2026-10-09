@@ -102,6 +102,16 @@ internal fun <T, U, K> launcherInventoryHasActiveProfileLoss(
         .any { key -> key !in candidateKeys }
 }
 
+/** A missing profile also merits a second scan, even if no active-profile key was lost. */
+internal fun <T, U> launcherInventoryHasMissingPreviousProfile(
+    previous: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+): Boolean {
+    val active = activeProfiles.toHashSet()
+    return previous.any { item -> userOf(item) !in active }
+}
+
 internal enum class LauncherDrawerProfileKind(
     val displayName: String,
 ) {
@@ -208,15 +218,22 @@ class LauncherAppsRepository(context: Context) {
                     var snapshot = firstScan.apps
                     if (
                         initialized &&
-                        launcherInventoryHasActiveProfileLoss(
-                            previous = currentSnapshot,
-                            candidate = snapshot,
-                            activeProfiles = firstScan.activeProfiles,
-                            userOf = { app -> app.user },
-                            keyOf = { app ->
-                                "${app.user.hashCode()}:${app.componentName.flattenToString()}"
-                            },
-                        )
+                        (
+                            launcherInventoryHasActiveProfileLoss(
+                                previous = currentSnapshot,
+                                candidate = snapshot,
+                                activeProfiles = firstScan.activeProfiles,
+                                userOf = { app -> app.user },
+                                keyOf = { app ->
+                                    "${app.user.hashCode()}:${app.componentName.flattenToString()}"
+                                },
+                            ) ||
+                                launcherInventoryHasMissingPreviousProfile(
+                                    previous = currentSnapshot,
+                                    activeProfiles = firstScan.activeProfiles,
+                                    userOf = { app -> app.user },
+                                )
+                            )
                     ) {
                         // A single broad + package-scoped scan can still transiently omit apps on
                         // some OEM/profile transitions. Confirm an active-profile loss before
@@ -426,7 +443,8 @@ class LauncherAppsRepository(context: Context) {
             launcherApps.getActivityList(null, profile)
         }
         val recoveryScopes = linkedSetOf<LauncherPackageScope>()
-        previous.forEach { app ->
+        // Do not resurrect activities from a profile absent from Android's live inventory.
+        previous.filter { app -> app.user in activeProfiles }.forEach { app ->
             recoveryScopes += LauncherPackageScope(
                 packageName = app.componentName.packageName,
                 user = app.user,
