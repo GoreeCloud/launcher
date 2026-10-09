@@ -98,4 +98,14 @@ class LauncherGlazeSearchGroupsTest {
     fun blankResultSetShowsNoSyntheticAppsSuggestionsOrConnectedResults() {
         assertTrue(LauncherGlazeSearchGroups.group(emptyList()).isEmpty())
     }
+
+    @Test
+    fun everySearchCategoryHasReadableTopResultHeading() {
+        LauncherSearchCategory.entries.forEach { category ->
+            val heading = LauncherGlazeSearchGroups.titleFor(category)
+            assertTrue(heading.isNotBlank())
+            assertTrue(heading.first().isUpperCase())
+        }
+    }
+
 }
