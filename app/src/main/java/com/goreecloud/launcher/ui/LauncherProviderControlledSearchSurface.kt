@@ -634,7 +634,8 @@ internal fun LauncherProviderControlledSearchSurface(
                             if (topResult != null) {
                                 item(key = "top-result-label") {
                                     Text(
-                                        "Top result",
+                                        "Top result · " +
+                                            LauncherGlazeSearchGroups.titleFor(topResult.category),
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .semantics { heading() }
@@ -663,6 +664,8 @@ internal fun LauncherProviderControlledSearchSurface(
                                             when (val action = topResult.action) {
                                                 is LaunchApplicationSearchAction ->
                                                     onLaunchApp(action.app)
+                                                is LauncherCopyTextSearchAction ->
+                                                    copyQuickAnswer(context, action)
                                                 is LauncherLaunchShortcutSearchAction ->
                                                     onLaunchShortcut(action)
                                                 is LauncherOpenUriSearchAction ->
@@ -1526,6 +1529,9 @@ internal object LauncherGlazeSearchGroups {
         LauncherSearchCategory.CONNECTED_SOURCE to "Connected sources",
     )
 
+    fun titleFor(category: LauncherSearchCategory): String =
+        order.first { (knownCategory, _) -> knownCategory == category }.second
+
     fun group(results: List<LauncherSearchResult>): List<LauncherGlazeSearchSection> =
         order.mapNotNull { (category, title) ->
             results.filter { it.category == category }
@@ -2065,7 +2071,7 @@ private fun LauncherGlazeSearchResult(
         else -> null
     }
     val number = result.subtitle?.takeIf { it.any(Char::isDigit) }
-    val iconSize = if (prominent) 42.dp else 34.dp
+    val iconSize = if (prominent) 42.dp else 38.dp
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(
@@ -2080,12 +2086,12 @@ private fun LauncherGlazeSearchResult(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 10.dp, vertical = if (prominent) 8.dp else 2.dp),
+                .padding(horizontal = 12.dp, vertical = if (prominent) 10.dp else 6.dp),
         ) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = if (prominent) 56.dp else 48.dp),
+                    .heightIn(min = if (prominent) 64.dp else 56.dp),
                 onClick = onActivate,
                 shape = RoundedCornerShape(GlazeMetrics.radiusMedium),
                 color = Color.Transparent,
@@ -2148,7 +2154,7 @@ private fun LauncherGlazeSearchResult(
                                 it,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
+                                maxLines = if (prominent) 2 else 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
@@ -2244,7 +2250,7 @@ private fun LauncherContactQuickAction(
     Surface(
         onClick = onClick,
         modifier = Modifier
-            .size(40.dp)
+            .size(48.dp)
             .semantics { this.contentDescription = contentDescription },
         shape = RoundedCornerShape(GlazeMetrics.radiusPill),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
