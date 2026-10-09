@@ -10,6 +10,35 @@ import org.junit.Test
 
 class LauncherInventoryRefreshScopeTest {
     @Test
+    fun emptySuccessfulPackageLookupDoesNotMasqueradeAsRetryFailure() = runBlocking {
+        var attempts = 0
+        val removedPackageActivities = launcherRetryInventoryScan<List<String>>(
+            retryDelayMillis = 0L,
+        ) {
+            attempts += 1
+            emptyList()
+        }
+
+        assertEquals(emptyList<String>(), removedPackageActivities)
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun transientPackageLookupFailureCanRecoverToEmptyAuthoritativeResult() = runBlocking {
+        var attempts = 0
+        val removedPackageActivities = launcherRetryInventoryScan<List<String>>(
+            retryDelayMillis = 0L,
+        ) {
+            attempts += 1
+            if (attempts == 1) throw IllegalStateException("Profile transition")
+            emptyList()
+        }
+
+        assertEquals(emptyList<String>(), removedPackageActivities)
+        assertEquals(2, attempts)
+    }
+
+    @Test
     fun transientProfileEnumerationFailureRetriesAndReturnsCompleteSnapshot() = runBlocking {
         var attempts = 0
         val snapshot = launcherRetryInventoryScan(retryDelayMillis = 0L) {
