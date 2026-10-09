@@ -189,6 +189,74 @@ class LauncherInventoryRefreshScopeTest {
     }
 
     @Test
+    fun packageRecoveryQueriesOnlyActivitiesMissingFromCurrentProfiles() {
+        data class Entry(val name: String, val user: String)
+        val personal = Entry("Mail", "primary")
+        val work = Entry("Mail", "work")
+        val missing = Entry("Files", "work")
+        val retiredProfile = Entry("Old Files", "retired")
+        val recovered = launcherInventoryMissingPreviousActivities(
+            previous = listOf(personal, work, missing, missing, retiredProfile),
+            candidate = listOf(work, personal),
+            activeProfiles = setOf("primary", "work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+        )
+
+        assertEquals(listOf(missing), recovered)
+        assertTrue(
+            launcherInventoryMissingPreviousActivities(
+                previous = listOf(personal, work),
+                candidate = listOf(work, personal),
+                activeProfiles = setOf("primary", "work"),
+                userOf = Entry::user,
+                keyOf = { it.user to it.name },
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun repeatedTransientOmissionRetainsOnlyOsVerifiedEntries() {
+        data class Entry(val name: String, val user: String)
+        val personal = Entry("Mail", "primary")
+        val work = Entry("Mail", "work")
+        val missing = Entry("Files", "work")
+        val disabled = Entry("Disabled", "work")
+        val retiredProfile = Entry("Retired", "retired")
+        val verified = mutableListOf<String>()
+        val result = launcherInventoryRetainVerifiedActive(
+            previous = listOf(personal, work, missing, disabled, retiredProfile, missing),
+            candidate = listOf(personal, work),
+            activeProfiles = setOf("primary", "work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+            stillEnabled = { entry ->
+                verified += entry.name
+                entry == missing
+            },
+        )
+
+        assertEquals(listOf(personal, work, missing), result)
+        assertEquals(listOf("Files", "Disabled"), verified)
+    }
+
+    @Test
+    fun alreadyObservedActivitiesAreNotRevalidatedOrDuplicated() {
+        data class Entry(val name: String, val user: String)
+        val work = Entry("Mail", "work")
+        val result = launcherInventoryRetainVerifiedActive(
+            previous = listOf(work, work),
+            candidate = listOf(work),
+            activeProfiles = setOf("work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+            stillEnabled = { error("Already observed activities must not be probed") },
+        )
+
+        assertEquals(listOf(work), result)
+    }
+
+    @Test
     fun drawerProfilePagesGroupAllSecondaryProfilesIntoInitialWorkPage() {
         data class Entry(val label: String, val user: String)
 
