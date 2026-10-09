@@ -50,6 +50,27 @@ class RuntimeArtifactAnalyzerTests(unittest.TestCase):
             )
             self.assertEqual(result["last_fixture_stage"], "prepare:awaiting-home-pages")
 
+    def test_auxiliary_watchdog_logs_do_not_replace_actual_fixture_phase(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "runtime.zip"
+            progress = (
+                "INSTRUMENTATION_STATUS: numtests=71\n"
+                + step("previous", 1) + step("previous", 0)
+                + step("emptyHomeLongPressAlwaysOpensHomeEditor", 1)
+            )
+            fixture = (
+                "TestRunner: started: emptyHomeLongPressAlwaysOpensHomeEditor(Test)\n"
+                "LauncherRuntimeFixture: prepare:room-authority-ready\n"
+                "LauncherRuntimeFixture: prepare:awaiting-home-pages\n"
+                "LauncherRuntimeFixture: prepare:home-pages-watchdog:state=TIMED_WAITING\n"
+                "LauncherRuntimeFixture: prepare:home-pages-worker:DefaultDispatcher\n"
+                "LauncherRuntimeFixture: prepare:home-page-state:waiting-for-room\n"
+            )
+            write_report(path, 124, progress, fixture)
+            result = analyze_archive(path)
+            self.assertEqual(result["last_fixture_stage"], "prepare:awaiting-home-pages")
+            self.assertFalse(result["automated_pass"])
+
     def test_success_requires_all_tests_complete(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "runtime.zip"
