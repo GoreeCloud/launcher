@@ -66,6 +66,9 @@ android {
         versionCode = developmentVersionCode
         versionName = "0.1.0-dev"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // AndroidJUnitRunner per-test timeout belongs in the DSL; a Gradle -P argument
+        // is incompatible with configuration caching and may not reach the runner.
+        testInstrumentationRunnerArguments["timeout_msec"] = "60000"
     }
     buildTypes {
         debug {
