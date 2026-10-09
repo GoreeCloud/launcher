@@ -3,9 +3,100 @@ package com.goreecloud.launcher.core.launcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runBlocking
 import org.junit.Test
 
 class LauncherInventoryRefreshScopeTest {
+    @Test
+    fun emptySuccessfulPackageLookupDoesNotMasqueradeAsRetryFailure() = runBlocking {
+        var attempts = 0
+        val removedPackageActivities = launcherRetryInventoryScan<List<String>>(
+            retryDelayMillis = 0L,
+        ) {
+            attempts += 1
+            emptyList()
+        }
+
+        assertEquals(emptyList<String>(), removedPackageActivities)
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun transientPackageLookupFailureCanRecoverToEmptyAuthoritativeResult() = runBlocking {
+        var attempts = 0
+        val removedPackageActivities = launcherRetryInventoryScan<List<String>>(
+            retryDelayMillis = 0L,
+        ) {
+            attempts += 1
+            if (attempts == 1) throw IllegalStateException("Profile transition")
+            emptyList()
+        }
+
+        assertEquals(emptyList<String>(), removedPackageActivities)
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun transientProfileEnumerationFailureRetriesAndReturnsCompleteSnapshot() = runBlocking {
+        var attempts = 0
+        val snapshot = launcherRetryInventoryScan(retryDelayMillis = 0L) {
+            attempts += 1
+            if (attempts == 1) throw IllegalStateException("Profile enumeration not ready")
+            listOf("personal", "work")
+        }
+
+        assertEquals(listOf("personal", "work"), snapshot)
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun persistentlyFailedProfileScanStopsAfterBudgetWithoutPublishingInventory() = runBlocking {
+        var attempts = 0
+        val snapshot = launcherRetryInventoryScan(retryDelayMillis = 0L) {
+            attempts += 1
+            throw IllegalStateException("Profile unavailable")
+        }
+
+        assertEquals(null, snapshot)
+        assertEquals(3, attempts)
+    }
+
+    @Test
+    fun cancelledInventoryCollectionDoesNotRetryOrSwallowCancellation() = runBlocking {
+        var attempts = 0
+        try {
+            launcherRetryInventoryScan(retryDelayMillis = 0L) {
+                attempts += 1
+                throw CancellationException("Collector disposed")
+            }
+            fail("Cancellation must propagate")
+        } catch (_: CancellationException) {
+            assertEquals(1, attempts)
+        }
+    }
+
+    @Test
+    fun inventoryRetryPolicyRejectsUnboundedAttempts() = runBlocking {
+        try {
+            launcherRetryInventoryScan(attempts = 0, retryDelayMillis = 0L) {
+                listOf("incorrect")
+            }
+            fail("Retry policy must reject zero attempts")
+        } catch (_: IllegalArgumentException) {
+            // Invalid attempt budgets must not silently skip the inventory.
+        }
+        try {
+            launcherRetryInventoryScan(attempts = 6, retryDelayMillis = 0L) {
+                listOf("incorrect")
+            }
+            fail("Retry policy must reject an unbounded attempt budget")
+        } catch (_: IllegalArgumentException) {
+            // Ensure future callers cannot silently run unbounded rescans.
+        }
+    }
+
     @Test
     fun identicalUserAndWorkAppsAlwaysSortInSameOrderRegardlessOfScanOrder() {
         data class Entry(
@@ -141,6 +232,36 @@ class LauncherInventoryRefreshScopeTest {
     }
 
     @Test
+    fun missingPreviouslyVisibleWorkProfileTriggersConfirmation() {
+        data class Entry(val key: String, val user: String)
+        val previous = listOf(
+            Entry("personal", "primary"),
+            Entry("work-mail", "work"),
+        )
+        assertTrue(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = previous,
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+            ),
+        )
+        assertFalse(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = previous,
+                activeProfiles = listOf("primary", "work"),
+                userOf = Entry::user,
+            ),
+        )
+        assertFalse(
+            launcherInventoryHasMissingPreviousProfile(
+                previous = emptyList<Entry>(),
+                activeProfiles = listOf("primary"),
+                userOf = Entry::user,
+            ),
+        )
+    }
+
+    @Test
     fun additionsAndStableInventoryDoNotTriggerLossConfirmation() {
         data class Entry(val key: String, val user: String)
 
@@ -156,6 +277,74 @@ class LauncherInventoryRefreshScopeTest {
                 keyOf = Entry::key,
             ),
         )
+    }
+
+    @Test
+    fun packageRecoveryQueriesOnlyActivitiesMissingFromCurrentProfiles() {
+        data class Entry(val name: String, val user: String)
+        val personal = Entry("Mail", "primary")
+        val work = Entry("Mail", "work")
+        val missing = Entry("Files", "work")
+        val retiredProfile = Entry("Old Files", "retired")
+        val recovered = launcherInventoryMissingPreviousActivities(
+            previous = listOf(personal, work, missing, missing, retiredProfile),
+            candidate = listOf(work, personal),
+            activeProfiles = setOf("primary", "work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+        )
+
+        assertEquals(listOf(missing), recovered)
+        assertTrue(
+            launcherInventoryMissingPreviousActivities(
+                previous = listOf(personal, work),
+                candidate = listOf(work, personal),
+                activeProfiles = setOf("primary", "work"),
+                userOf = Entry::user,
+                keyOf = { it.user to it.name },
+            ).isEmpty(),
+        )
+    }
+
+    @Test
+    fun repeatedTransientOmissionRetainsOnlyOsVerifiedEntries() {
+        data class Entry(val name: String, val user: String)
+        val personal = Entry("Mail", "primary")
+        val work = Entry("Mail", "work")
+        val missing = Entry("Files", "work")
+        val disabled = Entry("Disabled", "work")
+        val retiredProfile = Entry("Retired", "retired")
+        val verified = mutableListOf<String>()
+        val result = launcherInventoryRetainVerifiedActive(
+            previous = listOf(personal, work, missing, disabled, retiredProfile, missing),
+            candidate = listOf(personal, work),
+            activeProfiles = setOf("primary", "work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+            stillEnabled = { entry ->
+                verified += entry.name
+                entry == missing
+            },
+        )
+
+        assertEquals(listOf(personal, work, missing), result)
+        assertEquals(listOf("Files", "Disabled"), verified)
+    }
+
+    @Test
+    fun alreadyObservedActivitiesAreNotRevalidatedOrDuplicated() {
+        data class Entry(val name: String, val user: String)
+        val work = Entry("Mail", "work")
+        val result = launcherInventoryRetainVerifiedActive(
+            previous = listOf(work, work),
+            candidate = listOf(work),
+            activeProfiles = setOf("work"),
+            userOf = Entry::user,
+            keyOf = { it.user to it.name },
+            stillEnabled = { error("Already observed activities must not be probed") },
+        )
+
+        assertEquals(listOf(work), result)
     }
 
     @Test

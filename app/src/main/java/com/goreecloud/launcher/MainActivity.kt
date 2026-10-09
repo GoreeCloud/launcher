@@ -550,6 +550,13 @@ class MainActivity : ComponentActivity() {
             val primarySurfaceMode = runCatching {
                 LauncherSurfaceMode.valueOf(primarySurfaceModeName)
             }.getOrDefault(LauncherSurfaceMode.HOME)
+            // Refresh Android's profile-qualified inventory when the drawer reopens.
+            // Package callbacks alone cannot recover a transiently incomplete inventory.
+            LaunchedEffect(primarySurfaceMode) {
+                if (primarySurfaceMode == LauncherSurfaceMode.DRAWER) {
+                    appsRepository.refreshInventory()
+                }
+            }
             val useDarkSystemBarIcons = launcherUsesDarkSystemBarIcons(
                 surfaceMode = primarySurfaceMode,
                 startupWizardCompleted = experiencePreferences.startupWizardCompleted,

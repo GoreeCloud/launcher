@@ -13,9 +13,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.UserHandle
+import android.os.UserManager
 import androidx.core.content.ContextCompat
 import java.text.Normalizer
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
@@ -27,6 +29,34 @@ import kotlinx.coroutines.launch
 
 internal fun launcherLabelSortKey(label: CharSequence): String =
     Normalizer.normalize(label.toString(), Normalizer.Form.NFC).lowercase(Locale.ROOT)
+
+/**
+ * Retry a failed LauncherApps enumeration a limited number of times. Profile activation and
+ * package broadcasts can race LauncherApps' visibility snapshot on some Android builds.
+ *
+ * Never publish a failed/partial scan, never loop indefinitely, and propagate cancellation so
+ * closing the drawer or destroying the collector cannot leave stale background work running.
+ */
+internal suspend fun <T : Any> launcherRetryInventoryScan(
+    attempts: Int = 3,
+    retryDelayMillis: Long = 200L,
+    load: suspend () -> T,
+): T? {
+    require(attempts in 1..5) { "Scan attempts must be bounded" }
+    require(retryDelayMillis >= 0L) { "Retry delay must be nonnegative" }
+    repeat(attempts) { attempt ->
+        val result = try {
+            load()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            null
+        }
+        if (result != null) return result
+        if (attempt < attempts - 1) delay(retryDelayMillis)
+    }
+    return null
+}
 
 /**
  * Applies a stable, profile-qualified total order to independently enumerated Android apps.
@@ -102,6 +132,55 @@ internal fun <T, U, K> launcherInventoryHasActiveProfileLoss(
         .any { key -> key !in candidateKeys }
 }
 
+/**
+ * Query package-scoped inventory only for activities absent from the broad result.
+ * Ignore previous entries from profiles Android no longer reports as active.
+ */
+internal fun <T, U, K> launcherInventoryMissingPreviousActivities(
+    previous: List<T>,
+    candidate: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+    keyOf: (T) -> K,
+): List<T> {
+    val active = activeProfiles.toHashSet()
+    val observed = candidate.mapTo(hashSetOf(), keyOf)
+    return previous.filter { item ->
+        userOf(item) in active && keyOf(item) !in observed
+    }.distinctBy(keyOf)
+}
+
+/**
+ * A repeated enumeration omission does not prove app removal. Retain only entries
+ * Android verifies are enabled within profiles that remain available.
+ */
+internal fun <T, U, K> launcherInventoryRetainVerifiedActive(
+    previous: List<T>,
+    candidate: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+    keyOf: (T) -> K,
+    stillEnabled: (T) -> Boolean,
+): List<T> {
+    val active = activeProfiles.toHashSet()
+    val seen = candidate.mapTo(hashSetOf(), keyOf)
+    val retained = previous.filter { item ->
+        val key = keyOf(item)
+        userOf(item) in active && key !in seen && stillEnabled(item) && seen.add(key)
+    }
+    return candidate + retained
+}
+
+/** A missing profile also merits a second scan, even if no active-profile key was lost. */
+internal fun <T, U> launcherInventoryHasMissingPreviousProfile(
+    previous: List<T>,
+    activeProfiles: Collection<U>,
+    userOf: (T) -> U,
+): Boolean {
+    val active = activeProfiles.toHashSet()
+    return previous.any { item -> userOf(item) !in active }
+}
+
 internal enum class LauncherDrawerProfileKind(
     val displayName: String,
 ) {
@@ -173,6 +252,7 @@ class LauncherAppsRepository(context: Context) {
 
     private val appContext = context.applicationContext
     private val launcherApps = appContext.getSystemService(LauncherApps::class.java)
+    private val userManager = appContext.getSystemService(UserManager::class.java)
     private val callbackHandler = Handler(Looper.getMainLooper())
     private val explicitRefreshRequests = Channel<Unit>(Channel.CONFLATED)
 
@@ -203,29 +283,56 @@ class LauncherAppsRepository(context: Context) {
                 }
 
                 if (requiresFullRefresh || !initialized) {
-                    val firstScan =
-                        runCatching { loadApps(previous = currentSnapshot) }.getOrNull() ?: continue
+                    val firstScan = launcherRetryInventoryScan {
+                        loadApps(previous = currentSnapshot)
+                    } ?: continue
                     var snapshot = firstScan.apps
                     if (
                         initialized &&
-                        launcherInventoryHasActiveProfileLoss(
-                            previous = currentSnapshot,
-                            candidate = snapshot,
-                            activeProfiles = firstScan.activeProfiles,
-                            userOf = { app -> app.user },
-                            keyOf = { app ->
-                                "${app.user.hashCode()}:${app.componentName.flattenToString()}"
-                            },
-                        )
+                        (
+                            launcherInventoryHasActiveProfileLoss(
+                                previous = currentSnapshot,
+                                candidate = snapshot,
+                                activeProfiles = firstScan.activeProfiles,
+                                userOf = { app -> app.user },
+                                keyOf = { app ->
+                                    "${app.user.hashCode()}:${app.componentName.flattenToString()}"
+                                },
+                            ) ||
+                                launcherInventoryHasMissingPreviousProfile(
+                                    previous = currentSnapshot,
+                                    activeProfiles = firstScan.activeProfiles,
+                                    userOf = { app -> app.user },
+                                )
+                            )
                     ) {
                         // A single broad + package-scoped scan can still transiently omit apps on
                         // some OEM/profile transitions. Confirm an active-profile loss before
                         // publishing it so the drawer does not visibly blank and then repopulate.
                         delay(FULL_REFRESH_CONFIRMATION_DELAY_MS)
-                        val confirmedScan =
-                            runCatching { loadApps(previous = currentSnapshot) }.getOrNull()
-                                ?: continue
-                        snapshot = confirmedScan.apps
+                        val confirmedScan = launcherRetryInventoryScan {
+                            loadApps(previous = currentSnapshot)
+                        } ?: continue
+                        snapshot = normalizeSnapshot(
+                            launcherInventoryRetainVerifiedActive(
+                                previous = currentSnapshot,
+                                candidate = confirmedScan.apps,
+                                activeProfiles = confirmedScan.activeProfiles,
+                                userOf = { it.user },
+                                keyOf = { it.user to it.componentName },
+                                stillEnabled = { app ->
+                                    runCatching {
+                                        !userManager.isQuietModeEnabled(app.user) &&
+                                            launcherApps.isPackageEnabled(
+                                                app.componentName.packageName, app.user,
+                                            ) &&
+                                            launcherApps.isActivityEnabled(
+                                                app.componentName, app.user,
+                                            )
+                                    }.getOrDefault(false)
+                                },
+                            ),
+                        )
                     }
                     currentSnapshot = snapshot
                     initialized = true
@@ -238,7 +345,16 @@ class LauncherAppsRepository(context: Context) {
                 var refreshedAnyScope = false
                 val refreshedActivities = mutableListOf<LauncherActivityInfo>()
                 for (scope in packageScopes) {
-                    val replacement = runCatching { loadPackageApps(scope) }.getOrNull() ?: continue
+                    val replacement = launcherRetryInventoryScan {
+                        loadPackageApps(scope)
+                    }
+                    if (replacement == null) {
+                        // A failed package-scoped query is not proof of package removal.
+                        // Request one complete reconciliation rather than leaving a stale
+                        // snapshot unchanged until the next user-triggered drawer refresh.
+                        requiresFullRefresh = true
+                        continue
+                    }
                     nextSnapshot = replacePackageScope(
                         current = nextSnapshot,
                         scope = scope,
@@ -248,7 +364,11 @@ class LauncherAppsRepository(context: Context) {
                     refreshedAnyScope = true
                 }
 
-                if (refreshedAnyScope) {
+                if (requiresFullRefresh) {
+                    // The current package-batch inventory is incomplete. Do not publish
+                    // its partial snapshot; a full scan will validate all Android profiles.
+                    refreshRequests.trySend(LauncherInventoryRefreshRequest.Full)
+                } else if (refreshedAnyScope) {
                     currentSnapshot = normalizeSnapshot(nextSnapshot)
                     LauncherAppIconCache.preload(
                         refreshedActivities + currentSnapshot,
@@ -426,16 +546,29 @@ class LauncherAppsRepository(context: Context) {
             launcherApps.getActivityList(null, profile)
         }
         val recoveryScopes = linkedSetOf<LauncherPackageScope>()
-        previous.forEach { app ->
+        // Recover only previously observed activities that the broad scan missed.
+        launcherInventoryMissingPreviousActivities(
+            previous = previous,
+            candidate = broadSnapshot,
+            activeProfiles = activeProfiles,
+            userOf = { it.user },
+            keyOf = { it.user to it.componentName },
+        ).forEach { app ->
             recoveryScopes += LauncherPackageScope(
                 packageName = app.componentName.packageName,
                 user = app.user,
             )
         }
         val primaryUser = Process.myUserHandle()
-        visiblePrimaryLauncherPackages().forEach { packageName ->
-            recoveryScopes += LauncherPackageScope(packageName, primaryUser)
-        }
+        val observedPrimaryPackages = broadSnapshot.asSequence()
+            .filter { it.user == primaryUser }
+            .map { it.componentName.packageName }
+            .toSet()
+        visiblePrimaryLauncherPackages()
+            .filterNot { it in observedPrimaryPackages }
+            .forEach { packageName ->
+                recoveryScopes += LauncherPackageScope(packageName, primaryUser)
+            }
         val recovered = recoveryScopes.flatMap { scope ->
             runCatching { launcherApps.getActivityList(scope.packageName, scope.user) }
                 .getOrDefault(emptyList())

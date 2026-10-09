@@ -42,8 +42,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_CODE=$((1000000 + GITHUB_RUN_NUMBER))
-          test "$VERSION_CODE" -gt 1439
+          # The prior Launcher Development CI1317 APK in owner Drive has versionCode 1001317.
+          # A new standalone repository resets GITHUB_RUN_NUMBER; reserve a higher namespace
+          # to prevent accidental version-code downgrade across repository migrations.
+          VERSION_CODE=$((2000000 + GITHUB_RUN_NUMBER))
+          test "$VERSION_CODE" -gt 1001317
           echo "GOREECLOUD_DEV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "EXPECTED_LAUNCHER_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
       - name: Validate Launcher privacy, identity, UI, motion, and Room boundaries
@@ -57,7 +60,7 @@ jobs:
           python3 scripts/check_glaze_motion_evaluation.py
           python3 scripts/check_room_cutover.py
       - name: Test, lint, and build Launcher
-        run: gradle --no-daemon lintDebug testDebugUnitTest assembleDebug
+        run: gradle --no-daemon lintDebug testDebugUnitTest assembleDebug assembleQa
       - name: Verify Launcher Room schema
         shell: bash
         run: |
@@ -119,6 +122,52 @@ jobs:
           if-no-files-found: error
           retention-days: 14
           path: artifact-launcher-android/*
+
+      - name: Verify and stage independent Launcher QA APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Do not reuse or overwrite the owner's existing .dev installation.
+          QA_APK="$(find app/build/outputs/apk/qa -type f -name '*.apk' -print -quit)"
+          test -n "$QA_APK"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          AAPT="$(find "$SDK_ROOT/build-tools" -type f -name aapt -print | sort -V | tail -n 1)"
+          APKSIGNER="$(find "$SDK_ROOT/build-tools" -type f -name apksigner -print | sort -V | tail -n 1)"
+          test -x "$AAPT"
+          test -x "$APKSIGNER"
+          BADGING="$("$AAPT" dump badging "$QA_APK" | head -n 1)"
+          APPLICATION_ID="$(printf '%s\n' "$BADGING" | sed -n "s/^package: name='\([^']*\)'.*/\1/p")"
+          VERSION_CODE="$(printf '%s\n' "$BADGING" | sed -n "s/.* versionCode='\([^']*\)'.*/\1/p")"
+          VERSION_NAME="$(printf '%s\n' "$BADGING" | sed -n "s/.* versionName='\([^']*\)'.*/\1/p")"
+          test "$APPLICATION_ID" = "com.goreecloud.launcher.qa"
+          test "$VERSION_CODE" = "$EXPECTED_LAUNCHER_VERSION_CODE"
+          test "$VERSION_NAME" = "0.1.0-dev"
+          "$APKSIGNER" verify --verbose "$QA_APK"
+          OUT="artifact-launcher-qa"
+          mkdir -p "$OUT"
+          cp "$QA_APK" "$OUT/GoreeCloud-Launcher-QA-vc${VERSION_CODE}.apk"
+          cat > "$OUT/BUILD-PROVENANCE.txt" <<EOF
+          repository=GoreeCloud/launcher
+          source_sha=$(git rev-parse HEAD)
+          application_id=$APPLICATION_ID
+          version_name=$VERSION_NAME
+          version_code=$VERSION_CODE
+          workflow_run_id=$GITHUB_RUN_ID
+          signing_role=ci-debug-disposable-qa
+          owner_existing_dev_package=com.goreecloud.launcher.dev
+          co_installation=separate_application_id
+          update_in_place_continuity=not-established
+          real_device_acceptance=not-asserted
+          stable_release_authority=none
+          EOF
+          (cd "$OUT" && sha256sum ./*.apk > SHA256SUMS && sha256sum --check SHA256SUMS)
+      - name: Upload Launcher QA test APK sidecar
+        uses: actions/upload-artifact@v4
+        with:
+          name: goreecloud-launcher-qa-disposable-apk
+          if-no-files-found: error
+          retention-days: 14
+          path: artifact-launcher-qa/*
 
   launcher-runtime:
     needs: launcher
