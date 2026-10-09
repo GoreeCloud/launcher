@@ -96,11 +96,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.stateDescription
@@ -8343,7 +8345,7 @@ private fun LauncherDrawerTabMembershipDialog(
 }
 
 @Composable
-private fun DrawerProfileTabs(
+internal fun DrawerProfileTabs(
     pages: List<Pair<LauncherDrawerProfileKind, Int>>,
     selected: LauncherDrawerProfileKind,
     onSelect: (LauncherDrawerProfileKind) -> Unit,
@@ -8360,13 +8362,18 @@ private fun DrawerProfileTabs(
             Surface(
                 modifier = Modifier
                     .weight(1f)
+                    .heightIn(min = LAUNCHER_DRAWER_PROFILE_TAB_TOUCH_TARGET_DP.dp)
                     .testTag(
                         if (kind == LauncherDrawerProfileKind.USER) {
                             "launcher-drawer-profile-user"
                         } else {
                             "launcher-drawer-profile-work"
                         },
-                    ),
+                    )
+                    .semantics {
+                        role = Role.Tab
+                        this.selected = isSelected
+                    },
                 onClick = { onSelect(kind) },
                 shape = RoundedCornerShape(GlazeMetrics.radiusPill),
                 color = if (isSelected) {
