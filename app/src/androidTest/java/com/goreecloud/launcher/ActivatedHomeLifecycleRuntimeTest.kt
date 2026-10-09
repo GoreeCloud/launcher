@@ -113,6 +113,10 @@ class ActivatedHomeLifecycleRuntimeTest {
 
     @Before
     fun prepareEstablishedRuntimeState() = runBlocking {
+        // A stalled prior Activity or Room fixture must fail with a useful per-test signal,
+        // rather than leaving the 71-test suite idle until the CI job times out.
+        withTimeout(45_000) {
+            android.util.Log.i("LauncherRuntimeFixture", "prepare:begin")
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         lifecyclePreferencesRepository = LauncherPreferencesRepository(context)
         previousHomeAppMode =
@@ -126,6 +130,7 @@ class ActivatedHomeLifecycleRuntimeTest {
         // workspace through the same production coordinator used by MainActivity before marking
         // starter provisioning complete, so first-run initialization cannot race gestures,
         // lifecycle recreation, spatial drag/drop, or page assertions.
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:preferences-ready")
         val workspaceRepository = WorkspaceRepository(context)
         workspaceRepository.ensureDefaults(
             favoriteKeys = emptyList(),
@@ -137,7 +142,9 @@ class ActivatedHomeLifecycleRuntimeTest {
                 LauncherDatabaseProvider.get(context).workspaceDao()
             },
         )
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:reconciling-workspace")
         runtime.reconcileAndActivate()
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:workspace-reconciled")
         withTimeout(10_000) {
             workspaceRepository.state.first {
                 it.initialized && it.authority == WorkspaceAuthority.ROOM
@@ -161,7 +168,9 @@ class ActivatedHomeLifecycleRuntimeTest {
             }
         }
         LauncherLocalUsageRepository(context).clear().join()
+        android.util.Log.i("LauncherRuntimeFixture", "prepare:complete")
         Unit
+        }
     }
 
     @After
