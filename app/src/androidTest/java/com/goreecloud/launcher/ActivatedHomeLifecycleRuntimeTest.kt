@@ -169,6 +169,28 @@ class ActivatedHomeLifecycleRuntimeTest {
                     "prepare:home-pages-watchdog:state=" + observingThread.state +
                         ":stack=" + stack,
                 )
+                // The JUnit caller is parked inside runBlocking. Capture bounded
+                // framework worker stacks to reveal which Room/coroutine task did
+                // not resume; do not include database rows or application contents.
+                Thread.getAllStackTraces().entries
+                    .asSequence()
+                    .filter { (thread, _) ->
+                        thread.name.startsWith("DefaultDispatcher") ||
+                            thread.name.contains("Room", ignoreCase = true) ||
+                            thread.name.startsWith("arch_disk_io")
+                    }
+                    .sortedBy { (thread, _) -> thread.name }
+                    .take(12)
+                    .forEach { (thread, frames) ->
+                        val workerStack = frames.take(12).joinToString(" > ") { frame ->
+                            frame.className + "." + frame.methodName + ":" + frame.lineNumber
+                        }
+                        android.util.Log.e(
+                            "LauncherRuntimeFixture",
+                            "prepare:home-pages-worker:" + thread.name +
+                                ":state=" + thread.state + ":stack=" + workerStack,
+                        )
+                    }
             }
         }, "LauncherHomePageFixtureWatchdog").apply {
             isDaemon = true
