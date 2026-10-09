@@ -2,6 +2,9 @@ package com.goreecloud.launcher.ui
 
 internal const val LAUNCHER_DRAWER_EAGER_GRID_MAX_ITEMS = 320
 
+/** Minimum visible User/Work drawer profile switch target, including large-text fallback. */
+internal const val LAUNCHER_DRAWER_PROFILE_TAB_TOUCH_TARGET_DP = 48
+
 /**
  * Representative phones commonly expose well under 320 launchable activities per profile.
  * Keeping those cells composed while the drawer is open avoids OEM/Compose lazy-item recycling
