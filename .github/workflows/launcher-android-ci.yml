@@ -42,8 +42,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION_CODE=$((1000000 + GITHUB_RUN_NUMBER))
-          test "$VERSION_CODE" -gt 1439
+          # The prior Launcher Development CI1317 APK in owner Drive has versionCode 1001317.
+          # A new standalone repository resets GITHUB_RUN_NUMBER; reserve a higher namespace
+          # to prevent accidental version-code downgrade across repository migrations.
+          VERSION_CODE=$((2000000 + GITHUB_RUN_NUMBER))
+          test "$VERSION_CODE" -gt 1001317
           echo "GOREECLOUD_DEV_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
           echo "EXPECTED_LAUNCHER_VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
       - name: Validate Launcher privacy, identity, UI, motion, and Room boundaries
