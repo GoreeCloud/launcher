@@ -111,6 +111,7 @@ class WorkspaceAuthoritativePlacementObserverRuntimeTest {
             dock = INITIAL_DOCK,
         )
         android.util.Log.i("LauncherRoomObserverFixture", "placement:complete")
+        Unit
     }
 
     @Test
