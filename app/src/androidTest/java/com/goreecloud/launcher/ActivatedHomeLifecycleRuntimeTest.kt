@@ -153,13 +153,75 @@ class ActivatedHomeLifecycleRuntimeTest {
         }
         android.util.Log.i("LauncherRuntimeFixture", "prepare:room-authority-ready")
         android.util.Log.i("LauncherRuntimeFixture", "prepare:awaiting-home-pages")
-        withTimeout(10_000) {
-            runtime.observeHomePages().first { state ->
-                state is WorkspacePagedHomeState.Ready &&
-                    state.pages.any { page ->
-                        page.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+        // The Android 16 suite has intermittently stalled here without the enclosing
+        // coroutine's ten-second timeout firing. A one-shot daemon watchdog records
+        // the test thread's bounded stack when that happens, independently of
+        // coroutine scheduling; it cannot modify state, pass, skip or end a test.
+        val observingThread = Thread.currentThread()
+        val homePageObservationFinished = java.util.concurrent.CountDownLatch(1)
+        Thread({
+            if (homePageObservationFinished.await(15, TimeUnit.SECONDS).not()) {
+                val stack = observingThread.stackTrace.take(12).joinToString(" > ") { frame ->
+                    frame.className + "." + frame.methodName + ":" + frame.lineNumber
+                }
+                android.util.Log.e(
+                    "LauncherRuntimeFixture",
+                    "prepare:home-pages-watchdog:state=" + observingThread.state +
+                        ":stack=" + stack,
+                )
+                // The JUnit caller is parked inside runBlocking. Capture bounded
+                // framework worker stacks to reveal which Room/coroutine task did
+                // not resume; do not include database rows or application contents.
+                Thread.getAllStackTraces().entries
+                    .asSequence()
+                    .filter { (thread, _) ->
+                        thread.name.startsWith("DefaultDispatcher") ||
+                            thread.name.contains("Room", ignoreCase = true) ||
+                            thread.name.startsWith("arch_disk_io")
+                    }
+                    .sortedBy { (thread, _) -> thread.name }
+                    .take(12)
+                    .forEach { (thread, frames) ->
+                        val workerStack = frames.take(12).joinToString(" > ") { frame ->
+                            frame.className + "." + frame.methodName + ":" + frame.lineNumber
+                        }
+                        android.util.Log.e(
+                            "LauncherRuntimeFixture",
+                            "prepare:home-pages-worker:" + thread.name +
+                                ":state=" + thread.state + ":stack=" + workerStack,
+                        )
                     }
             }
+        }, "LauncherHomePageFixtureWatchdog").apply {
+            isDaemon = true
+            start()
+        }
+        try {
+            withTimeout(10_000) {
+                runtime.observeHomePages().first { state ->
+                    val primaryPresent = state is WorkspacePagedHomeState.Ready &&
+                        state.pages.any { page ->
+                            page.pageId == WorkspaceLegacyImportMapper.HOME_PAGE_ID
+                        }
+                    // Emit only structural state, never user or workspace contents.
+                    val observation = when (state) {
+                        WorkspacePagedHomeState.WaitingForRoom -> "waiting-for-room"
+                        is WorkspacePagedHomeState.Ready ->
+                            "ready:pages=" + state.pages.size + ":primary=" + primaryPresent
+                        is WorkspacePagedHomeState.RecoveryRequired ->
+                            "recovery-required:" + state.reason
+                    }
+                    android.util.Log.i("LauncherRuntimeFixture", "prepare:home-page-state:" + observation)
+                    if (state is WorkspacePagedHomeState.RecoveryRequired) {
+                        error("Room HOME fixture recovery required: " + state.reason)
+                    }
+                    primaryPresent
+                }
+            }
+        } finally {
+            // Releasing the latch exits the watchdog without interrupting the
+            // background thread or risking an uncaught InterruptedException.
+            homePageObservationFinished.countDown()
         }
         android.util.Log.i("LauncherRuntimeFixture", "prepare:home-pages-ready")
 
