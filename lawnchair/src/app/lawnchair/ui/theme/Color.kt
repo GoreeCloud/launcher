@@ -60,7 +60,7 @@ fun Context.getSystemAccent(darkTheme: Boolean): Int {
 }
 
 @Composable
-fun preferenceGroupColor() = (if (isSelectedThemeDark) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surfaceBright)
+fun preferenceGroupColor() = GlazeAndroidContract.preferenceSurface(MaterialTheme.colorScheme, isSelectedThemeDark)
 
 @Composable
 fun dividerColor() = MaterialTheme.colorScheme.outlineVariant

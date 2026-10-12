@@ -28,6 +28,7 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.expressiveLightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -53,13 +54,15 @@ fun LawnchairTheme(
     content: @Composable () -> Unit,
 ) {
     val colorScheme = getColorScheme(darkTheme = darkTheme)
-    MaterialExpressiveTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content,
-        shapes = Shapes,
-        motionScheme = MotionScheme.expressive(),
-    )
+    CompositionLocalProvider(LocalGlazeMetrics provides GlazeAndroidContract.metrics) {
+        MaterialExpressiveTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content,
+            shapes = Shapes,
+            motionScheme = MotionScheme.expressive(),
+        )
+    }
 }
 
 @Composable

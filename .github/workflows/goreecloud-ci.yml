@@ -1,0 +1,17 @@
+name: GoreeCloud Launcher foundation
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  source-policy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Source-level verification
+        run: python3 scripts/verify_goreecloud.py
