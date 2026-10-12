@@ -15,6 +15,10 @@ check("com.gradle.develocity" not in settings and "buildScan" not in settings, "
 for package in ["com.goreecloud.launcher", "com.goreecloud.launcher.nightly", "com.goreecloud.launcher.play"]:
     check(package in build, "Application ID " + package)
 check("applicationId 'app.lawnchair'" not in build, "Upstream package identity")
+check("releaseSigning = signingConfigs.debug" not in build, "Release signing never falls back to debug")
+check("} catch (FileNotFoundException ignored)" in build, "Missing signing only is recoverable")
+check("signingConfig signingConfigs.debug" in build, "Debug builds use isolated debug signing")
+check("signingConfig releaseSigning" in build.split("release {", 1)[1].split("}", 1)[0], "Release builds use release-only signing")
 check('isDefault true' in build.split("github {",1)[1].split("}",1)[0], "Canonical GitHub flavor is default")
 check('<string name="config_default_qsb_search_provider_id" translatable="false">app_search</string>' in read("lawnchair/res/values/config.xml"), "Local-only search default")
 qsb=read("lawnchair/src/app/lawnchair/qsb/providers/QsbSearchProvider.kt")

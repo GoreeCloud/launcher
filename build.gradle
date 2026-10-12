@@ -215,17 +215,19 @@ android {
             storeFile rootProject.file(keystoreProperties['storeFile'])
             storePassword keystoreProperties['storePassword']
         }
-    } catch (Exception ignored) {
-        releaseSigning = signingConfigs.debug
+    } catch (FileNotFoundException ignored) {
+        // A missing release keystore never authorizes debug-signed release APKs.
+        releaseSigning = null
     }
 
     buildTypes {
         all {
-            signingConfig releaseSigning
             pseudoLocalesEnabled true
         }
 
         debug {
+            // Ephemeral debug signing is suitable for bounded CI installability only.
+            signingConfig signingConfigs.debug
             applicationIdSuffix ".debug"
             resValue("string", "derived_app_name", "Launcher (Dev)")
 
@@ -236,6 +238,8 @@ android {
         }
 
         release {
+            // Without an owner-provisioned keystore, release output stays unsigned.
+            signingConfig releaseSigning
             resValue("string", "derived_app_name", "Launcher")
             minifyEnabled true
             shrinkResources true
