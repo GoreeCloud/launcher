@@ -24,6 +24,6 @@ Use the Development branch while integration is underway; do not treat `main` as
 
 ## Governance and status
 
-See [rebuild plan](docs/REBUILD_PLAN.md), [Glaze mapping](docs/GLAZE_ANDROID_CONTRACT.md), and [upstream provenance/licenses](docs/UPSTREAM_PROVENANCE.md). The canonical design authority is [GoreeCloud/glaze](https://github.com/GoreeCloud/glaze). The original upstream notices and `LICENSE.txt` are retained. No endorsement by upstream Lawnchair contributors is implied.
+See [planned features and capabilities](docs/PLANNED-FEATURES.md), [rebuild plan](docs/REBUILD_PLAN.md), [Glaze mapping](docs/GLAZE_ANDROID_CONTRACT.md), and [upstream provenance/licenses](docs/UPSTREAM_PROVENANCE.md). The canonical design authority is [GoreeCloud/glaze](https://github.com/GoreeCloud/glaze). The original upstream notices and `LICENSE.txt` are retained. No endorsement by upstream Lawnchair contributors is implied.
 
 GoreeCloud privacy, security, accessibility, testing, package and release standards govern future modifications. Imported behavior remains subject to audit before the product may be shipped.
