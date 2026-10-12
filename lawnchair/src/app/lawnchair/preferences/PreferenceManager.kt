@@ -152,14 +152,14 @@ class PreferenceManager @Inject constructor(
     val searchResultPeople = BoolPref("pref_searchResultPeople", false, recreate)
     val searchResultPixelTips = BoolPref("pref_searchResultPixelTips", false)
     val searchResultSettings = BoolPref("pref_searchResultSettings", false)
-    val searchResultCalculator = BoolPref("pref_searchResultCalculator", false)
+    val searchResultCalculator = BoolPref("pref_searchResultCalculator", true)
 
     val searchResultApps = BoolPref("pref_searchResultApps", true, recreate)
     val searchResultFilesToggle = BoolPref("pref_searchResultFiles", false, recreate)
     val searchResultAllFiles = BoolPref("pref_searchResultAllFiles", false, recreate)
     val searchResultAudio = BoolPref("pref_searchResultAudio", false, recreate)
     val searchResultVisualMedia = BoolPref("pref_searchResultVisualMedia", false, recreate)
-    val searchResultStartPageSuggestion = BoolPref("pref_searchResultStartPageSuggestion", true, recreate)
+    val searchResultStartPageSuggestion = BoolPref("pref_searchResultStartPageSuggestion", false, recreate)
     val searchResultSettingsEntry = BoolPref("pref_searchResultSettingsEntry", false, recreate)
     val searchResulRecentSuggestion = BoolPref("pref_searchResultRecentSuggestion", false, recreate)
 

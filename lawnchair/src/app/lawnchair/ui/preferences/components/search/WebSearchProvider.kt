@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import app.lawnchair.preferences.PreferenceAdapter
+import app.lawnchair.search.algorithms.engine.provider.web.CustomWebSearchProvider
 import app.lawnchair.search.algorithms.engine.provider.web.WebSearchProvider
 import app.lawnchair.ui.preferences.components.controls.ListPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreferenceEntry
@@ -67,6 +68,7 @@ fun WebSearchProvider(
                 placeholder = stringResource(R.string.custom_search_input_placeholder),
                 hint = stringResource(R.string.custom_search_input_hint),
                 onConfirm = urlAdapter::onChange,
+                isErrorCheck = { !CustomWebSearchProvider.isValidHttpsTemplate(it) },
                 modifier = Modifier,
             )
             SearchPopupPreference(
@@ -75,6 +77,7 @@ fun WebSearchProvider(
                 placeholder = stringResource(R.string.custom_search_input_placeholder),
                 hint = stringResource(R.string.custom_search_suggestions_hint),
                 onConfirm = suggestionsUrlAdapter::onChange,
+                isErrorCheck = { it.isNotBlank() && !CustomWebSearchProvider.isValidHttpsTemplate(it) },
                 modifier = Modifier,
             )
         }
@@ -104,6 +107,7 @@ fun SearchPopupPreference(
                         onConfirm(value.text)
                     },
                     shapes = ButtonDefaults.shapes(),
+                    enabled = !isErrorCheck(value.text),
                 ) {
                     Text(text = stringResource(id = android.R.string.ok))
                 }

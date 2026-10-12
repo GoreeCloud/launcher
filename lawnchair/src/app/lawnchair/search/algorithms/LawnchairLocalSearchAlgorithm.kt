@@ -4,7 +4,6 @@ import android.content.Context
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
-import app.lawnchair.search.adapter.SearchLinksTarget
 import app.lawnchair.search.adapter.SearchTargetCompat
 import app.lawnchair.search.adapter.SearchTargetFactory
 import app.lawnchair.search.algorithms.engine.ActionsSectionBuilder
@@ -158,19 +157,18 @@ class LawnchairLocalSearchAlgorithm(context: Context) : LawnchairSearchAlgorithm
                 context.getString(webProvider.label)
             }
 
-            actions.add(
-                SearchResult.Action.WebSearch(
-                    query = query,
-                    providerName = providerName,
-                    searchUrl = webProvider.getSearchUrl(query),
-                    providerIconRes = webProvider.iconRes,
-                    tintIcon = webProvider is CustomWebSearchProvider,
-                ),
-            )
-        }
-
-        if (SearchLinksTarget.resolveMarketSearchActivity(context) != null) {
-            actions.add(SearchResult.Action.MarketSearch(query = query))
+            val searchUrl = webProvider.getSearchUrl(query)
+            if (searchUrl.startsWith("https://", ignoreCase = true)) {
+                actions.add(
+                    SearchResult.Action.WebSearch(
+                        query = query,
+                        providerName = providerName,
+                        searchUrl = searchUrl,
+                        providerIconRes = webProvider.iconRes,
+                        tintIcon = webProvider is CustomWebSearchProvider,
+                    ),
+                )
+            }
         }
 
         actions.add(SearchResult.Action.SearchSettings)

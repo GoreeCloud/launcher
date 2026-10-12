@@ -55,7 +55,7 @@ object CustomWebSearchProvider : WebSearchProvider {
     }
 
     override fun getSuggestions(query: String): Flow<List<String>> = flow {
-        if (query.isBlank() || suggestionsUrlTemplate.isBlank()) {
+        if (query.isBlank() || !isValidHttpsTemplate(suggestionsUrlTemplate)) {
             emit(emptyList())
             return@flow
         }
@@ -83,12 +83,25 @@ object CustomWebSearchProvider : WebSearchProvider {
     }.flowOn(Dispatchers.IO)
 
     override fun getSearchUrl(query: String): String {
-        if (searchUrlTemplate.isBlank()) {
-            // Fallback to a default search engine if the user's template is invalid.
-            return GoogleWebSearchProvider.getSearchUrl(query)
+        if (!isValidHttpsTemplate(searchUrlTemplate)) {
+            // Invalid custom configuration never redirects a query to another provider.
+            return ""
         }
         val encodedQuery = Uri.encode(query)
         return searchUrlTemplate.replace("%s", encodedQuery)
+    }
+
+    /**
+     * The user's custom endpoint must be HTTPS and explicitly interpolate the
+     * search term. This prevents insecure query transmission or a forgotten
+     * template from quietly choosing an unrelated external search service.
+     */
+    fun isValidHttpsTemplate(template: String): Boolean {
+        if (!template.startsWith("https://", ignoreCase = true) || !template.contains("%s")) {
+            return false
+        }
+        val uri = Uri.parse(template.replace("%s", "query"))
+        return uri.scheme.equals("https", ignoreCase = true) && !uri.host.isNullOrBlank()
     }
 
     private fun parseOpenSearchResponse(responseBody: String): List<String> {

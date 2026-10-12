@@ -14,7 +14,6 @@ import app.lawnchair.preferences.preferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.search.algorithms.LawnchairSearchAlgorithm
-import app.lawnchair.search.algorithms.engine.provider.web.CustomWebSearchProvider
 import app.lawnchair.ui.preferences.LocalNavController
 import app.lawnchair.ui.preferences.components.HiddenAppsInSearchPreference
 import app.lawnchair.ui.preferences.components.controls.ListPreference
@@ -159,14 +158,10 @@ private fun LocalSearchSettings(
     TwoTargetSwitchPreference(
         adapter = prefs.searchResultStartPageSuggestion.getAdapter(),
         label = stringResource(id = R.string.search_pref_result_web_title),
-        description = if (webSuggestionProvider == stringResource(CustomWebSearchProvider.label)) {
-            webSuggestionProvider
-        } else {
-            stringResource(
-                id = R.string.search_pref_result_web_provider_description,
-                webSuggestionProvider,
-            )
-        },
+        description = stringResource(
+            R.string.goreecloud_web_suggestions_privacy_description,
+            webSuggestionProvider,
+        ),
         onClick = {
             navController.navigate(SearchProviderPreference(SearchProviderId.WEB))
         },

@@ -17,6 +17,7 @@ jobs:
         run: |
           python3 scripts/verify_goreecloud.py
           python3 scripts/verify_launcher_layouts.py
+          python3 scripts/verify_search_privacy.py
   android-debug-build:
     # Compilation is Development evidence only: debug signing is not an
     # update-compatible GoreeCloud Development distribution identity.

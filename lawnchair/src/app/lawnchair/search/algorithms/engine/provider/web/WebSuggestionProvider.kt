@@ -33,8 +33,10 @@ object WebSuggestionProvider : SearchProvider {
         val timeout = prefs2.maxWebSuggestionDelay.firstCached()
         val maxResults = prefs2.maxWebSuggestionResultCount.firstCached()
 
-        val webProvider = provider
-            .configure(context)
+        val webProvider = provider.configure(context)
+        if (!webProvider.getSearchUrl(query).startsWith("https://", ignoreCase = true)) {
+            return flow { emit(emptyList()) }
+        }
 
         return webProvider.getSuggestions(query)
             .timeout(timeout.milliseconds)

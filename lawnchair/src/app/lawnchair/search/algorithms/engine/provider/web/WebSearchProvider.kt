@@ -64,7 +64,7 @@ interface WebSearchProvider {
             "startpage-eu" -> StartPageEUWebSearchProvider
             "kagi" -> KagiWebSearchProvider
             "custom" -> CustomWebSearchProvider
-            else -> GoogleWebSearchProvider
+            else -> CustomWebSearchProvider
         }
     }
 }
