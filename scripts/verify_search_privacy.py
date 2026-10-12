@@ -63,6 +63,9 @@ history = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/Hi
 require('Log.w("HistorySearchProvider", "Recent search history unavailable")' in history and
         'Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)' not in history,
         "History failures must not log exception payloads containing search queries")
+require('"date ASC, _id ASC"' in history and
+        'contentResolver.query(' in history,
+        "Recent history cursor must have deterministic chronological order")
 require("MAX_BUFFERED_HISTORY_ROWS = 512" in history and
         "val recentKeywords = ArrayDeque<RecentKeyword>()" in history and
         "recentKeywords.removeFirst()" in history and

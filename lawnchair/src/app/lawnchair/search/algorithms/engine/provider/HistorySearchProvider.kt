@@ -29,7 +29,12 @@ object HistorySearchProvider {
                 val contentResolver: ContentResolver = context.contentResolver
                 val uri: Uri = "content://${LawnchairRecentSuggestionProvider.AUTHORITY}/suggestions".toUri()
 
-                val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
+                // The generic SearchRecentSuggestionsProvider URI accepts an
+                // explicit sort order. Read oldest first so the bounded deque
+                // retains the most recent rows, even for large databases.
+                val cursor: Cursor? = contentResolver.query(
+                    uri, null, null, null, "date ASC, _id ASC",
+                )
                 val recentKeywords = ArrayDeque<RecentKeyword>()
 
                 cursor?.use {

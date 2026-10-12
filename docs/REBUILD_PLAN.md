@@ -48,3 +48,6 @@ Typing a simple expression such as 15% of 80 into Launcher search can now evalua
 
 ### 2026-10-12 — Bounded recent-search buffer
 The on-device recent-history adapter now keeps no more than 512 recent provider rows in memory before applying its existing newest-first ordering, blank filtering, deduplication and visible result count cap. A zero/negative configured result count skips provider access. Source-policy checks cover the buffer and skip behavior; Android CI, interactive search history and real-device privacy acceptance remain separate requirements.
+
+### 2026-10-12 — Stable chronological history cursor order
+The on-device recent-search provider now receives an explicit ascending date and row-id sort, matching Android's generic suggestions URI behavior. The bounded in-memory deque retains the latest rows before the UI reverses them newest-first. Without this, a provider's unspecified SQLite row order could retain stale rows and omit recent searches. Regression source policy enforces the ordering, pending Android/device acceptance.
