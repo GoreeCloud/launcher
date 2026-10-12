@@ -17,6 +17,7 @@ for package in ["com.goreecloud.launcher", "com.goreecloud.launcher.nightly", "c
 check("applicationId 'app.lawnchair'" not in build, "Upstream package identity")
 check("releaseSigning = signingConfigs.debug" not in build, "Release signing never falls back to debug")
 check("com.google.android" not in read("lawnchair/res/xml/default_workspace_5x5.xml"), "No bundled vendor apps in new Home")
+check('launcher:name="5_by_6"' in read("res/xml/device_profiles.xml"), "5x6 Home grid exists")
 check("} catch (FileNotFoundException ignored)" in build, "Missing signing only is recoverable")
 check("signingConfig signingConfigs.debug" in build, "Debug builds use isolated debug signing")
 check("signingConfig releaseSigning" in build.split("release {", 1)[1].split("}", 1)[0], "Release builds use release-only signing")

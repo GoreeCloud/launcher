@@ -170,7 +170,7 @@
         launcher:numExtendedHotseatIcons="6"
         launcher:dbFile="launcher_5_by_6.db"
         launcher:inlineNavButtonsEndSpacing="@dimen/taskbar_button_margin_split"
-        launcher:defaultLayoutId="@xml/default_workspace_5x5"
+        launcher:defaultLayoutId="@xml/default_workspace_5x6"
         launcher:deviceCategory="phone|multi_display" >
 
         <display-option

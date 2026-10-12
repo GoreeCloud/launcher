@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+"""Source-only GoreeCloud Launcher first-run layout and Glaze contract checks.
+
+This does not establish device, accessibility, migration, or release acceptance.
+"""
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+ROOT = Path(__file__).resolve().parents[1]
+ATTR = "{http://schemas.android.com/apk/res-auto}"
+WORKSPACE_ATTR = "{http://schemas.android.com/apk/res-auto/com.android.launcher3}"
+failures = []
+
+
+def check(value, message):
+    if not value:
+        failures.append(message)
+
+
+grids = ET.parse(ROOT / "res/xml/device_profiles.xml").getroot().findall("grid-option")
+by_name = {}
+for item in grids:
+    name = item.get(ATTR + "name")
+    check(name not in by_name, "Duplicate grid name: " + str(name))
+    by_name[name] = item
+
+for name in ("5_by_5", "5_by_6", "4_by_4"):
+    check(name in by_name, "Required fallback grid missing: " + name)
+
+if "5_by_6" in by_name:
+    grid = by_name["5_by_6"]
+    for key, expected in {
+        "numRows": "6",
+        "numColumns": "5",
+        "numHotseatIcons": "5",
+        "dbFile": "launcher_5_by_6.db",
+        "defaultLayoutId": "@xml/default_workspace_5x6",
+    }.items():
+        check(grid.get(ATTR + key) == expected, f"5x6 {key} must be {expected}")
+    small = [x for x in grid.findall("display-option")
+             if x.get(ATTR + "name") == "Shorter Stubby"]
+    check(bool(small) and all(x.get(ATTR + "canBeDefault") == "false" for x in small),
+          "Six-row grid must not auto-select on short phones")
+
+if "5_by_5" in by_name:
+    grid = by_name["5_by_5"]
+    check(grid.get(ATTR + "dbFile") == "launcher.db", "Preserve original layout database")
+    check(grid.get(ATTR + "defaultLayoutId") == "@xml/default_workspace_5x5",
+          "Preserve existing 5x5 layout")
+    check(any(x.get(ATTR + "canBeDefault") == "true" for x in grid.findall("display-option")),
+          "Preserve 5x5 fallback for smaller screens")
+
+for folder in ("res/xml", "lawnchair/res/xml"):
+    root = ET.parse(ROOT / folder / "default_workspace_5x6.xml").getroot()
+    dock = root.findall("resolve")
+    check(len(dock) == 5, f"{folder} needs five role-based dock suggestions")
+    check(sorted(x.get(WORKSPACE_ATTR + "screen") for x in dock) == list("01234"),
+          f"{folder} needs exactly one item per dock slot")
+    for entry in dock:
+        check(entry.get(WORKSPACE_ATTR + "container") == "-101", f"{folder} default is dock only")
+        check(len(entry.findall("favorite")) > 0, f"{folder} unresolved empty dock role")
+        for fav in entry.findall("favorite"):
+            uri = fav.get(WORKSPACE_ATTR + "uri", "")
+            check(uri.startswith("#Intent;") or uri in ("tel:123", "sms:"),
+                  f"{folder} must not place remote or vendor default shortcuts")
+            check(fav.get(WORKSPACE_ATTR + "packageName") is None,
+                  f"{folder} must not pin vendor packages")
+
+template = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/components/layout/PreferenceTemplate.kt").read_text()
+check("defaultMinSize(minHeight = LocalGlazeMetrics.current.minimumTouchTarget)" in template,
+      "Glaze touch-target minimum must be applied to settings rows")
+
+if failures:
+    for failure in failures:
+        print("FAIL:", failure)
+    raise SystemExit(1)
+print("PASS: new-install grids, local role-only dock, Glaze settings touch floor")
+print("Device/upgrade and visual/assistive-technology QA remain pending")
