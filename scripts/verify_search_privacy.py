@@ -93,6 +93,13 @@ require(builtins.count("service.getSuggestions(query = query)") == 5 and
         "service.getSuggestions(query = encodedQuery)" not in builtins,
         "All Retrofit @Query parameters must be encoded exactly once")
 require("Log.e(" not in builtins, "Built-in suggestions must not log query-bearing exceptions")
+require("MAX_BUILTIN_SUGGESTION_BODY_BYTES = 64 * 1024" in builtins and
+        "val bytes = ByteArray(MAX_BUILTIN_SUGGESTION_BODY_BYTES + 1)" in builtins and
+        "response.body()?.readBoundedSuggestionBody()" in builtins and
+        "value.readBoundedSuggestionBody()" in builtins,
+        "All built-in suggestion responses must be bounded, including streaming payloads")
+require(".take(maxResults.coerceIn(0, 10))" in web,
+        "Corrupted suggestion-count settings must not throw or flood search results")
 for name in ("Startpage.kt", "StartpageEU.kt"):
     data = text("lawnchair/src/app/lawnchair/qsb/providers/" + name)
     require("segment=startpage.lawnchair" not in data, "No partner identifier in " + name)

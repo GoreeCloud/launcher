@@ -52,7 +52,7 @@ object WebSuggestionProvider : SearchProvider {
             }
             .map { suggestions ->
                 suggestions
-                    .take(maxResults)
+                    .take(maxResults.coerceIn(0, 10))
                     .map { suggestion ->
                         SearchResult.WebSuggestion(suggestion = suggestion, provider = webProvider.id)
                     }

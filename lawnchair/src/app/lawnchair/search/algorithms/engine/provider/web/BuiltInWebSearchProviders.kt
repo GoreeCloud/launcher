@@ -165,7 +165,7 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
             val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
-                val responseBody = response.body()?.string() ?: ""
+                val responseBody = response.body()?.readBoundedSuggestionBody() ?: ""
                 val suggestions = parseDuckDuckGoResponse(responseBody)
                 emit(suggestions)
             } else {
@@ -439,7 +439,7 @@ private class StringConverterFactory : Converter.Factory() {
         retrofit: Retrofit,
     ): Converter<ResponseBody, *>? {
         if (type == String::class.java) {
-            return Converter<ResponseBody, String> { value -> value.string() }
+            return Converter<ResponseBody, String> { value -> value.readBoundedSuggestionBody() }
         }
         return null
     }
@@ -447,4 +447,24 @@ private class StringConverterFactory : Converter.Factory() {
     companion object {
         fun create() = StringConverterFactory()
     }
+}
+
+
+// Limit all built-in provider payloads, including chunked responses without
+// Content-Length, to prevent remote suggestion endpoints exhausting IME memory.
+private const val MAX_BUILTIN_SUGGESTION_BODY_BYTES = 64 * 1024
+
+private fun ResponseBody.readBoundedSuggestionBody(): String {
+    val bytes = ByteArray(MAX_BUILTIN_SUGGESTION_BODY_BYTES + 1)
+    var length = 0
+    byteStream().use { stream ->
+        while (length < bytes.size) {
+            val read = stream.read(bytes, length, bytes.size - length)
+            if (read <= 0) break
+            length += read
+        }
+    }
+    if (length > MAX_BUILTIN_SUGGESTION_BODY_BYTES) return ""
+    val charset = contentType()?.charset(Charsets.UTF_8) ?: Charsets.UTF_8
+    return String(bytes, 0, length, charset)
 }
