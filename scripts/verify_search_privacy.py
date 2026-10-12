@@ -63,6 +63,13 @@ history = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/Hi
 require('Log.w("HistorySearchProvider", "Recent search history unavailable")' in history and
         'Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)' not in history,
         "History failures must not log exception payloads containing search queries")
+require("MAX_BUFFERED_HISTORY_ROWS = 512" in history and
+        "val recentKeywords = ArrayDeque<RecentKeyword>()" in history and
+        "recentKeywords.removeFirst()" in history and
+        "recentKeywords.addLast(RecentKeyword(recentKeywordData))" in history and
+        "recentKeywords.toList().asReversed()" in history and
+        "if (maxResults <= 0) return@withContext emptyList<SearchResult.History>()" in history,
+        "Recent search rows must be bounded before result assembly")
 require('.filter { !it.getValueByKey("display1").isNullOrBlank() }' in history and
         '.distinctBy { it.getValueByKey("display1")!!.trim().lowercase() }' in history and
         '.take(maxResults.coerceIn(0, 20))' in history,
