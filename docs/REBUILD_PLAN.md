@@ -7,6 +7,7 @@
 - Android 16 Launcher3/Lawnchair-based HOME functionality, icon/workspace management, search and widgets enter the GoreeCloud development branch as upstream source, **not verified product features**.
 - GoreeCloud app identity and native Glaze 1.7.0 semantic entry points are the first integration increment.
 - Initial privacy defaults have now been tightened: local on-device QSB provider on a new installation, sponsored provider exclusion, removal of sponsorship surfaces and upstream release workflow isolation. This does **not** certify the broader network/permission behavior.
+- Added a 5x6 Home grid preset with five dock icons, preserving 5x5 and smaller-device choices. The 5x5 first-run layout no longer seeds a Google folder or marketplace shortcut. Device acceptance and migration testing are still pending.
 - GoreeCloud policies require no ads, no sponsored placement, no silent analytics, offline-capable core launcher functions, user-controlled online search, user privacy and data control.
 - Search provider fallback now remains on-device when the configured provider is unusable; the launcher will not silently substitute another installed external provider. Two legacy browser-history permissions with no source-code references were removed from the application manifest.
 - The old original GoreeCloud Launcher spec and task evidence describe an earlier GitHub history no longer present in the live target repository. Treat those assertions as historical until evaluated against the newly imported code.
