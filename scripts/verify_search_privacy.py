@@ -36,6 +36,10 @@ require("!prefs.searchResultStartPageSuggestion.get()" in web,
 require('Log.w(TAG, "Web suggestions unavailable")' in web and
         "emit(emptyList())" in web.split(".catch { cause ->", 1)[1].split(".map", 1)[0],
         "Network and provider exceptions must fail closed to empty suggestions")
+require("import kotlinx.coroutines.CancellationException" in web and
+        "if (cause is CancellationException && cause !is TimeoutCancellationException)" in web and
+        web.index("throw cause") < web.index('Log.w(TAG, "Web suggestion request timed out")'),
+        "Cancelled searches must propagate cancellation without stale results")
 require('!webProvider.getSearchUrl(query).startsWith("https://", ignoreCase = true)' in web,
         "Web suggestions fail closed with unusable search destination")
 provider = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/WebSearchProvider.kt")
