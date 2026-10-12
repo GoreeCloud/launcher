@@ -18,6 +18,7 @@ package app.lawnchair.ui.preferences.components.layout
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.ListItemShapes
@@ -31,6 +32,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import app.lawnchair.ui.theme.LocalGlazeMetrics
 
 /***
  * A template used to create most preference-related components in the Preference UI.
@@ -72,7 +74,7 @@ fun PreferenceTemplate(
             SegmentedListItem(
                 content = titleContent,
                 shapes = shapes,
-                modifier = contentModifier,
+                modifier = contentModifier.defaultMinSize(minHeight = LocalGlazeMetrics.current.minimumTouchTarget),
                 enabled = enabled,
                 leadingContent = startWidget,
                 trailingContent = endWidget,
@@ -85,7 +87,7 @@ fun PreferenceTemplate(
                 onClick = onClick,
                 content = titleContent,
                 shapes = shapes,
-                modifier = contentModifier,
+                modifier = contentModifier.defaultMinSize(minHeight = LocalGlazeMetrics.current.minimumTouchTarget),
                 enabled = enabled,
                 leadingContent = startWidget,
                 trailingContent = endWidget,
