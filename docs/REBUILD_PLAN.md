@@ -54,3 +54,6 @@ The on-device recent-search provider now receives an explicit ascending date and
 
 ### 2026-10-12 — Legacy sensitive permission regression guard
 Read-only testing on the connected Android 16 Development device found that its older installed Launcher variant requests SMS, call log, location and contacts permissions. On that device, SMS/call-log/location access is not granted and contacts access is user-granted. The current rebuild source has no SMS, call-log or location manifest declarations and requires runtime permission for contacts search; source-policy checks now reject reintroduction of those legacy permission declarations. This is **source evidence**, not a merged-manifest or user-device upgrade pass. We did not modify device permissions.
+
+### 2026-10-12 — Build-time merged manifest permission verification
+The CI Android debug job now inspects the actual merged and packaged Lawn-with-Quickstep-GitHub Debug manifest and rejects SMS, call-log and location declarations, including SDK-specific permission tags. Source-policy CI executes synthetic positive/negative fixtures for this guard before Android compilation. No APK installation, signing or device permission changes are implied.
