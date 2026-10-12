@@ -43,7 +43,7 @@ def self_test() -> None:
 
 
 def verify_build() -> None:
-    intermediates = ROOT / "lawnchair/build/intermediates"
+    intermediates = ROOT / "build/intermediates"
     manifest_paths = sorted({
         path for pattern in ("merged_manifest*/**/AndroidManifest.xml",
                              "packaged_manifests/**/AndroidManifest.xml")
