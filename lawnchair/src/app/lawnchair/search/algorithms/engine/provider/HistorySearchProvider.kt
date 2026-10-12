@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import app.lawnchair.search.LawnchairRecentSuggestionProvider
 import app.lawnchair.search.algorithms.data.RecentKeyword
 import app.lawnchair.search.algorithms.engine.SearchResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -58,6 +59,9 @@ object HistorySearchProvider {
                     .distinctBy { it.getValueByKey("display1")!!.trim().lowercase() }
                     .take(maxResults.coerceIn(0, 20))
                     .map { SearchResult.History(data = it) }
+            } catch (e: CancellationException) {
+                // Never suppress cancellation of an abandoned search request.
+                throw e
             } catch (e: Exception) {
                 Log.w("HistorySearchProvider", "Recent search history unavailable")
                 emptyList()

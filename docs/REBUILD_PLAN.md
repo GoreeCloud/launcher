@@ -60,3 +60,6 @@ The CI Android debug job now inspects the actual merged and packaged Lawn-with-Q
 
 ### 2026-10-12 — Fail-closed zero-result web suggestions
 A zero or negative configured web-suggestion count now short-circuits before any third-party suggestion provider is configured or called. Discarding the results after fetching was insufficient because it still transmitted the typed query. The source-policy gate asserts that the early return precedes network request construction; exact-head CI and on-device network observation remain required.
+
+### 2026-10-12 — Cancellation-safe recent history search
+History lookup now rethrows Kotlin coroutine cancellation rather than treating it as a recoverable provider error. This prevents abandoned search jobs from silently continuing after UI cancellation. Provider exceptions still fail closed to an empty list without leaking typed queries through logs. Exact-head Android CI and device cancellation acceptance are separate verification gates.
