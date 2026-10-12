@@ -116,6 +116,10 @@ require("MAX_BUILTIN_SUGGESTION_BODY_BYTES = 64 * 1024" in builtins and
         "response.body()?.readBoundedSuggestionBody()" in builtins and
         "value.readBoundedSuggestionBody()" in builtins,
         "All built-in suggestion responses must be bounded, including streaming payloads")
+require("if (maxResults <= 0) return flow { emit(emptyList()) }" in web and
+        web.index("if (maxResults <= 0)") < web.index("val webProvider = provider.configure(context)") and
+        web.index("if (maxResults <= 0)") < web.index("webProvider.getSuggestions(query)"),
+        "Disabled web suggestion count must not transmit search terms")
 require(".take(maxResults.coerceIn(0, 10))" in web,
         "Corrupted suggestion-count settings must not throw or flood search results")
 for name in ("Startpage.kt", "StartpageEU.kt"):
