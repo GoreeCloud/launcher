@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.lawnchair.ui.theme.LocalGlazeMetrics
 
 @Composable
 fun PreferenceGroup(
@@ -53,7 +55,7 @@ fun PreferenceGroup(
         Column(
             modifier = Modifier
                 .padding(horizontal = 16.dp)
-                .clip(MaterialTheme.shapes.large),
+                .clip(RoundedCornerShape(LocalGlazeMetrics.current.cardRadius)),
             verticalArrangement = Arrangement.spacedBy(itemSpacing),
         ) {
             content()

@@ -66,9 +66,18 @@ for folder in ("res/xml", "lawnchair/res/xml"):
             check(fav.get(WORKSPACE_ATTR + "packageName") is None,
                   f"{folder} must not pin vendor packages")
 
+for folder in ("res/xml", "lawnchair/res/xml"):
+    legacy_home = (ROOT / folder / "default_workspace_5x5.xml").read_text()
+    check("example.com" not in legacy_home, f"{folder} must not seed web fallbacks")
+    check("APP_MARKET" not in legacy_home and "market://" not in legacy_home,
+          f"{folder} must not pin an app store or market destination")
+
 template = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/components/layout/PreferenceTemplate.kt").read_text()
 check("defaultMinSize(minHeight = LocalGlazeMetrics.current.minimumTouchTarget)" in template,
       "Glaze touch-target minimum must be applied to settings rows")
+group = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/components/layout/PreferenceGroup.kt").read_text()
+check("RoundedCornerShape(LocalGlazeMetrics.current.cardRadius)" in group,
+      "Glaze card radius must shape preference group containers")
 
 if failures:
     for failure in failures:
