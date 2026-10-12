@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.ResponseBody
 import org.json.JSONArray
 import retrofit2.Converter
@@ -22,6 +23,15 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Query
+
+/**
+ * Opt-in suggestion requests are restricted to the selected service's HTTPS origin.
+ * HTTP redirects must never send search text to a different host or scheme.
+ */
+private val nonRedirectingSuggestionClient = OkHttpClient.Builder()
+    .followRedirects(false)
+    .followSslRedirects(false)
+    .build()
 
 /**
  * Provides web search suggestions from Google.
@@ -36,6 +46,7 @@ object GoogleWebSearchProvider : WebSearchProvider {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
+            .client(nonRedirectingSuggestionClient)
             .baseUrl("https://www.google.com/")
             // Note: We use a custom string converter because Google's response is not valid JSON.
             .addConverterFactory(StringConverterFactory.create())
@@ -64,8 +75,8 @@ object GoogleWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit's @Query escapes once; pre-encoding would corrupt non-ASCII and punctuation.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -76,7 +87,7 @@ object GoogleWebSearchProvider : WebSearchProvider {
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during suggestion retrieval", e)
+            Log.w(TAG, "Error during suggestion retrieval")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -96,7 +107,7 @@ object GoogleWebSearchProvider : WebSearchProvider {
             val suggestionsArray = jsonArray.getJSONArray(1)
             (0 until suggestionsArray.length()).map { suggestionsArray.getString(it) }
         } catch (e: Exception) {
-            Log.e("GoogleWebSearchProvider", "Failed to parse Google response", e)
+            Log.w("GoogleWebSearchProvider", "Failed to parse Google response")
             emptyList()
         }
     }
@@ -119,6 +130,7 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
     // 1. Use the standard kotlinx.serialization converter since DDG's API is clean.
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
+            .client(nonRedirectingSuggestionClient)
             .baseUrl("https://ac.duckduckgo.com/")
             .addConverterFactory(kotlinxJson.asConverterFactory("application/json".toMediaType()))
             .build()
@@ -149,8 +161,8 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
 
         try {
             // 2. Call the Retrofit service.
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit's @Query escapes once; pre-encoding would corrupt non-ASCII and punctuation.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body()?.string() ?: ""
@@ -161,7 +173,7 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during suggestion retrieval", e)
+            Log.w(TAG, "Error during suggestion retrieval")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -180,7 +192,7 @@ object DuckDuckGoWebSearchProvider : WebSearchProvider {
             val jsonElement = Json.parseToJsonElement(responseBody)
             jsonElement.jsonArray.map { it.jsonObject["phrase"]!!.jsonPrimitive.content }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse DDG response", e)
+            Log.w(TAG, "Failed to parse DDG response")
             emptyList()
         }
     }
@@ -202,6 +214,7 @@ object StartPageWebSearchProvider : WebSearchProvider {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
+            .client(nonRedirectingSuggestionClient)
             .baseUrl("https://www.startpage.com/")
             .addConverterFactory(StringConverterFactory.create()) // StartPage also returns non-standard JSON
             .build()
@@ -229,8 +242,8 @@ object StartPageWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit's @Query escapes once; pre-encoding would corrupt non-ASCII and punctuation.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -241,7 +254,7 @@ object StartPageWebSearchProvider : WebSearchProvider {
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during suggestion retrieval", e)
+            Log.w(TAG, "Error during suggestion retrieval")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -261,7 +274,7 @@ object StartPageWebSearchProvider : WebSearchProvider {
             val suggestionsArray = jsonArray.getJSONArray(1) // Suggestions are the second element
             (0 until suggestionsArray.length()).map { suggestionsArray.getString(it) }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse StartPage response", e)
+            Log.w(TAG, "Failed to parse StartPage response")
             emptyList()
         }
     }
@@ -283,6 +296,7 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
+            .client(nonRedirectingSuggestionClient)
             .baseUrl("https://eu.startpage.com/")
             .addConverterFactory(StringConverterFactory.create())
             .build()
@@ -307,8 +321,8 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit's @Query escapes once; pre-encoding would corrupt non-ASCII and punctuation.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -319,7 +333,7 @@ object StartPageEUWebSearchProvider : WebSearchProvider {
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during EU suggestion retrieval", e)
+            Log.w(TAG, "Error during EU suggestion retrieval")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -346,6 +360,7 @@ object KagiWebSearchProvider : WebSearchProvider {
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
+            .client(nonRedirectingSuggestionClient)
             .baseUrl("https://kagi.com/")
             // Kagi uses a simple JSON array, but we'll use the string converter for consistency
             // in case their API ever wraps the response.
@@ -374,8 +389,8 @@ object KagiWebSearchProvider : WebSearchProvider {
         }
 
         try {
-            val encodedQuery = Uri.encode(query)
-            val response = service.getSuggestions(query = encodedQuery)
+            // Retrofit's @Query escapes once; pre-encoding would corrupt non-ASCII and punctuation.
+            val response = service.getSuggestions(query = query)
 
             if (response.isSuccessful) {
                 val responseBody = response.body() ?: ""
@@ -386,7 +401,7 @@ object KagiWebSearchProvider : WebSearchProvider {
                 emit(emptyList())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during suggestion retrieval", e)
+            Log.w(TAG, "Error during suggestion retrieval")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -407,7 +422,7 @@ object KagiWebSearchProvider : WebSearchProvider {
             val suggestionsArray = jsonArray.getJSONArray(1) // Suggestions are the second element
             (0 until suggestionsArray.length()).map { suggestionsArray.getString(it) }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse Kagi response", e)
+            Log.w(TAG, "Failed to parse Kagi response")
             emptyList()
         }
     }

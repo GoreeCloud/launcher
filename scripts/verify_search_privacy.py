@@ -77,6 +77,14 @@ require('target.extras.getString("result").orEmpty()' in calculator_row,
 start = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/BuiltInWebSearchProviders.kt")
 require("startpage.lawnchair" not in start and '@Query("partner")' not in start,
         "No inherited partner identifiers in suggestions")
+builtins = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/BuiltInWebSearchProviders.kt")
+require("followRedirects(false)" in builtins and "followSslRedirects(false)" in builtins and
+        builtins.count(".client(nonRedirectingSuggestionClient)") == 5,
+        "All built-in web suggestion services must reject automatic redirects")
+require(builtins.count("service.getSuggestions(query = query)") == 5 and
+        "service.getSuggestions(query = encodedQuery)" not in builtins,
+        "All Retrofit @Query parameters must be encoded exactly once")
+require("Log.e(" not in builtins, "Built-in suggestions must not log query-bearing exceptions")
 for name in ("Startpage.kt", "StartpageEU.kt"):
     data = text("lawnchair/src/app/lawnchair/qsb/providers/" + name)
     require("segment=startpage.lawnchair" not in data, "No partner identifier in " + name)
