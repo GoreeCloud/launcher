@@ -42,7 +42,12 @@ object CustomWebSearchProvider : WebSearchProvider {
     private var searchUrlTemplate: String = ""
     private var suggestionsUrlTemplate: String = ""
     private var displayName: String = ""
-    private val okHttpClient = OkHttpClient()
+    // A user-approved endpoint must not silently redirect typed terms to another host
+    // or downgrade a HTTPS suggestion request to HTTP.
+    private val okHttpClient = OkHttpClient.Builder()
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
 
     fun getDisplayName(): String = displayName
 
@@ -77,7 +82,7 @@ object CustomWebSearchProvider : WebSearchProvider {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during suggestion retrieval", e)
+            Log.w(TAG, "Custom web suggestions unavailable")
             emit(emptyList())
         }
     }.flowOn(Dispatchers.IO)
@@ -110,7 +115,7 @@ object CustomWebSearchProvider : WebSearchProvider {
             val suggestionsArray = jsonArray.getJSONArray(1)
             (0 until suggestionsArray.length()).map { suggestionsArray.getString(it) }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse custom provider response", e)
+            Log.w(TAG, "Custom web suggestion response invalid")
             emptyList()
         }
     }

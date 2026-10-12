@@ -40,11 +40,15 @@ object WebSuggestionProvider : SearchProvider {
 
         return webProvider.getSuggestions(query)
             .timeout(timeout.milliseconds)
-            .catch {
-                if (it is TimeoutCancellationException) {
+            .catch { cause ->
+                // Fail closed for timeouts and all other provider/network errors.
+                // Never log the exception: it may include the user's typed query URL.
+                if (cause is TimeoutCancellationException) {
                     Log.w(TAG, "Web suggestion request timed out")
-                    emit(emptyList())
+                } else {
+                    Log.w(TAG, "Web suggestions unavailable")
                 }
+                emit(emptyList())
             }
             .map { suggestions ->
                 suggestions

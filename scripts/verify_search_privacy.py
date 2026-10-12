@@ -33,6 +33,9 @@ require('searchResultFilesToggle = BoolPref("pref_searchResultFiles", false' in 
 web = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/WebSuggestionProvider.kt")
 require("!prefs.searchResultStartPageSuggestion.get()" in web,
         "Web suggestions require opt-in")
+require('Log.w(TAG, "Web suggestions unavailable")' in web and
+        "emit(emptyList())" in web.split(".catch { cause ->", 1)[1].split(".map", 1)[0],
+        "Network and provider exceptions must fail closed to empty suggestions")
 require('!webProvider.getSearchUrl(query).startsWith("https://", ignoreCase = true)' in web,
         "Web suggestions fail closed with unusable search destination")
 provider = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/WebSearchProvider.kt")
@@ -40,6 +43,11 @@ require("else -> CustomWebSearchProvider" in provider, "Unknown provider IDs mus
 custom = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/CustomWebSearchProvider.kt")
 require("!isValidHttpsTemplate(suggestionsUrlTemplate)" in custom, "Validate custom suggestion URL")
 require("!isValidHttpsTemplate(searchUrlTemplate)" in custom, "Validate custom search URL")
+require("followRedirects(false)" in custom and "followSslRedirects(false)" in custom,
+        "Custom suggestions must not silently redirect query terms")
+require('Log.e(TAG, "Error during suggestion retrieval", e)' not in custom and
+        'Log.e(TAG, "Failed to parse custom provider response", e)' not in custom,
+        "Custom search failures must not log exception details carrying user queries")
 require("GoogleWebSearchProvider.getSearchUrl(query)" not in custom, "No fallback to Google")
 require('return ""' in custom and 'template.contains("%s")' in custom,
         "Invalid custom URLs fail closed")
