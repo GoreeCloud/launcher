@@ -57,3 +57,6 @@ Read-only testing on the connected Android 16 Development device found that its 
 
 ### 2026-10-12 — Build-time merged manifest permission verification
 The CI Android debug job now inspects the actual merged and packaged Lawn-with-Quickstep-GitHub Debug manifest and rejects SMS, call-log and location declarations, including SDK-specific permission tags. Source-policy CI executes synthetic positive/negative fixtures for this guard before Android compilation. No APK installation, signing or device permission changes are implied.
+
+### 2026-10-12 — Fail-closed zero-result web suggestions
+A zero or negative configured web-suggestion count now short-circuits before any third-party suggestion provider is configured or called. Discarding the results after fetching was insufficient because it still transmitted the typed query. The source-policy gate asserts that the early return precedes network request construction; exact-head CI and on-device network observation remain required.
