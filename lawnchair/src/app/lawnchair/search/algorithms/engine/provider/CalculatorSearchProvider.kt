@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 object CalculatorSearchProvider : SearchProvider {
+    private const val MAX_CALCULATOR_QUERY_LENGTH = 160
 
     override val id: String = "calculator"
 
@@ -40,7 +41,25 @@ object CalculatorSearchProvider : SearchProvider {
         query: String,
     ): Calculation {
         return try {
-            val evaluatedValue = Expressions().eval(query)
+            // The user may type everyday calculator symbols (or paste a result
+            // expression ending in "="); keep the original string for display.
+            // A length bound prevents very long input from blocking app search.
+            if (query.length > MAX_CALCULATOR_QUERY_LENGTH) {
+                throw IllegalArgumentException("Calculator expression too long")
+            }
+            val trimmedQuery = query.trim()
+            val expression = (if (trimmedQuery.endsWith("=") && !trimmedQuery.endsWith("==")) {
+                trimmedQuery.dropLast(1).trim()
+            } else {
+                trimmedQuery
+            })
+                .replace('×', '*')
+                .replace('÷', '/')
+                .replace('−', '-')
+                .replace('＋', '+')
+                .replace('（', '(')
+                .replace('）', ')')
+            val evaluatedValue = Expressions().eval(expression)
             val roundedValue = evaluatedValue.round(MathContext.DECIMAL64)
             val formattedValue = roundedValue.stripTrailingZeros()
             val absoluteValue = formattedValue.abs()

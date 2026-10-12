@@ -32,3 +32,7 @@ The existing `main` initial commit remains untouched by this import branch. Reve
 - Build, real Android device, accessibility and security runtime acceptance are **unverified**.
 - Full visual and interaction redesign, search/privacy safeguards and the complete GoreeCloud feature contract are **not implemented** merely by importing upstream.
 - Licensing/dependency compliance and Glaze consumer acceptance require separate evidence.
+
+
+### 2026-10-12 — Offline calculator typing improvements (development candidate)
+Launcher search's local calculator now accepts mathematical multiplication (×), division (÷), Unicode minus (−), full-width plus/parentheses, and optional trailing equals while retaining the original expression in the result. An input-length guard rejects unreasonably long expressions. The new CI source-policy assertion checks the route and keeps calculator evaluation local, behind its existing enabled preference. Android compilation and interactive text-entry/clipboard usability acceptance are separate pending gates.
