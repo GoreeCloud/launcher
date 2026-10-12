@@ -78,6 +78,8 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
 
     override fun bind(target: SearchTargetCompat, shortcuts: List<SearchTargetCompat>) {
         flags = getFlags(target.extras)
+        // Recycled result rows must not retain an earlier calculator label.
+        contentDescription = null
 
         icon.bind(target) {
             title.text = it.title
@@ -124,12 +126,16 @@ class SearchResultIconRow(context: Context, attrs: AttributeSet?) :
             }
         }
         if (isCalculator) {
+            val result = target.extras.getString("result").orEmpty()
+            contentDescription = context.getString(R.string.goreecloud_calculator_copy_result_a11y, result)
             setOnClickListener {
-                copyToClipboard(
-                    context = context,
-                    text = target.extras.getString("result").toString(),
-                    toastMessage = context.getString(R.string.calculator_search_result_copied_toast),
-                )
+                if (result.isNotBlank()) {
+                    copyToClipboard(
+                        context = context,
+                        text = result,
+                        toastMessage = context.getString(R.string.calculator_search_result_copied_toast),
+                    )
+                }
             }
         }
     }

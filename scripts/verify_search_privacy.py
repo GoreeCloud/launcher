@@ -57,6 +57,13 @@ require("goreecloud_web_suggestions_privacy_description" in drawer,
 strings = ET.parse(root / "lawnchair/res/values/strings.xml").getroot()
 require(any(x.get("name") == "goreecloud_web_suggestions_privacy_description" for x in strings),
         "Search disclosure string must exist")
+require(any(x.get("name") == "goreecloud_calculator_copy_result_a11y" for x in strings),
+        "Calculator copy accessibility string must exist")
+calculator_row = text("lawnchair/src/app/lawnchair/allapps/views/SearchResultIconRow.kt")
+require("contentDescription = null" in calculator_row and "goreecloud_calculator_copy_result_a11y" in calculator_row,
+        "Calculator copy result is screen-reader labeled and cleared when recycled")
+require('target.extras.getString("result").orEmpty()' in calculator_row,
+        "Calculator clipboard action cannot copy null placeholder")
 start = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/BuiltInWebSearchProviders.kt")
 require("startpage.lawnchair" not in start and '@Query("partner")' not in start,
         "No inherited partner identifiers in suggestions")

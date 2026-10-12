@@ -994,6 +994,7 @@
     <string name="search_pref_result_all_files_title">All files</string>
     <string name="search_pref_result_web_title">Web suggestions</string>
     <string name="goreecloud_web_suggestions_privacy_description">Off by default. When enabled, typed search terms are sent to %1$s for online suggestions.</string>
+    <string name="goreecloud_calculator_copy_result_a11y">Copy calculator result %1$s</string>
     <string name="search_pref_result_history_title">Search history</string>
     <string name="all_apps_search_result_calculator">Calculator</string>
 
