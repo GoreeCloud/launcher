@@ -33,6 +33,9 @@ object WebSuggestionProvider : SearchProvider {
         val timeout = prefs2.maxWebSuggestionDelay.firstCached()
         val maxResults = prefs2.maxWebSuggestionResultCount.firstCached()
 
+        // Zero or invalid result limits must not transmit typed queries.
+        if (maxResults <= 0) return flow { emit(emptyList()) }
+
         val webProvider = provider.configure(context)
         if (!webProvider.getSearchUrl(query).startsWith("https://", ignoreCase = true)) {
             return flow { emit(emptyList()) }
