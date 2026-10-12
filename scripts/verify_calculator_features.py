@@ -22,6 +22,10 @@ required = [
     ".replace('（', '(')",
     ".replace('）', ')')",
     "Expressions().eval(expression)",
+    "percentOfPattern.matchEntire(expression)",
+    "percent.multiply(value, MathContext.DECIMAL64)",
+    '.divide(BigDecimal("100"), MathContext.DECIMAL64)',
+    "RegexOption.IGNORE_CASE",
     "equation = query,",
     "legacyPrefs.searchResultCalculator.get()",
 ]

@@ -40,3 +40,7 @@ Launcher search's local calculator now accepts mathematical multiplication (×),
 
 ### 2026-10-12 — Useful recent search history (development candidate)
 On-device recent-search suggestions now filter blank entries and deduplicate case-insensitively after newest-first ordering, keeping the latest usable instance of each query. Results are capped even if the stored maximum becomes corrupted. This does not send search history to a remote provider and does not change the user's existing history-retention controls. CI static regression and Android compilation must pass; interactive history and search-action behavior require device acceptance.
+
+
+### 2026-10-12 — Offline percent-of arithmetic (development candidate)
+Typing a simple expression such as 15% of 80 into Launcher search can now evaluate directly to 12 without network requests. This is intentionally distinct from the expression engine's existing binary percent modulo operator, which remains unchanged. The implementation supports signed integer and dot-decimal operands and a trailing equals sign; it does not claim locale-specific percentages or arbitrary nested percent expressions. Source regression is included; Android compilation and interactive results require acceptance.

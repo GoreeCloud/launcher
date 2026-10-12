@@ -13,6 +13,12 @@ import kotlinx.coroutines.flow.flow
 
 object CalculatorSearchProvider : SearchProvider {
     private const val MAX_CALCULATOR_QUERY_LENGTH = 160
+    // Keep the parser's existing modulo operator intact; "percent of" is a
+    // separate, common calculator request such as "15% of 80".
+    private val percentOfPattern = Regex(
+        """^([+-]?\d+(?:\.\d+)?)\s*%\s*of\s*([+-]?\d+(?:\.\d+)?)$""",
+        RegexOption.IGNORE_CASE,
+    )
 
     override val id: String = "calculator"
 
@@ -59,7 +65,12 @@ object CalculatorSearchProvider : SearchProvider {
                 .replace('＋', '+')
                 .replace('（', '(')
                 .replace('）', ')')
-            val evaluatedValue = Expressions().eval(expression)
+            val evaluatedValue = percentOfPattern.matchEntire(expression)?.let { match ->
+                val percent = BigDecimal(match.groupValues[1])
+                val value = BigDecimal(match.groupValues[2])
+                percent.multiply(value, MathContext.DECIMAL64)
+                    .divide(BigDecimal("100"), MathContext.DECIMAL64)
+            } ?: Expressions().eval(expression)
             val roundedValue = evaluatedValue.round(MathContext.DECIMAL64)
             val formattedValue = roundedValue.stripTrailingZeros()
             val absoluteValue = formattedValue.abs()
