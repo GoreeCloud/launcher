@@ -24,6 +24,8 @@ require('searchResultStartPageSuggestion = BoolPref("pref_searchResultStartPageS
         "Online suggestions must default OFF for new installs")
 require('searchResultCalculator = BoolPref("pref_searchResultCalculator", true)' in prefs,
         "Local calculator is enabled by default")
+require("defaultValue = LawnchairSearchAlgorithm.LOCAL_SEARCH" in text("lawnchair/src/app/lawnchair/preferences2/PreferenceManager2.kt"),
+        "New-install search algorithm remains on-device")
 require('searchResultPeople = BoolPref("pref_searchResultPeople", false' in prefs,
         "Contacts search is opt-in")
 require('searchResultFilesToggle = BoolPref("pref_searchResultFiles", false' in prefs,
