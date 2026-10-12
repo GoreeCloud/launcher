@@ -24,6 +24,11 @@ clickable=read("lawnchair/src/app/lawnchair/ui/preferences/components/layout/Cli
 check("glazeMetrics.minimumTouchTarget" in clickable, "Glaze actual touch target applied")
 check("contentDescription = contentDescription" in clickable, "Accessibility label forwarded")
 check("search_provider_install_action" in read("lawnchair/src/app/lawnchair/ui/preferences/destinations/SearchProviderPreferences.kt"), "Search install action labeled")
+check("firstOrNull { LawnQsbLayout.resolveIntent" not in qsb, "No external provider auto-detection")
+check("Invalid and unavailable defaults must fall back to local app search" in qsb, "Local-first search fail-closed fallback")
+manifest=read("lawnchair/AndroidManifest.xml")
+for obsolete in ("READ_HISTORY_BOOKMARKS", "WRITE_HISTORY_BOOKMARKS"):
+    check(obsolete not in manifest, "Obsolete permission: "+obsolete)
 check('derived_app_name", "Launcher"' in build, "Short installed label")
 check('const val stableVersion = "1.7.0"' in tokens, "Glaze stable target")
 check("minimumTouchTarget: Dp = 48.dp" in tokens, "Glaze touch target contract")

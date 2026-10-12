@@ -171,11 +171,9 @@ sealed class QsbSearchProvider(
                 }
             }
 
-            // Return the best default option if the config.xml value is invalid
-            return values()
-                .filterNot { it == AppSearch }
-                .firstOrNull { LawnQsbLayout.resolveIntent(context, it.createSearchIntent()) }
-                ?: AppSearch
+            // Never choose another installed network provider automatically.
+            // Invalid and unavailable defaults must fall back to local app search.
+            return AppSearch
         }
     }
 }
