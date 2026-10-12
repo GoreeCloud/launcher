@@ -60,6 +60,9 @@ require("response.peekBody(MAX_SUGGESTION_BODY_BYTES + 1)" in custom and
         "boundedBody.contentLength() > MAX_SUGGESTION_BODY_BYTES" in custom,
         "Custom suggestions must not read unbounded HTTP response bodies")
 history = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/HistorySearchProvider.kt")
+require('Log.w("HistorySearchProvider", "Recent search history unavailable")' in history and
+        'Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)' not in history,
+        "History failures must not log exception payloads containing search queries")
 require('.filter { !it.getValueByKey("display1").isNullOrBlank() }' in history and
         '.distinctBy { it.getValueByKey("display1")!!.trim().lowercase() }' in history and
         '.take(maxResults.coerceIn(0, 20))' in history,

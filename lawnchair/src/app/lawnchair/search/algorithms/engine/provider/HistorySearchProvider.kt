@@ -51,7 +51,7 @@ object HistorySearchProvider {
                     .take(maxResults.coerceIn(0, 20))
                     .map { SearchResult.History(data = it) }
             } catch (e: Exception) {
-                Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)
+                Log.w("HistorySearchProvider", "Recent search history unavailable")
                 emptyList()
             }
         }
