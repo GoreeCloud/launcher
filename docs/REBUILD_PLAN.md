@@ -44,3 +44,7 @@ On-device recent-search suggestions now filter blank entries and deduplicate cas
 
 ### 2026-10-12 — Offline percent-of arithmetic (development candidate)
 Typing a simple expression such as 15% of 80 into Launcher search can now evaluate directly to 12 without network requests. This is intentionally distinct from the expression engine's existing binary percent modulo operator, which remains unchanged. The implementation supports signed integer and dot-decimal operands and a trailing equals sign; it does not claim locale-specific percentages or arbitrary nested percent expressions. Source regression is included; Android compilation and interactive results require acceptance.
+
+
+### 2026-10-12 — Bounded recent-search buffer
+The on-device recent-history adapter now keeps no more than 512 recent provider rows in memory before applying its existing newest-first ordering, blank filtering, deduplication and visible result count cap. A zero/negative configured result count skips provider access. Source-policy checks cover the buffer and skip behavior; Android CI, interactive search history and real-device privacy acceptance remain separate requirements.
