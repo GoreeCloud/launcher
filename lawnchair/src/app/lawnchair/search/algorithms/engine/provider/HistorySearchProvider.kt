@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object HistorySearchProvider {
+    private const val MAX_BUFFERED_HISTORY_ROWS = 512
     /**
      * Fetches recent search keywords from the suggestion provider.
      * This is a suspend function that performs its work on the IO dispatcher.
@@ -23,12 +24,13 @@ object HistorySearchProvider {
      */
     suspend fun getRecentKeywords(context: Context, maxResults: Int): List<SearchResult.History> {
         return withContext(Dispatchers.IO) {
+            if (maxResults <= 0) return@withContext emptyList<SearchResult.History>()
             try {
                 val contentResolver: ContentResolver = context.contentResolver
                 val uri: Uri = "content://${LawnchairRecentSuggestionProvider.AUTHORITY}/suggestions".toUri()
 
                 val cursor: Cursor? = contentResolver.query(uri, null, null, null, null)
-                val recentKeywords = mutableListOf<RecentKeyword>()
+                val recentKeywords = ArrayDeque<RecentKeyword>()
 
                 cursor?.use {
                     val columnCount = it.columnCount
@@ -39,11 +41,12 @@ object HistorySearchProvider {
                             val columnValue = it.getString(i) ?: ""
                             recentKeywordData[columnName] = columnValue
                         }
-                        recentKeywords.add(RecentKeyword(recentKeywordData))
+                        if (recentKeywords.size >= MAX_BUFFERED_HISTORY_ROWS) recentKeywords.removeFirst()
+                        recentKeywords.addLast(RecentKeyword(recentKeywordData))
                     }
                 }
 
-                recentKeywords.asReversed()
+                recentKeywords.toList().asReversed()
                     // Search history is actionable UI: omit empty entries and
                     // keep only the latest occurrence of a repeated query.
                     .filter { !it.getValueByKey("display1").isNullOrBlank() }
