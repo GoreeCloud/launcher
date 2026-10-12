@@ -33,6 +33,10 @@ check("search_provider_install_action" in read("lawnchair/src/app/lawnchair/ui/p
 check("firstOrNull { LawnQsbLayout.resolveIntent" not in qsb, "No external provider auto-detection")
 check("Invalid and unavailable defaults must fall back to local app search" in qsb, "Local-first search fail-closed fallback")
 manifest=read("lawnchair/AndroidManifest.xml")
+check("goreecloud-launcher" in manifest, "GoreeCloud deep links")
+check("goreecloud-launcher://settings" in read("lawnchair/src/app/lawnchair/ui/preferences/navigation/PreferenceRoutes.kt"), "GoreeCloud preference deep-link routes")
+check("com.goreecloud.launcher.START_ACTION" in manifest, "Unique gesture intent action")
+check("com.goreecloud.launcher.APPLY_ICONS" in manifest, "Unique icon-pack intent action")
 for obsolete in ("READ_HISTORY_BOOKMARKS", "WRITE_HISTORY_BOOKMARKS"):
     check(obsolete not in manifest, "Obsolete permission: "+obsolete)
 check('derived_app_name", "Launcher"' in build, "Short installed label")

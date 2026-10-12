@@ -119,7 +119,7 @@ class LawnchairShortcutActivity : ComponentActivity() {
     }
 
     companion object {
-        const val START_ACTION = "app.lawnchair.START_ACTION"
+        const val START_ACTION = "com.goreecloud.launcher.START_ACTION"
         const val EXTRA_HANDLER = "app.lawnchair.EXTRA_HANDLER"
         const val EXTRA_RESULT_RECEIVER = "app.lawnchair.EXTRA_RESULT_RECEIVER"
         const val GESTURE_SHORTCUT_ID_PREFIX = "gesture:"

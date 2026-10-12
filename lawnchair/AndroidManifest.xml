@@ -77,7 +77,7 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data android:scheme="lawnchair" android:host="settings" android:pathPrefix="/" />
+                <data android:scheme="goreecloud-launcher" android:host="settings" android:pathPrefix="/" />
             </intent-filter>
         </activity>
 
@@ -98,7 +98,7 @@
             android:exported="true"
             android:theme="@style/Theme.Lawnchair">
             <intent-filter>
-                <action android:name="app.lawnchair.START_ACTION" />
+                <action android:name="com.goreecloud.launcher.START_ACTION" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -113,7 +113,7 @@
             android:exported="true"
             android:theme="@style/Theme.Transparent">
             <intent-filter>
-                <action android:name="app.lawnchair.APPLY_ICONS" />
+                <action android:name="com.goreecloud.launcher.APPLY_ICONS" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
