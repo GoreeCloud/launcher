@@ -44,7 +44,11 @@ object HistorySearchProvider {
                 }
 
                 recentKeywords.asReversed()
-                    .take(maxResults)
+                    // Search history is actionable UI: omit empty entries and
+                    // keep only the latest occurrence of a repeated query.
+                    .filter { !it.getValueByKey("display1").isNullOrBlank() }
+                    .distinctBy { it.getValueByKey("display1")!!.trim().lowercase() }
+                    .take(maxResults.coerceIn(0, 20))
                     .map { SearchResult.History(data = it) }
             } catch (e: Exception) {
                 Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)

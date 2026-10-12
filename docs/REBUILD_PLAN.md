@@ -36,3 +36,7 @@ The existing `main` initial commit remains untouched by this import branch. Reve
 
 ### 2026-10-12 — Offline calculator typing improvements (development candidate)
 Launcher search's local calculator now accepts mathematical multiplication (×), division (÷), Unicode minus (−), full-width plus/parentheses, and optional trailing equals while retaining the original expression in the result. An input-length guard rejects unreasonably long expressions. The new CI source-policy assertion checks the route and keeps calculator evaluation local, behind its existing enabled preference. Android compilation and interactive text-entry/clipboard usability acceptance are separate pending gates.
+
+
+### 2026-10-12 — Useful recent search history (development candidate)
+On-device recent-search suggestions now filter blank entries and deduplicate case-insensitively after newest-first ordering, keeping the latest usable instance of each query. Results are capped even if the stored maximum becomes corrupted. This does not send search history to a remote provider and does not change the user's existing history-retention controls. CI static regression and Android compilation must pass; interactive history and search-action behavior require device acceptance.

@@ -59,6 +59,11 @@ require("URI(template.replace" in custom and "uri.rawAuthority?.contains(TEMPLAT
 require("response.peekBody(MAX_SUGGESTION_BODY_BYTES + 1)" in custom and
         "boundedBody.contentLength() > MAX_SUGGESTION_BODY_BYTES" in custom,
         "Custom suggestions must not read unbounded HTTP response bodies")
+history = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/HistorySearchProvider.kt")
+require('.filter { !it.getValueByKey("display1").isNullOrBlank() }' in history and
+        '.distinctBy { it.getValueByKey("display1")!!.trim().lowercase() }' in history and
+        '.take(maxResults.coerceIn(0, 20))' in history,
+        "Recent searches must omit empty/duplicate queries and bound results")
 search = text("lawnchair/src/app/lawnchair/search/algorithms/LawnchairLocalSearchAlgorithm.kt")
 require('searchUrl.startsWith("https://", ignoreCase = true)' in search,
         "Do not create actions for invalid external destinations")
