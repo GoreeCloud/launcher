@@ -64,6 +64,9 @@ require("} catch (e: CancellationException) {" in history and
         "throw e" in history and
         history.index("} catch (e: CancellationException) {") < history.index("} catch (e: Exception) {"),
         "Recent search retrieval must propagate coroutine cancellation")
+require('currentCoroutineContext().ensureActive()' in history and
+        'if (scannedRows++ % 64 == 0)' in history,
+        "Large history scans must stop promptly when a search is cancelled")
 require('Log.w("HistorySearchProvider", "Recent search history unavailable")' in history and
         'Log.e("HistorySearchProvider", "Error during recent keyword retrieval", e)' not in history,
         "History failures must not log exception payloads containing search queries")

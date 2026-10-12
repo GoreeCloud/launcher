@@ -11,6 +11,8 @@ import app.lawnchair.search.algorithms.data.RecentKeyword
 import app.lawnchair.search.algorithms.engine.SearchResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
 object HistorySearchProvider {
@@ -40,7 +42,11 @@ object HistorySearchProvider {
 
                 cursor?.use {
                     val columnCount = it.columnCount
+                    var scannedRows = 0
                     while (it.moveToNext()) {
+                        // Providers may return thousands of rows; abandon a
+                        // cancelled search rather than scanning to the end.
+                        if (scannedRows++ % 64 == 0) currentCoroutineContext().ensureActive()
                         val recentKeywordData = mutableMapOf<String, String>()
                         for (i in 0 until columnCount) {
                             val columnName = it.getColumnName(i)
