@@ -116,6 +116,10 @@ private fun ListItem(
                         ClickableIcon(
                             painter = painterResource(id = R.drawable.ic_download),
                             onClick = onDownloadClick,
+                            contentDescription = stringResource(
+                                id = R.string.search_provider_install_action,
+                                title,
+                            ),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(end = 4.dp),
                         )

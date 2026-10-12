@@ -1,6 +1,7 @@
 package app.lawnchair.ui.preferences.components.layout
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.platform.LocalContext
+import app.lawnchair.ui.theme.LocalGlazeMetrics
 import com.android.launcher3.util.MSDLPlayerWrapper
 import com.google.android.msdl.data.model.MSDLToken
 
@@ -24,14 +26,19 @@ fun ClickableIcon(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = LocalContentColor.current,
+    contentDescription: String? = null,
 ) {
     val mMSDLPlayerWrapper = MSDLPlayerWrapper.INSTANCE.get(LocalContext.current)
+    val glazeMetrics = LocalGlazeMetrics.current
     FilledTonalIconButton(
         onClick = {
             mMSDLPlayerWrapper.playToken(MSDLToken.TAP_MEDIUM_EMPHASIS)
             onClick()
         },
-        modifier = modifier,
+        modifier = modifier.defaultMinSize(
+            minWidth = glazeMetrics.minimumTouchTarget,
+            minHeight = glazeMetrics.minimumTouchTarget,
+        ),
         enabled = enabled,
         shapes = IconButtonDefaults.shapes(),
         colors = IconButtonDefaults.filledTonalIconButtonColors(
@@ -42,7 +49,7 @@ fun ClickableIcon(
         val alpha by animateFloatAsState(targetValue = contentAlpha, label = "")
         Icon(
             painter = painter,
-            contentDescription = null,
+            contentDescription = contentDescription,
             tint = tint.copy(alpha = alpha),
         )
     }
@@ -55,6 +62,7 @@ fun ClickableIcon(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     tint: Color = LocalContentColor.current,
+    contentDescription: String? = null,
 ) {
     ClickableIcon(
         painter = rememberVectorPainter(image = imageVector),
@@ -62,5 +70,6 @@ fun ClickableIcon(
         modifier = modifier,
         enabled = enabled,
         tint = tint,
+        contentDescription = contentDescription,
     )
 }
