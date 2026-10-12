@@ -51,6 +51,14 @@ require('Log.e(TAG, "Error during suggestion retrieval", e)' not in custom and
 require("GoogleWebSearchProvider.getSearchUrl(query)" not in custom, "No fallback to Google")
 require('return ""' in custom and 'template.contains("%s")' in custom,
         "Invalid custom URLs fail closed")
+require("URI(template.replace" in custom and "uri.rawAuthority?.contains(TEMPLATE_QUERY_MARKER) == false" in custom and
+        "catch (_: URISyntaxException)" in custom and "uri.rawUserInfo == null" in custom and
+        "uri.rawFragment == null" in custom and "uri.rawQuery?.contains(TEMPLATE_QUERY_MARKER)" in custom and
+        "uri.rawPath?.contains(TEMPLATE_QUERY_MARKER)" in custom,
+        "Custom query placeholder must be in HTTPS path/query, never hostname, credentials or fragment")
+require("response.peekBody(MAX_SUGGESTION_BODY_BYTES + 1)" in custom and
+        "boundedBody.contentLength() > MAX_SUGGESTION_BODY_BYTES" in custom,
+        "Custom suggestions must not read unbounded HTTP response bodies")
 search = text("lawnchair/src/app/lawnchair/search/algorithms/LawnchairLocalSearchAlgorithm.kt")
 require('searchUrl.startsWith("https://", ignoreCase = true)' in search,
         "Do not create actions for invalid external destinations")

@@ -13,12 +13,16 @@ import kotlinx.coroutines.flow.flowOn
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
+import java.net.URI
+import java.net.URISyntaxException
 
 /**
  * A WebSearchProvider that uses user-defined URLs for searching and suggestions.
  */
 object CustomWebSearchProvider : WebSearchProvider {
     private const val TAG = "CustomWebSearchProvider"
+    private const val MAX_SUGGESTION_BODY_BYTES = 64L * 1024L
+    private const val TEMPLATE_QUERY_MARKER = "goreecloud_custom_search_query_marker"
 
     override val id: String = "custom"
 
@@ -72,9 +76,15 @@ object CustomWebSearchProvider : WebSearchProvider {
             val request = Request.Builder().url(url).build()
             okHttpClient.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
-                    val responseBody = response.body.string()
-                    // We assume a standard OpenSearch format, as it's the most common.
-                    val suggestions = parseOpenSearchResponse(responseBody)
+                    // Read at most 64 KiB plus one byte even if a server streams
+                    // unlimited data or omits its Content-Length header.
+                    val boundedBody = response.peekBody(MAX_SUGGESTION_BODY_BYTES + 1)
+                    val suggestions = if (boundedBody.contentLength() > MAX_SUGGESTION_BODY_BYTES) {
+                        Log.w(TAG, "Custom web suggestion response too large")
+                        emptyList()
+                    } else {
+                        parseOpenSearchResponse(boundedBody.string())
+                    }
                     emit(suggestions)
                 } else {
                     Log.w(TAG, "Failed to retrieve suggestions: ${response.code}")
@@ -105,8 +115,21 @@ object CustomWebSearchProvider : WebSearchProvider {
         if (!template.startsWith("https://", ignoreCase = true) || !template.contains("%s")) {
             return false
         }
-        val uri = Uri.parse(template.replace("%s", "query"))
-        return uri.scheme.equals("https", ignoreCase = true) && !uri.host.isNullOrBlank()
+        // URI validation prevents substituting typed text into a host, username,
+        // password, or fragment, where it could leak to a different authority,
+        // DNS, or diagnostics instead of becoming a search parameter.
+        val uri = try {
+            URI(template.replace("%s", TEMPLATE_QUERY_MARKER))
+        } catch (_: URISyntaxException) {
+            return false
+        }
+        return uri.scheme.equals("https", ignoreCase = true) &&
+            !uri.host.isNullOrBlank() &&
+            uri.rawAuthority?.contains(TEMPLATE_QUERY_MARKER) == false &&
+            uri.rawUserInfo == null &&
+            uri.rawFragment == null &&
+            (uri.rawPath?.contains(TEMPLATE_QUERY_MARKER) == true ||
+                uri.rawQuery?.contains(TEMPLATE_QUERY_MARKER) == true)
     }
 
     private fun parseOpenSearchResponse(responseBody: String): List<String> {
