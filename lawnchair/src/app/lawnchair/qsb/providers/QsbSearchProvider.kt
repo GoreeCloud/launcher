@@ -145,7 +145,7 @@ sealed class QsbSearchProvider(
             Kagi,
             Cromite,
             Vivaldi,
-        )
+        ).filterNot { it.sponsored } // GoreeCloud: paid/revenue-sharing providers are never eligible.
 
         /**
          * Resolve the search provider using its ID, or use Google as a fallback.

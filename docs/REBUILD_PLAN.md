@@ -5,7 +5,7 @@
 ## Working baseline
 
 - Android 16 Launcher3/Lawnchair-based HOME functionality, icon/workspace management, search and widgets enter the GoreeCloud development branch as upstream source, **not verified product features**.
-- GoreeCloud app identity and native Glaze 1.7.0 semantic entry points are the first integration increment.
+- GoreeCloud app identity and native Glaze 1.7.0 semantic entry points are the first integration increment.\n- Initial privacy defaults have now been tightened: local on-device QSB provider on a new installation, sponsored provider exclusion, removal of sponsorship surfaces and upstream release workflow isolation. This does **not** certify the broader network/permission behavior.
 - GoreeCloud policies require no ads, no sponsored placement, no silent analytics, offline-capable core launcher functions, user-controlled online search, user privacy and data control.
 - The old original GoreeCloud Launcher spec and task evidence describe an earlier GitHub history no longer present in the live target repository. Treat those assertions as historical until evaluated against the newly imported code.
 

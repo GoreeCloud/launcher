@@ -269,6 +269,7 @@ android {
         github {
             applicationId 'com.goreecloud.launcher'
             dimension "channel"
+            isDefault true
         }
 
         nightly {
@@ -279,7 +280,6 @@ android {
         play {
             applicationId "com.goreecloud.launcher.play"
             dimension "channel"
-            isDefault true
         }
 
         configureEach {

@@ -8,7 +8,7 @@ GoreeCloud Launcher is a privacy-oriented Android HOME launcher built on a pinne
 
 - Imported Lawnchair `16-dev` source pinned to a reproducible upstream commit.
 - New GoreeCloud Android package identities and short user-facing app name `Launcher`.
-- Disabled the inherited Gradle build-scan uploader and did not import executable upstream GitHub release workflows.
+- Default search is local app search; search-provider selection excludes revenue-sharing providers and inherited sponsorship UI is removed. Onboarding strings are rebranded across source locales.\n- Disabled the inherited Gradle build-scan uploader and did not import executable upstream GitHub release workflows.
 - Introduced an Android-native Glaze 1.7.0 semantic/metrics mapping in the Compose theme and settings grouping surfaces.
 - Added repository-level policy verification and an evidence-gated rebuild roadmap.
 

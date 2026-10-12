@@ -5,16 +5,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -24,7 +19,6 @@ import app.lawnchair.preferences.getAdapter
 import app.lawnchair.preferences2.preferenceManager2
 import app.lawnchair.qsb.providers.QsbSearchProvider
 import app.lawnchair.qsb.providers.QsbSearchProviderType
-import app.lawnchair.ui.ModalBottomSheetContent
 import app.lawnchair.ui.preferences.components.layout.ClickableIcon
 import app.lawnchair.ui.preferences.components.layout.DividerColumn
 import app.lawnchair.ui.preferences.components.layout.ExpandAndShrink
@@ -32,7 +26,6 @@ import app.lawnchair.ui.preferences.components.layout.PreferenceDivider
 import app.lawnchair.ui.preferences.components.layout.PreferenceGroup
 import app.lawnchair.ui.preferences.components.layout.PreferenceLayout
 import app.lawnchair.ui.preferences.components.layout.PreferenceTemplate
-import app.lawnchair.ui.util.LocalBottomSheetHandler
 import com.android.launcher3.R
 
 @Composable
@@ -40,7 +33,6 @@ fun SearchProviderPreferences(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    val bottomSheetHandler = LocalBottomSheetHandler.current
     val adapter = preferenceManager2().hotseatQsbProvider.getAdapter()
     val forceWebsiteAdapter = preferenceManager2().hotseatQsbForceWebsite.getAdapter()
 
@@ -65,13 +57,6 @@ fun SearchProviderPreferences(
                         selected = selected,
                         onClick = { adapter.onChange(newValue = qsbSearchProvider) },
                         onDownloadClick = { qsbSearchProvider.launchOnAppMarket(context = context) },
-                        onSponsorDisclaimerClick = {
-                            bottomSheetHandler.show {
-                                SponsorDisclaimer(title) {
-                                    bottomSheetHandler.hide()
-                                }
-                            }
-                        }.takeIf { qsbSearchProvider.sponsored },
                         description = if (showDownloadButton) {
                             stringResource(id = R.string.qsb_search_provider_app_required)
                         } else {
@@ -104,7 +89,6 @@ private fun ListItem(
     selected: Boolean,
     onClick: () -> Unit,
     onDownloadClick: () -> Unit,
-    onSponsorDisclaimerClick: (() -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -128,14 +112,6 @@ private fun ListItem(
             },
             endWidget = {
                 Row {
-                    if (onSponsorDisclaimerClick != null) {
-                        ClickableIcon(
-                            painter = painterResource(id = R.drawable.ic_about),
-                            onClick = onSponsorDisclaimerClick,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(end = 4.dp),
-                        )
-                    }
                     if (showDownloadButton) {
                         ClickableIcon(
                             painter = painterResource(id = R.drawable.ic_download),
@@ -200,36 +176,5 @@ private fun Options(
             },
             onClick = onWebsiteClick,
         )
-    }
-}
-
-@Composable
-private fun SponsorDisclaimer(
-    sponsor: String,
-    modifier: Modifier = Modifier,
-    onAcknowledge: () -> Unit,
-) {
-    ModalBottomSheetContent(
-        buttons = {
-            OutlinedButton(
-                onClick = onAcknowledge,
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(text = stringResource(id = android.R.string.ok))
-            }
-        },
-        modifier = modifier,
-    ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.onSurface,
-            LocalTextStyle provides MaterialTheme.typography.bodyLarge,
-        ) {
-            Text(
-                text = stringResource(id = R.string.search_provider_sponsored_description, sponsor),
-                modifier = Modifier
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 16.dp),
-            )
-        }
     }
 }

@@ -15,6 +15,11 @@ check("com.gradle.develocity" not in settings and "buildScan" not in settings, "
 for package in ["com.goreecloud.launcher", "com.goreecloud.launcher.nightly", "com.goreecloud.launcher.play"]:
     check(package in build, "Application ID " + package)
 check("applicationId 'app.lawnchair'" not in build, "Upstream package identity")
+check('isDefault true' in build.split("github {",1)[1].split("}",1)[0], "Canonical GitHub flavor is default")
+check('<string name="config_default_qsb_search_provider_id" translatable="false">app_search</string>' in read("lawnchair/res/values/config.xml"), "Local-only search default")
+qsb=read("lawnchair/src/app/lawnchair/qsb/providers/QsbSearchProvider.kt")
+check(".filterNot { it.sponsored }" in qsb, "Sponsored providers are filtered")
+check("onSponsorDisclaimerClick" not in read("lawnchair/src/app/lawnchair/ui/preferences/destinations/SearchProviderPreferences.kt"), "No sponsored presentation")
 check('derived_app_name", "Launcher"' in build, "Short installed label")
 check('const val stableVersion = "1.7.0"' in tokens, "Glaze stable target")
 check("minimumTouchTarget: Dp = 48.dp" in tokens, "Glaze touch target contract")
