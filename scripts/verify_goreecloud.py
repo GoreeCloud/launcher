@@ -39,6 +39,19 @@ check("com.goreecloud.launcher.START_ACTION" in manifest, "Unique gesture intent
 check("com.goreecloud.launcher.APPLY_ICONS" in manifest, "Unique icon-pack intent action")
 for obsolete in ("READ_HISTORY_BOOKMARKS", "WRITE_HISTORY_BOOKMARKS"):
     check(obsolete not in manifest, "Obsolete permission: "+obsolete)
+# The historical installed Development APK requested unrelated privileged user
+# data. Keep future Launcher manifests free of those permissions by default.
+# Contacts search separately requires a runtime opt-in permission grant.
+source_manifests = [ROOT / "lawnchair/AndroidManifest.xml"]
+source_manifests += list((ROOT / "lawnchair/src").rglob("AndroidManifest.xml"))
+for source_manifest in source_manifests:
+    source = source_manifest.read_text()
+    for unexpected in ("READ_SMS", "READ_CALL_LOG", "ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"):
+        check(f"android.permission.{unexpected}" not in source,
+              f"Unexpected legacy Launcher permission {unexpected} in {source_manifest.relative_to(ROOT)}")
+contacts_search = read("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/ContactsSearchProvider.kt")
+check("context.checkSelfPermission(Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED" in contacts_search,
+      "Contacts search must check user-granted runtime permission")
 check('derived_app_name", "Launcher"' in build, "Short installed label")
 check('const val stableVersion = "1.7.0"' in tokens, "Glaze stable target")
 check("minimumTouchTarget: Dp = 48.dp" in tokens, "Glaze touch target contract")

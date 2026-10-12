@@ -51,3 +51,6 @@ The on-device recent-history adapter now keeps no more than 512 recent provider 
 
 ### 2026-10-12 — Stable chronological history cursor order
 The on-device recent-search provider now receives an explicit ascending date and row-id sort, matching Android's generic suggestions URI behavior. The bounded in-memory deque retains the latest rows before the UI reverses them newest-first. Without this, a provider's unspecified SQLite row order could retain stale rows and omit recent searches. Regression source policy enforces the ordering, pending Android/device acceptance.
+
+### 2026-10-12 — Legacy sensitive permission regression guard
+Read-only testing on the connected Android 16 Development device found that its older installed Launcher variant requests SMS, call log, location and contacts permissions. On that device, SMS/call-log/location access is not granted and contacts access is user-granted. The current rebuild source has no SMS, call-log or location manifest declarations and requires runtime permission for contacts search; source-policy checks now reject reintroduction of those legacy permission declarations. This is **source evidence**, not a merged-manifest or user-device upgrade pass. We did not modify device permissions.
