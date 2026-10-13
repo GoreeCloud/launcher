@@ -260,17 +260,9 @@ public class OptionsPopupView<T extends Context & ActivityContext> extends Arrow
             Toast.makeText(launcher, message, Toast.LENGTH_SHORT).show();
             return false;
         }
-        Intent intent = new Intent(Intent.ACTION_SET_WALLPAPER)
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                .putExtra(EXTRA_WALLPAPER_OFFSET,
-                        launcher.getWorkspace().getWallpaperOffsetForCenterPage())
-                .putExtra(EXTRA_WALLPAPER_LAUNCH_SOURCE, "app_launched_launcher");
-        if (!Utilities.showStyleWallpapers(launcher)) {
-            intent.putExtra(EXTRA_WALLPAPER_FLAVOR, "wallpaper_only");
-        } else {
-            intent.putExtra(EXTRA_WALLPAPER_FLAVOR, "focus_wallpaper");
-        }
-        return launcher.startActivitySafely(v, intent, placeholderInfo(intent)) != null;
+        // The GoreeCloud catalog is local, offline, and contains no third-party sources.
+        app.lawnchair.GoreeCloudWallpapers.showPicker(launcher);
+        return true;
     }
 
     private static boolean toggleHomeScreenLock(View v) {
