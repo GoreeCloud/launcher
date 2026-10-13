@@ -114,6 +114,29 @@ for grid_name in ('5_by_5', '5_by_6'):
         check(grid.get(ATTR + 'numColumns') == '5', f"{grid_name} needs five workspace columns")
         check(grid.get(ATTR + 'numHotseatIcons') == '5', f"{grid_name} needs five hotseat icons")
 
+# GoreeCloud first-run Home and wallpaper catalog invariants.
+config = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
+check(any(v.get("name") == "config_default_enable_smartspace" and v.text == "false"
+          for v in config.findall("bool")), "Home must not seed Smartspace")
+check(any(v.get("name") == "config_default_hotseat_mode" and v.text == "disabled"
+          for v in config.findall("string")), "Dock must not show search")
+root_view = (ROOT / "lawnchair/src/app/lawnchair/LawnchairLauncher.kt").read_text()
+wallpaper_menu = (ROOT / "src/com/android/launcher3/views/OptionsPopupView.java").read_text()
+check("class GoreeCloudWallpaperView" in root_view and
+      "GoreeCloudWallpapers.showPicker" in wallpaper_menu,
+      "Wallpaper catalog must use GoreeCloud assets and picker")
+check("Intent.ACTION_SET_WALLPAPER)" not in wallpaper_menu,
+      "Launcher must not launch the external wallpaper catalog")
+check('showWallpaperCarousel = false' in root_view,
+      "Wallpaper history carousel must remain disabled")
+for folder in ("res/xml", "lawnchair/res/xml"):
+    for name in ("default_workspace_5x5.xml", "default_workspace_5x6.xml"):
+        layout = ET.parse(ROOT / folder / name).getroot()
+        check(not any(item.get(WORKSPACE_ATTR + "container") == "-100" for item in layout),
+              f"{folder}/{name} must seed no Home app shortcuts")
+        dock = [item for item in layout if item.get(WORKSPACE_ATTR + "container") == "-101"]
+        check(len(dock) == 5, f"{folder}/{name} must seed five dock icons")
+
 if failures:
     for failure in failures:
         print("FAIL:", failure)
