@@ -350,7 +350,7 @@ class LawnchairLauncher : QuickstepLauncher() {
     }
 
     override fun showDefaultOptions(x: Float, y: Float) {
-        val showWallpaperCarousel = "+carousel" in preferenceManager2.launcherPopupOrder.firstCached()
+        val showWallpaperCarousel = false // Exclude history and system wallpapers from GoreeCloud picker
 
         if (showWallpaperCarousel) {
             show<LawnchairLauncher>(
