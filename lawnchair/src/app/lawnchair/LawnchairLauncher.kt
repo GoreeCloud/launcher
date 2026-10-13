@@ -570,3 +570,107 @@ val Context.launcherNullable: LawnchairLauncher? get() = try {
 } catch (_: IllegalArgumentException) {
     null
 }
+
+/**
+ * Local GoreeCloud-only wallpaper catalog. No external picker, network data, or
+ * system wallpaper permission is needed. The current home layout is preserved.
+ */
+object GoreeCloudWallpapers {
+    private val names = arrayOf("Tide", "Aurora", "Iris")
+    private val top = intArrayOf(0xFF051C36.toInt(), 0xFF10143C.toInt(), 0xFF261442.toInt())
+    private val lower = intArrayOf(0xFF0B7C98.toInt(), 0xFF155779.toInt(), 0xFF594F8F.toInt())
+    private val accent = intArrayOf(0xFF34C3CF.toInt(), 0xFF638DFF.toInt(), 0xFFD17AD8.toInt())
+
+    private fun prefs(context: Context) =
+        context.getSharedPreferences("goreecloud_wallpapers", Context.MODE_PRIVATE)
+
+    fun selected(context: Context): Int = prefs(context).getInt("theme", 0).coerceIn(0, 2)
+
+    fun render(canvas: android.graphics.Canvas, width: Int, height: Int, choice: Int) {
+        if (width <= 0 || height <= 0) return
+        val index = choice.coerceIn(0, 2)
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        paint.shader = android.graphics.LinearGradient(
+            0f, 0f, w, h, top[index], lower[index],
+            android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawRect(0f, 0f, w, h, paint)
+        val glow = accent[index]
+        paint.shader = android.graphics.RadialGradient(
+            w * .8f, h * .38f, (w * .9f).coerceAtLeast(1f),
+            intArrayOf(
+                android.graphics.Color.argb(138, android.graphics.Color.red(glow),
+                    android.graphics.Color.green(glow), android.graphics.Color.blue(glow)),
+                android.graphics.Color.TRANSPARENT,
+            ), null, android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawCircle(w * .8f, h * .38f, w * .9f, paint)
+        paint.shader = null
+        paint.color = android.graphics.Color.argb(18, 255, 255, 255)
+        canvas.drawCircle(w * .12f, h * .82f, w * .7f, paint)
+    }
+
+    /** Picker is strictly the three bundled GoreeCloud themes. */
+    @JvmStatic
+    fun showPicker(activity: android.app.Activity) {
+        val density = activity.resources.displayMetrics.density
+        fun dp(v: Int): Int = (v * density + .5f).toInt()
+        val rows = android.widget.LinearLayout(activity).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+        }
+        val dialog = android.app.AlertDialog.Builder(activity)
+            .setTitle("GoreeCloud wallpapers")
+            .setView(rows)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        names.indices.forEach { choice ->
+            val row = android.widget.LinearLayout(activity).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(dp(4), dp(8), dp(4), dp(8))
+                isClickable = true
+                isFocusable = true
+                contentDescription = "Select GoreeCloud ${names[choice]}"
+            }
+            row.addView(
+                GoreeCloudWallpaperView(activity).apply { previewTheme = choice },
+                android.widget.LinearLayout.LayoutParams(dp(68), dp(86)),
+            )
+            row.addView(android.widget.TextView(activity).apply {
+                text = "GoreeCloud ${names[choice]}" +
+                    if (choice == selected(activity)) " ✓" else ""
+                textSize = 16f
+                setPadding(dp(12), 0, 0, 0)
+            }, android.widget.LinearLayout.LayoutParams(
+                0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f,
+            ))
+            row.setOnClickListener {
+                prefs(activity).edit().putInt("theme", choice).apply()
+                activity.findViewById<GoreeCloudWallpaperView>(
+                    com.android.launcher3.R.id.goreecloud_wallpaper,
+                )?.invalidate()
+                dialog.dismiss()
+            }
+            rows.addView(row)
+        }
+        dialog.show()
+    }
+}
+
+/** Native, offline GoreeCloud wallpaper drawn behind workspace content. */
+class GoreeCloudWallpaperView @JvmOverloads constructor(
+    context: Context,
+    attrs: android.util.AttributeSet? = null,
+) : View(context, attrs) {
+    var previewTheme: Int? = null
+
+    override fun onDraw(canvas: android.graphics.Canvas) {
+        super.onDraw(canvas)
+        GoreeCloudWallpapers.render(
+            canvas, width, height, previewTheme ?: GoreeCloudWallpapers.selected(context),
+        )
+    }
+}
