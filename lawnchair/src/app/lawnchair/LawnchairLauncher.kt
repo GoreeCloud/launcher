@@ -161,6 +161,21 @@ class LawnchairLauncher : QuickstepLauncher() {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
 
+        // One non-interactive wallpaper behind the workspace; no external sources.
+        dragLayer.addView(
+            GoreeCloudWallpaperView(this).apply {
+                tag = "goreecloud_wallpaper"
+                isClickable = false
+                isFocusable = false
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            },
+            0,
+            android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
         prefs.feedProvider.subscribeChanges(this, defaultOverlay::reconnect)
         preferenceManager2.enableFeed.get().distinctUntilChanged().onEach { enable ->
@@ -649,8 +664,8 @@ object GoreeCloudWallpapers {
             ))
             row.setOnClickListener {
                 prefs(activity).edit().putInt("theme", choice).apply()
-                activity.findViewById<GoreeCloudWallpaperView>(
-                    com.android.launcher3.R.id.goreecloud_wallpaper,
+                activity.window.decorView.findViewWithTag<GoreeCloudWallpaperView>(
+                    "goreecloud_wallpaper",
                 )?.invalidate()
                 dialog.dismiss()
             }
