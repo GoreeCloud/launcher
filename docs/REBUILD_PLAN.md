@@ -63,3 +63,9 @@ A zero or negative configured web-suggestion count now short-circuits before any
 
 ### 2026-10-12 — Cancellation-safe recent history search
 History lookup now rethrows Kotlin coroutine cancellation rather than treating it as a recoverable provider error. This prevents abandoned search jobs from silently continuing after UI cancellation. Provider exceptions still fail closed to an empty list without leaking typed queries through logs. Exact-head Android CI and device cancellation acceptance are separate verification gates.
+
+### 2026-10-13 — Local contacts search and custom-search editor correctness
+
+Optional on-device contacts search now treats user-entered SQL LIKE wildcard characters as literal name characters, clamps the visible result count and total cursor scan, bounds query length, cooperates with coroutine cancellation, and suppresses query-bearing exception details from logs. Contacts search remains opt-in and subject to Android READ_CONTACTS permission. A CI policy check uses synthetic in-memory SQLite data to exercise %, _ and ! wildcard escaping, and checks the source bounds; this is not an Android ContactsProvider instrumentation test.
+
+The custom search settings dialog resets unsaved text to the saved value when reopened and displays the persisted value rather than an abandoned draft. Source-policy checks guard the dialog implementation. Real-device keyboard, TalkBack, permissions, ContactsProvider and saved-preference behavior remain pending, as do exact-head Android CI and any release or upgrade decisions.
