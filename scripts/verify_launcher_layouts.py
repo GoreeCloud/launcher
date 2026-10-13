@@ -79,7 +79,8 @@ group = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/components/layout/Pr
 check("RoundedCornerShape(LocalGlazeMetrics.current.cardRadius)" in group,
       "Glaze card radius must shape preference group containers")
 
-# Device feedback regression: drawer defaults must not change the Home grid.
+# GoreeCloud first-run five-column workspace, dock, and app drawer defaults.
+# Existing stored preferences remain independent and are not rewritten.
 drawer_pref = (ROOT / "lawnchair/src/app/lawnchair/preferences/PreferenceManager.kt").read_text()
 drawer_pref2 = (ROOT / "lawnchair/src/app/lawnchair/preferences2/PreferenceManager2.kt").read_text()
 drawer_xml = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
@@ -89,11 +90,29 @@ drawer_icon_scale = next(
 )
 check('val drawerOpacity = FloatPref("pref_drawerOpacity", 1f, recreate)' in drawer_pref,
       "Drawer must default to fully opaque")
-check('defaultSelector = { numAllAppsColumns.coerceAtLeast(5) }' in drawer_pref2,
-      "Drawer default must support at least five columns")
+for pref_key in ('drawer_columns', 'drawer_columns_unfolded'):
+    prefix = 'key = intPreferencesKey(name = "' + pref_key + '"),'
+    section = drawer_pref2.split(prefix, 1)
+    check(len(section) == 2 and 'defaultSelector = { 5 }' in section[1].split(')', 1)[0],
+          f"{pref_key} must default to exactly five columns")
 check(drawer_icon_scale == "0.8", "Drawer icon size must default to 80 percent")
+for entry in (
+    'isPhone -> LayoutConfig(5, 5, 6)',
+    'isTablet -> LayoutConfig(5, 5, 5)',
+    'isFoldable -> LayoutConfig(5, 5, 6, 5)',
+    'isDesktop -> LayoutConfig(5, 5, 5)',
+    'else -> LayoutConfig(5, 5, 7)',
+):
+    check(entry in drawer_pref, f"Device type grid default should be five columns: {entry}")
 check('val workspaceColumns = IntPref("pref_workspaceColumns", calculatedGridSpec.workspaceColumns)' in drawer_pref,
-      "Home grid must remain independent of drawer columns")
+      "Home grid preferences must remain independent from app drawer choices")
+check('val hotseatColumns = IntPref("pref_hotseatColumns", calculatedGridSpec.hotseatColumns, reloadGrid)' in drawer_pref,
+      "Hotseat preferences must remain independent from app drawer choices")
+for grid_name in ('5_by_5', '5_by_6'):
+    grid = by_name.get(grid_name)
+    if grid is not None:
+        check(grid.get(ATTR + 'numColumns') == '5', f"{grid_name} needs five workspace columns")
+        check(grid.get(ATTR + 'numHotseatIcons') == '5', f"{grid_name} needs five hotseat icons")
 
 if failures:
     for failure in failures:

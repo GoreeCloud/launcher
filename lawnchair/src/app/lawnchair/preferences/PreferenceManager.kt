@@ -84,24 +84,22 @@ class PreferenceManager @Inject constructor(
     private val isDesktop: Boolean get() = deviceType == InvariantDeviceProfile.TYPE_DESKTOP
 
     val calculatedGridSpec = when {
-        // This grid configuration is perfect for Phone, tested against Pixel 7,
-        // alternative dense configuration can be 5x5x7
-        isPhone -> LayoutConfig(4, 4, 6)
+        // GoreeCloud's phone default: five workspace columns, five dock icons, six rows.
+        isPhone -> LayoutConfig(5, 5, 6)
 
         // This grid configuration is perfect for Tablet, tested against Pixel Tablet
-        isTablet -> LayoutConfig(6, 6, 5)
+        isTablet -> LayoutConfig(5, 5, 5)
 
         // This grid configuration is perfect for Foldable, tested against Pixel 10 Pro Fold
-        // Note: Hotseat column is 4 when folded, unfolded uses hotseatColumns + 2 or higher number
-        // defined in numExtendedHotseatIcons from device profile
-        isFoldable -> LayoutConfig(4, 4, 6, 6)
+        // Five home and dock slots in both folded and unfolded default profiles.
+        isFoldable -> LayoutConfig(5, 5, 6, 5)
 
         // This grid configuration is not tested against actual desktop devices,
         // but tablet configuration works perfectly when displayed via emulator
-        isDesktop -> LayoutConfig(6, 6, 5)
+        isDesktop -> LayoutConfig(5, 5, 5)
 
         // This grid configuration is the fallback for all devices type, this shouldn't be possible
-        else -> LayoutConfig(4, 4, 7)
+        else -> LayoutConfig(5, 5, 7)
     }
 
     val hotseatColumns = IntPref("pref_hotseatColumns", calculatedGridSpec.hotseatColumns, reloadGrid)
