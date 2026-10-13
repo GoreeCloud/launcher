@@ -187,7 +187,7 @@ object LauncherOptionsPopup {
             )
 
             "wallpaper" -> LauncherOptionMetadata(
-                label = R.string.styles_wallpaper_button_text,
+                label = R.string.goreecloud_wallpapers,
                 icon = R.drawable.ic_palette,
             )
 
