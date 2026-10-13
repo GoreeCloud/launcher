@@ -694,7 +694,8 @@ class PreferenceManager2 @Inject constructor(
 
     val drawerColumns = idpPreference(
         key = intPreferencesKey(name = "drawer_columns"),
-        defaultSelector = { numAllAppsColumns },
+        // Phone drawer defaults to five columns; larger form-factor grids retain their density.
+        defaultSelector = { numAllAppsColumns.coerceAtLeast(5) },
         onSet = { reloadHelper.reloadGrid() },
     )
 
