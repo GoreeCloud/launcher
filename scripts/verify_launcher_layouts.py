@@ -79,6 +79,22 @@ group = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/components/layout/Pr
 check("RoundedCornerShape(LocalGlazeMetrics.current.cardRadius)" in group,
       "Glaze card radius must shape preference group containers")
 
+# Device feedback regression: drawer defaults must not change the Home grid.
+drawer_pref = (ROOT / "lawnchair/src/app/lawnchair/preferences/PreferenceManager.kt").read_text()
+drawer_pref2 = (ROOT / "lawnchair/src/app/lawnchair/preferences2/PreferenceManager2.kt").read_text()
+drawer_xml = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
+drawer_icon_scale = next(
+    (item.text for item in drawer_xml.findall("item")
+     if item.get("name") == "config_default_drawer_icon_size_factor"), None
+)
+check('val drawerOpacity = FloatPref("pref_drawerOpacity", 1f, recreate)' in drawer_pref,
+      "Drawer must default to fully opaque")
+check('defaultSelector = { numAllAppsColumns.coerceAtLeast(5) }' in drawer_pref2,
+      "Drawer default must support at least five columns")
+check(drawer_icon_scale == "0.8", "Drawer icon size must default to 80 percent")
+check('val workspaceColumns = IntPref("pref_workspaceColumns", calculatedGridSpec.workspaceColumns)' in drawer_pref,
+      "Home grid must remain independent of drawer columns")
+
 if failures:
     for failure in failures:
         print("FAIL:", failure)
