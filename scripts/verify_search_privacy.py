@@ -98,6 +98,11 @@ require("CustomWebSearchProvider.isValidHttpsTemplate(it)" in popup,
         "Custom URL editor validates HTTPS")
 require("enabled = !isErrorCheck(value.text)" in popup,
         "Invalid custom URLs cannot be saved")
+require("value = TextFieldValue(initialValue)" in popup and
+        popup.index("value = TextFieldValue(initialValue)") > popup.index("onClick = {", popup.index("PreferenceTemplate(")),
+        "Reopening a custom search dialog must discard unsaved edits")
+require("description = if (initialValue.isNotEmpty())" in popup,
+        "Custom search setting summary must reflect saved configuration")
 drawer = text("lawnchair/src/app/lawnchair/ui/preferences/components/search/DrawerSearchPreferences.kt")
 require("goreecloud_web_suggestions_privacy_description" in drawer,
         "Explicit search-transmission disclosure")
