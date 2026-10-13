@@ -21,9 +21,26 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: ./gradlew --no-daemon --console=plain assembleLawnWithQuickstepGithubDebug
       - run: python3 scripts/verify_merged_permissions.py
+      - name: Verify QA APK provenance and certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' -t apks < <(find build/outputs/apk -type f -name '*.apk' -print0)
+          test "${#apks[@]}" -eq 1
+          apk="${apks[0]}"
+          bt="${ANDROID_HOME}/build-tools/37.0.0"
+          "${bt}/aapt" dump badging "${apk}" | grep -F "name='com.goreecloud.launcher.debug'" > launcher-qa-package.txt
+          "${bt}/apksigner" verify --verbose --print-certs "${apk}" > launcher-qa-signature.txt
+          sha256sum "${apk}" > launcher-qa-sha256.txt
+          printf '%s\n' "${GITHUB_SHA}" > launcher-qa-source.txt
       - uses: actions/upload-artifact@v4
         with:
           name: launcher-debug-qa
-          path: build/outputs/apk/**/*.apk
+          path: |
+            build/outputs/apk/**/*.apk
+            launcher-qa-package.txt
+            launcher-qa-signature.txt
+            launcher-qa-sha256.txt
+            launcher-qa-source.txt
           if-no-files-found: error
           retention-days: 14
