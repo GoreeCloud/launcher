@@ -23,6 +23,7 @@
 
     -->
     <string name="preview_label">Preview</string>
+    <string name="goreecloud_wallpapers">GoreeCloud wallpapers</string>
 
     <string name="action_create">Create</string>
     <string name="action_backup">Backup</string>
