@@ -155,7 +155,7 @@ fun SearchPopupPreference(
         contentModifier = Modifier
             .fillMaxHeight(),
         title = { Text(text = title) },
-        description = if (value.text.isNotEmpty()) {
+        description = if (initialValue.isNotEmpty()) {
             { Text(initialValue) }
         } else {
             null
