@@ -12,8 +12,10 @@ import app.lawnchair.search.algorithms.data.ContactInfo
 import app.lawnchair.search.algorithms.engine.SearchPermission
 import app.lawnchair.search.algorithms.engine.SearchProvider
 import app.lawnchair.search.algorithms.engine.SearchResult
-import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
@@ -54,12 +56,13 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
 
     private suspend fun findContactsByName(context: Context, query: String, max: Int): List<ContactInfo> {
         try {
-            if (query.isEmpty() || query.isBlank() || max <= 0) return emptyList()
-            val exceptionHandler = CoroutineExceptionHandler { _, e ->
-                Log.e("ContactSearch", "Something went wrong ", e)
+            val normalizedQuery = query.trim()
+            val safeMax = max.coerceIn(0, MAX_VISIBLE_CONTACTS)
+            if (normalizedQuery.isBlank() || normalizedQuery.length > MAX_QUERY_LENGTH || safeMax == 0) {
+                return emptyList()
             }
-            return withContext(Dispatchers.IO + exceptionHandler) {
-                val contactMap = HashMap<String, ContactInfo>()
+            return withContext(Dispatchers.IO) {
+                val contactMap = LinkedHashMap<String, ContactInfo>()
 
                 val projection = arrayOf(
                     ContactsContract.Data._ID,
@@ -72,8 +75,9 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
                     ContactsContract.Data.PHOTO_URI,
                 )
 
-                val selection = ContactsContract.Data.DISPLAY_NAME + " LIKE ?"
-                val selectionArgs = arrayOf("%$query%")
+                // Treat SQL wildcard characters as literal search text.
+                val selection = ContactsContract.Data.DISPLAY_NAME + " LIKE ? ESCAPE '!'"
+                val selectionArgs = arrayOf("%${escapeLikePattern(normalizedQuery)}%")
 
                 context.contentResolver.query(
                     ContactsContract.Data.CONTENT_URI,
@@ -82,7 +86,9 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
                     selectionArgs,
                     null,
                 )?.use {
-                    while (it.moveToNext() && contactMap.size < max) {
+                    var scannedRows = 0
+                    while (it.moveToNext() && contactMap.size < safeMax && scannedRows++ < MAX_SCANNED_ROWS) {
+                        if (scannedRows % 32 == 0) currentCoroutineContext().ensureActive()
                         val contactIdIndex = it.getColumnIndex(ContactsContract.Data.CONTACT_ID)
                         val displayNameIndex = it.getColumnIndex(ContactsContract.Data.DISPLAY_NAME)
                         val data1Index = it.getColumnIndex(ContactsContract.Data.DATA1)
@@ -128,11 +134,21 @@ object ContactsSearchProvider : SearchProvider, SearchPermission {
                 }
                 contactMap.values.toList()
             }
-        } catch (e: Exception) {
-            Log.e("ContactSearch", "Something went wrong ", e)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Do not log private contact data or potentially query-bearing errors.
+            Log.w("ContactSearch", "Local contacts unavailable")
             return emptyList()
         }
     }
+
+    private const val MAX_VISIBLE_CONTACTS = 10
+    private const val MAX_QUERY_LENGTH = 128
+    private const val MAX_SCANNED_ROWS = 512
+
+    internal fun escapeLikePattern(query: String): String =
+        query.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 
     private const val CONTACT_ACCOUNT_ID = "contact.id"
     private const val CONTACT_ACCOUNT_MIME = "contact.mime"
