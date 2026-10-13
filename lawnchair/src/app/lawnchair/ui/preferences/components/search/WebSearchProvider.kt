@@ -149,6 +149,7 @@ fun SearchPopupPreference(
     PreferenceTemplate(
         modifier = modifier,
         onClick = {
+            value = TextFieldValue(initialValue)
             showPopup = true
         },
         contentModifier = Modifier
