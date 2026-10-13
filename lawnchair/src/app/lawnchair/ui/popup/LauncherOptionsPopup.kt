@@ -66,7 +66,7 @@ object LauncherOptionsPopup {
             .launcherPopupOrder.firstCached().toLauncherOptions()
 
         val wallpaperResString =
-            if (Utilities.existsStyleWallpapers(launcher)) R.string.styles_wallpaper_button_text else R.string.wallpapers
+            R.string.goreecloud_wallpapers
         val wallpaperResDrawable =
             if (Utilities.existsStyleWallpapers(launcher)) R.drawable.ic_palette else R.drawable.ic_wallpaper
 
