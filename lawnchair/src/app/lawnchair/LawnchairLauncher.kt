@@ -438,10 +438,15 @@ class LawnchairLauncher : QuickstepLauncher() {
                 imageTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
             }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
             tile.addView(android.widget.TextView(this).apply {
-                text = label
-                textSize = 12f
-                gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                text = when (label) {
+                    "Wallpapers & themes" -> "Wallpapers &\nthemes"
+                    "Home screen settings" -> "Home screen\nsettings"
+                    else -> label
+                }
+                textSize = 11f
+                gravity = android.view.Gravity.CENTER
                 maxLines = 2
+                includeFontPadding = false
                 setTextColor(0xFFFFFFFF.toInt())
             }, android.widget.LinearLayout.LayoutParams(-1, dp(43)))
             bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(80), 1f))
@@ -500,9 +505,14 @@ class LawnchairLauncher : QuickstepLauncher() {
         parent.getLocationOnScreen(origin)
         val dpScale = resources.displayMetrics.density
         fun dp(value: Int) = (value * dpScale + .5f).toInt()
-        val stripHeight = dp(56)
-        val gap = dp(10)
-        val preferredTop = pageBounds.bottom + gap
+        // Compact Home/dot/+ row stays visibly below the bordered page.
+        val stripHeight = dp(38)
+        val gap = dp(12)
+        val dockBounds = android.graphics.Rect()
+        val frameBottom = if (hotseat.getGlobalVisibleRect(dockBounds)) {
+            maxOf(pageBounds.bottom, dockBounds.bottom + dp(12))
+        } else pageBounds.bottom
+        val preferredTop = frameBottom + gap
         val safeTop = actionBounds.top - stripHeight - gap
         val screenTop = minOf(preferredTop, safeTop).coerceAtLeast(origin[1] + dp(48))
         (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { lp ->
