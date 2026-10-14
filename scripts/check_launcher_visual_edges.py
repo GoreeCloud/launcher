@@ -23,6 +23,14 @@ if added_hierarchy.exists():
     added_xml = added_hierarchy.read_text(errors="replace").lower()
     if "preview home page 2" not in added_xml and "default home page 2" not in added_xml:
         raise SystemExit("Adding a Home page did not expose its page-navigation indicator")
+    from xml.etree import ElementTree
+    nodes = ElementTree.parse(added_hierarchy).getroot().iter("node")
+    first_home_selected = any(
+        n.get("content-desc") == "Default Home page 1" and n.get("selected") == "true"
+        for n in nodes
+    )
+    if not first_home_selected:
+        raise SystemExit("Adding a page shifted the selected preview off-screen")
 measurements = {}
 for state in ("home", "edit", "edit-added"):
     image = Image.open(out / (state + ".png")).convert("RGB")
