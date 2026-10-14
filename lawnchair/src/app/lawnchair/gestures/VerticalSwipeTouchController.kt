@@ -2,6 +2,8 @@ package app.lawnchair.gestures
 
 import android.graphics.PointF
 import android.view.MotionEvent
+import android.view.View
+import com.android.launcher3.CellLayout
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.LawnchairLauncher
 import app.lawnchair.gestures.config.GestureHandlerConfig
@@ -92,11 +94,32 @@ class VerticalSwipeTouchController(
             launcher.dragLayer.mapCoordInSelfToDescendant(it, coord)
             it.isTouchOnIconWithSwipeGesture(coord[0], coord[1], true)
         } ?: false
-        if (isIconSwipe) {
+        if (isIconSwipe || isTouchOnHomeItem(ev)) {
             return false
         }
         return AbstractFloatingView.getTopOpenView(launcher) == null &&
             launcher.isInState(LauncherState.NORMAL)
+    }
+
+    /** Search swipes start only on empty workspace, not on icons or widgets. */
+    private fun isTouchOnHomeItem(ev: MotionEvent): Boolean {
+        val workspace = launcher.workspace ?: return false
+        val page = workspace.getChildAt(workspace.currentPage) as? CellLayout ?: return false
+        val items = page.shortcutsAndWidgets
+        val point = floatArrayOf(ev.x, ev.y)
+        launcher.dragLayer.mapCoordInSelfToDescendant(workspace, point)
+        val x = point[0] + workspace.scrollX - page.left - items.left
+        val y = point[1] + workspace.scrollY - page.top - items.top
+        for (index in 0 until items.childCount) {
+            val child = items.getChildAt(index)
+            if (child.visibility == View.VISIBLE &&
+                x >= child.left && x < child.right &&
+                y >= child.top && y < child.bottom
+            ) {
+                return true
+            }
+        }
+        return false
     }
 
     override fun onDragStart(start: Boolean) {

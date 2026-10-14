@@ -36,6 +36,7 @@ check("action != GestureHandlerConfig.OpenNotifications" in gesture,
       "Native notifications must not be intercepted")
 check("(enabled || action != GestureHandlerConfig.OpenAppSearch)" in gesture,
       "Disabled search must not intercept default swipe")
+check("isTouchOnHomeItem(ev)" in gesture, "Interactive Home icons and widgets must retain gestures")
 check("launcher.isInState(LauncherState.NORMAL)" in gesture,
       "Home gesture must not start from unrelated launcher states")
 check("it.isTouchOnIconWithSwipeGesture" in gesture,
