@@ -158,6 +158,10 @@ check("if (grid.isVerticalBarLayout())" in hotseat and
       "Vertical hotseat must not inherit the phone dock capsule")
 check("background.setStroke(strokeWidth" in hotseat,
       "Dock capsule must retain the subtle Glaze highlight edge")
+check("bgColor instanceof ColorOption.Default" in hotseat,
+      "Only the inherited default color must use the Glaze fallback; honor transparent custom colors")
+check("Color.alpha(baseColor) == 0" not in hotseat,
+      "Never override an explicitly selected transparent custom dock color")
 
 if failures:
     for failure in failures:

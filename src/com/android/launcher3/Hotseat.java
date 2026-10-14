@@ -65,6 +65,7 @@ import app.lawnchair.hotseat.LawnchairHotseat;
 import app.lawnchair.preferences.PreferenceManager;
 import app.lawnchair.preferences2.PreferenceCacheExtensionsKt;
 import app.lawnchair.preferences2.PreferenceManager2;
+import app.lawnchair.theme.color.ColorOption;
 
 /**
  * View class that represents the bottom dock of the home screen.
@@ -215,7 +216,7 @@ public class Hotseat extends FrameLayout implements Insettable {
         var baseColor = bgColor.getColorPreferenceEntry().getLightColor().invoke(getContext());
         // Older installations can persist Lawnchair's transparent "default" sentinel.
         // Keep a legible pale dock until the owner explicitly selects a custom color.
-        if (Color.alpha(baseColor) == 0) {
+        if (bgColor instanceof ColorOption.Default) {
             baseColor = 0xFFF1F7FF;
         }
         var finalColor = Color.argb(alphaValue, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor));
