@@ -1,13 +1,11 @@
 package app.lawnchair
 
-import android.app.AlertDialog
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.LauncherApps
 import android.os.Process
-import android.provider.Settings
 import android.widget.Toast
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.model.data.AppInfo
@@ -23,28 +21,11 @@ object GoreeCloudHomeOnboarding {
 
     fun showIfNeeded(launcher: LawnchairLauncher) {
         val prefs = launcher.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
-        val mode = prefs.getInt(MODE, -1)
-        if (mode < 0) {
-            AlertDialog.Builder(launcher)
-                .setTitle("Choose your Home screen")
-                .setMessage("Select the initial apps for Home. Your five-app dock remains separate.")
-                .setItems(arrayOf("No Apps", "10 Recently Used Apps", "10 Most Used Apps")) { _, selected ->
-                    prefs.edit().putInt(MODE, selected).putBoolean(COMPLETED, selected == 0).apply()
-                    if (selected != 0) {
-                        if (hasUsageAccess(launcher)) {
-                            populate(launcher, selected)
-                        } else {
-                            AlertDialog.Builder(launcher)
-                                .setTitle("Allow optional usage access")
-                                .setMessage("Android usage access is required to rank apps. This ranking stays on your device. If you decline, Home stays empty.")
-                                .setNegativeButton("Not now", null)
-                                .setPositiveButton("Android settings") { _, _ ->
-                                    launcher.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                                }.show()
-                        }
-                    }
-                }.setCancelable(false).show()
-        } else if (mode != 0 && !prefs.getBoolean(COMPLETED, false) && hasUsageAccess(launcher)) {
+        // The full-screen setup is launched by LawnchairLauncher before this
+        // runs. Never create blocking first-run dialogs from Home.
+        if (!prefs.getBoolean("onboarding_finished", false)) return
+        val mode = prefs.getInt(MODE, 0)
+        if (mode != 0 && !prefs.getBoolean(COMPLETED, false) && hasUsageAccess(launcher)) {
             populate(launcher, mode)
         }
     }

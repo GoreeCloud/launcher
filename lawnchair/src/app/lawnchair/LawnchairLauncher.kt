@@ -96,6 +96,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 class LawnchairLauncher : QuickstepLauncher() {
+    private var goreecloudSetupLaunching = false
     private val defaultOverlay by unsafeLazy { OverlayCallbackImpl(this) }
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
@@ -487,7 +488,18 @@ class LawnchairLauncher : QuickstepLauncher() {
         restartIfPending()
         refreshPredictionContainersFromModel()
         dragLayer.post {
-            if (!isFinishing && !isDestroyed) GoreeCloudHomeOnboarding.showIfNeeded(this)
+            if (!isFinishing && !isDestroyed) {
+                if (!getSharedPreferences("goreecloud_home_onboarding", Context.MODE_PRIVATE)
+                        .getBoolean("onboarding_finished", false)) {
+                    if (!goreecloudSetupLaunching) {
+                        goreecloudSetupLaunching = true
+                        startActivity(Intent(this, GoreeCloudSetupActivity::class.java))
+                    }
+                } else {
+                    goreecloudSetupLaunching = false
+                    GoreeCloudHomeOnboarding.showIfNeeded(this)
+                }
+            }
         }
 
         dragLayer.viewTreeObserver.addOnDrawListener(

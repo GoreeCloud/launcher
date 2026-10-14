@@ -171,8 +171,9 @@ for folder in ("res/xml", "lawnchair/res/xml"):
     workspace = ET.parse(ROOT / folder / "default_workspace_5x5.xml").getroot()
     check(len(workspace.findall("resolve")) == 5 and not workspace.findall("favorite"), "5x5 fallback must contain only dock")
 setup = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt").read_text()
+setup_ui = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt").read_text()
 for label in ("No Apps", "10 Recently Used Apps", "10 Most Used Apps"):
-    check(label in setup, "Missing onboarding choice: " + label)
+    check(label in setup_ui, "Missing onboarding choice: " + label)
 check("hasUsageAccess(launcher)" in setup, "Usage based selection must honor user permission")
 check("reserved.add(position)" in setup, "Onboarding must reserve each placement")
 dashboard = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt").read_text()
