@@ -82,6 +82,7 @@ assert "InsettableFrameLayout.LayoutParams" in launcher
 assert "ignoreInsets = true" in launcher
 assert "getEditModeWorkspaceScaleAndTranslation(launcher).scale" in read("src/com/android/launcher3/states/EditModeState.kt")
 assert "-offset * 0.55f" in read("src/com/android/launcher3/states/EditModeState.kt")
+assert "if (widthDp < 600f) scale = min(scale, 0.68f)" in read("src/com/android/launcher3/states/EditModeState.kt")
 page_strip = read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "holder.itemView.isSelected = isCurrent" in page_strip
 assert "if (ws.childCount <= before)" in page_strip

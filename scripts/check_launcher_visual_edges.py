@@ -141,6 +141,42 @@ for state in ("home", "edit", "edit-added"):
         icon_span = max(ink_rows) - min(ink_rows) + 1 if ink_rows else 0
         measurements[state]["status_glyph_span_px"] = icon_span
         measurements[state]["status_possible_clipping"] = icon_span < h * .009
+# A rendered phone preview should occupy roughly two thirds of the width,
+# leaving room for neighboring page previews as in the owner's mockup.
+# Sample a content-free middle row and find bright vertical Glaze frame edges.
+preview_img = Image.open(out / "edit-added.png").convert("RGB")
+preview_width, preview_height = preview_img.size
+midline = int(preview_height * .42)
+glow_pixels = [
+    x for x in range(int(preview_width * .05), int(preview_width * .96))
+    if all(v > limit for v, limit in
+           zip(preview_img.getpixel((x, midline)), (155, 178, 188)))
+]
+groups = []
+for x in glow_pixels:
+    if groups and x == groups[-1][-1] + 1:
+        groups[-1].append(x)
+    else:
+        groups.append([x])
+edges = [sum(group) / len(group) for group in groups if len(group) >= 2]
+left_edges = [x for x in edges if x < preview_width / 2]
+right_edges = [x for x in edges if x > preview_width / 2]
+if not left_edges or not right_edges:
+    raise SystemExit("Cannot locate live Edit Home page's glowing frame edges")
+left_edge = max(left_edges)
+right_edge = min(right_edges)
+preview_fraction = (right_edge - left_edge) / preview_width
+measurements["editor_preview"] = {
+    "left_px": round(left_edge, 1),
+    "right_px": round(right_edge, 1),
+    "screen_fraction": round(preview_fraction, 4),
+}
+if not .58 <= preview_fraction <= .73:
+    raise SystemExit(
+        f"Edit Home page preview is not mockup-sized: {preview_fraction:.3f} "
+        "(expected 58%-73% of available width)"
+    )
+
 home_img = Image.open(out / "home.png").convert("RGB")
 edit_img = Image.open(out / "edit.png").convert("RGB")
 if home_img.size != edit_img.size:
