@@ -304,23 +304,6 @@ class EditModePageStrip @JvmOverloads constructor(
                 resources.getString(R.string.edit_mode_page_strip_page, position + 1)
             }
             val ws = workspace
-            val pageStarts = ws?.reorderablePageGroupStarts
-            val start = if (pageStarts != null && position < pageStarts.size())
-                pageStarts[position] else -1
-            val page = if (start >= 0) ws?.getChildAt(start) else null
-            if (page != null && page.width > 0 && page.height > 0) {
-                val bitmap = Bitmap.createBitmap(124, 78, Bitmap.Config.ARGB_8888)
-                Canvas(bitmap).apply {
-                    drawColor(0xFFE8F1FA.toInt())
-                    save()
-                    scale(124f / page.width, 78f / page.height)
-                    page.draw(this)
-                    restore()
-                }
-                holder.preview.setImageBitmap(bitmap)
-            } else {
-                holder.preview.setImageDrawable(null)
-            }
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {
                 resources.getString(R.string.edit_mode_page_strip_home_selected)
