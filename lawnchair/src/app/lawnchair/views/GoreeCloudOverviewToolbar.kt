@@ -44,9 +44,11 @@ object GoreeCloudOverviewToolbar {
         host.stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
                 row.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+                GoreeCloudOverviewFrames.apply(host, toState == LauncherState.EDIT_MODE)
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
                 row.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+                GoreeCloudOverviewFrames.apply(host, finalState == LauncherState.EDIT_MODE)
             }
         })
     }
