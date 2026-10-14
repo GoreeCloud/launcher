@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.LauncherApps
 import android.os.Process
 import android.widget.Toast
+import app.lawnchair.preferences.PreferenceManager
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.model.data.AppInfo
 
@@ -57,11 +58,12 @@ object GoreeCloudHomeOnboarding {
             else -> emptyList()
         }.take(10)
 
+        val columns = PreferenceManager.getInstance(launcher).workspaceColumns.get().coerceIn(4, 6)
         var count = 0
         val reserved = mutableSetOf<Int>()
         for (activity in ranked) {
-            val position = (0 until 10).firstOrNull {
-                it !in reserved && !screen.isOccupied(it % 5, it / 5)
+            val position = (0 until columns * 3).firstOrNull {
+                it !in reserved && !screen.isOccupied(it % columns, it / columns)
             } ?: break
             reserved.add(position)
             val info = AppInfo(launcher, activity, Process.myUserHandle())
@@ -70,8 +72,8 @@ object GoreeCloudHomeOnboarding {
                 info.makeWorkspaceItem(launcher),
                 LauncherSettings.Favorites.CONTAINER_DESKTOP,
                 0,
-                position % 5,
-                position / 5,
+                position % columns,
+                position / columns,
             )
             count++
         }

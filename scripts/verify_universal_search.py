@@ -43,10 +43,23 @@ check("it.isTouchOnIconWithSwipeGesture" in gesture,
       "Per-icon swipe gestures must keep priority")
 check("if (!prefs.universalSearchEnabled.firstCached()) return" in handler,
       "Disabled search must not trigger")
-check("setDirectFocus(openKeyboard)" in handler and
-      "editText?.showKeyboard()" in handler and
-      "launcher.animateToAllApps()" in handler,
-      "Universal Search must focus/open search with configurable keyboard")
+overlay = file("lawnchair/src/app/lawnchair/GoreeCloudUniversalSearchActivity.kt")
+manifest = file("lawnchair/AndroidManifest.xml")
+check("GoreeCloudUniversalSearchActivity::class.java" in handler and
+      "animateToAllApps" not in handler,
+      "Default swipe must open Glaze overlay, not the app drawer")
+check(all(tab in overlay for tab in ('"FREQUENT"', '"RECENT"', '"NEW/UPDATED"')),
+      "Pull-down panel must provide the three requested tabs")
+check("SOFT_INPUT_ADJUST_RESIZE" in overlay and "showSoftInput(input" in overlay and
+      "universalSearchKeyboardOnOpen.firstCached()" in overlay,
+      "Pull-down keyboard preference must control keyboard focus")
+check("queryAndAggregateUsageStats" in overlay and "hasUsageAccess()" in overlay,
+      "Recent/frequent rankings must require authorized usage data")
+check("prefs.hiddenApps.firstCached()" in overlay and "hiddenAppsInSearch.firstCached()" in overlay,
+      "Overlay must enforce existing hidden-app search preferences")
+check('android:name="app.lawnchair.GoreeCloudUniversalSearchActivity"' in manifest and
+      'android:exported="false"' in manifest,
+      "Overlay must be declared as non-exported Android activity")
 check("prefs2.universalSearchEnabled.getAdapter()" in drawer and
       "prefs2.universalSearchKeyboardOnOpen.getAdapter()" in drawer,
       "Settings must expose both Universal Search controls")

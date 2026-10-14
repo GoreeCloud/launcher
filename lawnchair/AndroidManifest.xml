@@ -56,6 +56,12 @@
 
     <application>
         <activity
+            android:name="app.lawnchair.GoreeCloudUniversalSearchActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:windowSoftInputMode="adjustResize"
+            android:excludeFromRecents="true" />
+        <activity
             android:name="app.lawnchair.GoreeCloudSetupActivity"
             android:exported="false"
             android:theme="@android:style/Theme.Material.Light.NoActionBar"
