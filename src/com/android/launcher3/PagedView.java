@@ -90,7 +90,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
     private static final float MAX_SCROLL_PROGRESS = 1.0f;
     
     private final PreferenceManager prefs = PreferenceManager.getInstance(getContext());
-    private final PreferenceManager2 prefs2 = PreferenceManager2.getInstance(getContext());
 
     private boolean mFreeScroll = false;
 
@@ -139,7 +138,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
     private int mWrapToPage = INVALID_PAGE;
     private int mSavedMinScroll;
     private int mSavedMaxScroll;
-    private boolean mCachedEnableFeed;
 
     private boolean isWrapScrolling() {
         return mWrapToPage != INVALID_PAGE;
@@ -1337,7 +1335,6 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
             mTotalMotion = 0;
             mAllowEasyFling = false;
             mActivePointerId = ev.getPointerId(0);
-            mCachedEnableFeed = PreferenceCacheExtensionsKt.firstCached(prefs2.getEnableFeed());
             if (mIsBeingDragged) {
                 pageBeginTransition();
             }
@@ -1390,14 +1387,14 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
 
                 if (delta != 0) {
                     if (prefs.getInfiniteScrolling().get() && !mFreeScroll && getChildCount() > 1) {
-                        boolean enableFeed = mCachedEnableFeed;
+                        
                         float pulledTo = oldScroll + delta;
                         if (!isWrapScrolling() && mCurrentPage == getChildCount() - 1) {
                             boolean pastEnd = mIsRtl ? pulledTo < mMinScroll : pulledTo > mMaxScroll;
                             if (pastEnd) {
                                 startWrapDrag(0);
                             }
-                        } else if (!isWrapScrolling() && mCurrentPage == 0 && !enableFeed) {
+                        } else if (!isWrapScrolling() && mCurrentPage == 0) {
                             boolean pastStart = mIsRtl ? pulledTo > mMaxScroll : pulledTo < mMinScroll;
                             if (pastStart) {
                                 startWrapDrag(getChildCount() - 1);
@@ -1485,7 +1482,7 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                     // move to the left and fling to the right will register as a fling to the right.
 
                     boolean infiniteScroll = prefs.getInfiniteScrolling().get();
-                    boolean enableFeed = mCachedEnableFeed;
+                    
 
                     if (((isSignificantMove && !isDeltaLeft && !isFling) ||
                             (isFling && !isVelocityLeft)) && mCurrentPage > 0) {
@@ -1514,7 +1511,7 @@ public abstract class PagedView<T extends View & PageIndicator> extends ViewGrou
                             runOnPageScrollsInitialized(
                                     () -> snapToPageWithVelocity(finalPage, velocity));
                         }
-                    } else if (mCurrentPage == 0 && infiniteScroll && !enableFeed) {
+                    } else if (mCurrentPage == 0 && infiniteScroll) {
                         finalPage = returnToOriginalPage ? mCurrentPage : getChildCount() - 1;
                         if (!returnToOriginalPage) {
                             runOnPageScrollsInitialized(
