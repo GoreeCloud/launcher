@@ -191,7 +191,8 @@ class EditModePageStrip @JvmOverloads constructor(
             Toast.makeText(context, "Unable to add Home screen", Toast.LENGTH_SHORT).show()
             return
         }
-        ws.snapToPage(ws.childCount - 1)
+        // Adding an empty page should reveal it as an adjacent preview, not
+        // change the selected page before its layout and scroll bounds settle.
         refreshItems()
         post { refreshItems() }
     }
