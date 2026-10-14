@@ -18,11 +18,13 @@ cat > "$out/goreecloud_home_onboarding.xml" <<'EOF'
 EOF
 adb push "$out/goreecloud_home_onboarding.xml" /data/local/tmp/goreecloud_home_onboarding.xml
 adb shell chmod 644 /data/local/tmp/goreecloud_home_onboarding.xml
-adb shell run-as "$pkg" sh -c 'mkdir -p shared_prefs'
-adb shell run-as "$pkg" sh -c 'cat /data/local/tmp/goreecloud_home_onboarding.xml > shared_prefs/goreecloud_home_onboarding.xml'
+adb shell run-as "$pkg" mkdir -p shared_prefs
+adb shell run-as "$pkg" cp /data/local/tmp/goreecloud_home_onboarding.xml shared_prefs/goreecloud_home_onboarding.xml
 adb shell am force-stop "$pkg" || true
 adb shell am start -W -n "$pkg/app.lawnchair.LawnchairLauncher" > "$out/home-launch.txt"
 sleep 12
+# Refuse a false-green screenshot if Android terminated the Launcher process.
+adb shell pidof "$pkg" > "$out/launcher-pid-home.txt"
 adb shell screencap -p /sdcard/goreecloud-home-qa.png
 adb pull /sdcard/goreecloud-home-qa.png "$out/home.png"
 # Long-press intentionally targets the empty center of the synthetic Home page.

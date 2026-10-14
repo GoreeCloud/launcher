@@ -3,7 +3,7 @@
 import json
 import sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageChops
 
 out = Path(sys.argv[1])
 measurements = {}
@@ -30,5 +30,17 @@ for state in ("home", "edit"):
         "navigation_distance": distance(lower, navigation),
         "warning": "Color-distance measurements are diagnostic; inspect the images visually."
     }
+home_img = Image.open(out / "home.png").convert("RGB")
+edit_img = Image.open(out / "edit.png").convert("RGB")
+if home_img.size != edit_img.size:
+    raise SystemExit("Home and edit captures have different dimensions")
+delta = ImageChops.difference(home_img, edit_img).convert("L").resize((108, 240))
+changed_fraction = round(sum(v > 32 for v in delta.getdata()) / (108 * 240), 4)
+measurements["interaction"] = {
+    "changed_fraction": changed_fraction,
+    "note": "A difference alone does not prove correct edit-mode rendering."
+}
 (out / "edge-metrics.json").write_text(json.dumps(measurements, indent=2) + "\n")
 print(json.dumps(measurements, indent=2))
+if changed_fraction < 0.03:
+    raise SystemExit("Home and edit screenshots too similar; edit-mode capture unverified")
