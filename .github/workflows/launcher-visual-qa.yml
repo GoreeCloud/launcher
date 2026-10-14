@@ -1,7 +1,7 @@
 name: Launcher Visual QA
 on:
   push:
-    branches: [feat/launcher-fullscreen-search-onboarding-20261014]
+    branches: [feat/launcher-fullscreen-search-onboarding-20261014, feat/launcher-edit-home-mockup-20261014]
     paths:
       - .github/workflows/launcher-visual-qa.yml
       - scripts/capture_launcher_visual_qa.sh
