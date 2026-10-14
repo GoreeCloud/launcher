@@ -100,7 +100,7 @@ fun PreferencesDashboard(
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
-    SyncLiveInformation()
+    // The settings dashboard stays local and free of inherited announcement feeds.
     val prefs = preferenceManager()
     val prefs2 = preferenceManager2()
 
@@ -117,20 +117,13 @@ fun PreferencesDashboard(
         backArrowVisible = false,
         actions = { PreferencesOverflowMenu(currentRoute = currentRoute, onNavigate = onNavigate) },
     ) {
-        AnnouncementPreference()
-
-        if (BuildConfig.APPLICATION_ID.contains("nightly") || BuildConfig.DEBUG) {
-            PreferencesDebugWarning()
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-
         if (!context.isDefaultLauncher()) {
             PreferencesSetDefaultLauncherWarning()
             Spacer(modifier = Modifier.height(8.dp))
         }
 
         val deckLayout = prefs2.deckLayout.getAdapter()
-        PreferenceGroup {
+        PreferenceGroup(heading = "Appearance & layout") {
             PreferenceCategory(
                 label = stringResource(R.string.general_label),
                 description = stringResource(R.string.general_description),
@@ -227,6 +220,11 @@ fun PreferencesDashboard(
                 onNavigate = { onNavigate(About) },
                 isSelected = currentRoute is About,
             )
+        }
+        // Keep the development disclaimer discoverable, rather than forcing it above settings.
+        if (BuildConfig.DEBUG || BuildConfig.APPLICATION_ID.contains("nightly")) {
+            Spacer(modifier = Modifier.height(8.dp))
+            PreferencesDebugWarning()
         }
     }
 }

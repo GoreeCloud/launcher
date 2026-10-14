@@ -235,8 +235,15 @@ public class Hotseat extends FrameLayout implements Insettable {
         background.setCornerRadius(cornerRadius);
         int strokeWidth = Math.max(1, Math.round(getResources().getDisplayMetrics().density));
         background.setStroke(strokeWidth, Color.argb(96, 255, 255, 255));
+        // Compact visual capsule without shrinking icon touch targets or altering cell positions.
+        // Insets here shape only the drawable; the Hotseat and all click targets stay intact.
+        int trimVerticalPx = Math.round(6f * getResources().getDisplayMetrics().density);
+        int trimHorizontalPx = Math.round(8f * getResources().getDisplayMetrics().density);
         InsetDrawable bg = new InsetDrawable(background,
-                insetHorizontalLeft, insetVerticalTop, insetHorizontalRight, insetVerticalBottom);
+                insetHorizontalLeft + trimHorizontalPx,
+                insetVerticalTop + trimVerticalPx,
+                insetHorizontalRight + trimHorizontalPx,
+                insetVerticalBottom + trimVerticalPx);
         mIconsContainer.setBackground(bg);
     }
 

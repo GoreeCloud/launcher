@@ -163,6 +163,21 @@ check("bgColor instanceof ColorOption.Default" in hotseat,
 check("Color.alpha(baseColor) == 0" not in hotseat,
       "Never override an explicitly selected transparent custom dock color")
 
+config = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
+dimensions = {node.get("name"): (node.text or "").strip() for node in config.findall("item")}
+check(dimensions.get("config_default_home_icon_size_factor") == "0.78", "Compact icons should be default")
+check(dimensions.get("config_default_hotseat_bottom_factor") == "0.70", "Compact dock height should be default")
+for folder in ("res/xml", "lawnchair/res/xml"):
+    workspace = ET.parse(ROOT / folder / "default_workspace_5x5.xml").getroot()
+    check(len(workspace.findall("resolve")) == 5 and not workspace.findall("favorite"), "5x5 fallback must contain only dock")
+setup = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt").read_text()
+for label in ("No Apps", "10 Recently Used Apps", "10 Most Used Apps"):
+    check(label in setup, "Missing onboarding choice: " + label)
+check("hasUsageAccess(launcher)" in setup, "Usage based selection must honor user permission")
+check("reserved.add(position)" in setup, "Onboarding must reserve each placement")
+dashboard = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt").read_text()
+check("        AnnouncementPreference()" not in dashboard, "Dashboard must not show inherited announcements")
+
 if failures:
     for failure in failures:
         print("FAIL:", failure)

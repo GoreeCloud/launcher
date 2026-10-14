@@ -486,6 +486,9 @@ class LawnchairLauncher : QuickstepLauncher() {
         super.onResume()
         restartIfPending()
         refreshPredictionContainersFromModel()
+        dragLayer.post {
+            if (!isFinishing && !isDestroyed) GoreeCloudHomeOnboarding.showIfNeeded(this)
+        }
 
         dragLayer.viewTreeObserver.addOnDrawListener(
             object : ViewTreeObserver.OnDrawListener {
