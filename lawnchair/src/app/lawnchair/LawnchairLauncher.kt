@@ -411,7 +411,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             android.view.Gravity.BOTTOM,
-        ).apply { bottomMargin = dp(154) })
+        ).apply { bottomMargin = dp(18) })
         stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
                 bar.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
