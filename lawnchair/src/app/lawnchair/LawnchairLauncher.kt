@@ -530,6 +530,13 @@ class LawnchairLauncher : QuickstepLauncher() {
         return ActivityOptionsWrapper(options, callback)
     }
 
+    override fun onPageEndTransition() {
+        super.onPageEndTransition()
+        if (stateManager.state == LauncherState.EDIT_MODE) {
+            app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         restartIfPending()
