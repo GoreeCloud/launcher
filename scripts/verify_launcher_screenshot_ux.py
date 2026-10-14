@@ -79,7 +79,7 @@ assert "holder.itemView.isSelected = isCurrent" in page_strip
 assert "if (ws.childCount <= before)" in page_strip
 assert "committed = ws.commitExtraEmptyScreens()" in page_strip
 assert page_strip.count("ws.addExtraEmptyScreens()") == 2
-assert "ws.snapToPage(ws.childCount - 1)" in page_strip
+assert "ws.snapToPage(ws.childCount - 1)" not in page_strip
 assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "ignoreInsets = true" in edit
