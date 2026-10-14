@@ -60,6 +60,10 @@ assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "selected" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "alignGoreeCloudEditNavigation()" in launcher
+assert "showOnlyEditPageDots(editing)" in launcher
+assert "savedNormalPageIndicatorVisibility" in launcher
+assert "indicator.visibility = View.INVISIBLE" in launcher
+assert "showOnlyEditPageDots(true)" in launcher
 assert "strip.parent !== rootView" in launcher
 assert "rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(" in launcher
 assert "strip.bringToFront()" in launcher

@@ -97,6 +97,7 @@ import kotlinx.coroutines.launch
 class LawnchairLauncher : QuickstepLauncher() {
     private var goreecloudSetupLaunching = false
     private var goreecloudEditActions: View? = null
+    private var savedNormalPageIndicatorVisibility: Int? = null
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
     private val insetsController: WindowInsetsControllerCompat by lazy {
@@ -516,15 +517,38 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
         stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
-                bar.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+                val editing = toState == LauncherState.EDIT_MODE
+                bar.visibility = if (editing) View.VISIBLE else View.GONE
+                showOnlyEditPageDots(editing)
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
-                bar.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
-                if (finalState == LauncherState.EDIT_MODE) {
+                val editing = finalState == LauncherState.EDIT_MODE
+                bar.visibility = if (editing) View.VISIBLE else View.GONE
+                showOnlyEditPageDots(editing)
+                if (editing) {
                     rootView.post { alignGoreeCloudEditNavigation() }
                 }
             }
         })
+    }
+
+    /**
+     * The native Workspace indicator floats inside the scaled page preview.
+     * Edit mode has its own accessible navigation below that preview; showing
+     * both duplicates the dots. Restore the native indicator when editing ends.
+     */
+    private fun showOnlyEditPageDots(editing: Boolean) {
+        val indicator = findViewById<View>(R.id.page_indicator) ?: return
+        if (editing) {
+            if (savedNormalPageIndicatorVisibility == null) {
+                savedNormalPageIndicatorVisibility = indicator.visibility
+            }
+            indicator.visibility = View.INVISIBLE
+        } else {
+            val previous = savedNormalPageIndicatorVisibility
+            if (previous != null) indicator.visibility = previous
+            savedNormalPageIndicatorVisibility = null
+        }
     }
 
     /**
@@ -681,6 +705,7 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onPageEndTransition() {
         super.onPageEndTransition()
         if (stateManager.state == LauncherState.EDIT_MODE) {
+            showOnlyEditPageDots(true)
             app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
             app.lawnchair.views.GoreeCloudOverviewToolbar.refresh(this)
             rootView.post { alignGoreeCloudEditNavigation() }

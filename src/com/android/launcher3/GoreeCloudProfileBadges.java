@@ -19,6 +19,12 @@ public final class GoreeCloudProfileBadges {
     public static void draw(@NonNull Canvas canvas, @NonNull BubbleTextView icon) {
         // App drawer and search use separate profile pages: never overlay icon badges there.
         if (icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE) return;
+        // Edit Home paints its own minus badges over dock icons. Hide profile
+        // decorations only for that editor, preserving badges on normal Home.
+        var activity = com.android.launcher3.views.ActivityContext.lookupContext(
+                icon.getContext());
+        if (activity instanceof Launcher launcher
+                && launcher.isInState(LauncherState.EDIT_MODE)) return;
         Object item = icon.getTag();
         if (!(item instanceof com.android.launcher3.model.data.ItemInfoWithIcon info)) return;
         UserHandle user = info.user;

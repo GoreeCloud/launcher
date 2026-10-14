@@ -15,6 +15,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
+import com.android.launcher3.CellLayout
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
@@ -84,7 +85,7 @@ object GoreeCloudOverviewToolbar {
                 }
                 val ws = host.workspace
                 val index = ws.currentPage
-                val page = ws.getPageAt(index) ?: return@setItems
+                val page = ws.getPageAt(index) as? CellLayout ?: return@setItems
                 val screenId = ws.getScreenIdForPageIndex(index)
                 // The extra-empty placeholder has no persistent screen ID.
                 if (screenId < 0) {

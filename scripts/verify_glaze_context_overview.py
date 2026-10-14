@@ -21,6 +21,7 @@ assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in too
 assert "deleteItemFromDatabase" in toolbar and "getCurrentPageLayout" in toolbar
 assert "showAddApps(host)" in toolbar and "AlertDialog.Builder(host)" in toolbar
 assert "getScreenIdForPageIndex(index)" in toolbar and "page.isOccupied(x, y)" in toolbar
+assert "ws.getPageAt(index) as? CellLayout" in toolbar
 assert "if (item is FolderInfo)" in toolbar and "return@setOnClickListener" in toolbar
 assert "alignGoreeCloudEditNavigation()" in launcher
 assert "minOf(preferredTop, safeTop)" in launcher
@@ -33,6 +34,8 @@ assert "override fun onPageEndTransition()" in launcher and "GoreeCloudOverviewF
 assert all(label in launcher for label in ("Wallpapers","Widgets","Settings"))
 assert "removeEmptyWorkspacePageByIndex" in toolbar and "ws.setDefaultPage(start)" in toolbar
 assert "GoreeCloudContextSurfaces.actionBar" in popup
+badges=get("src/com/android/launcher3/GoreeCloudProfileBadges.java")
+assert "launcher.isInState(LauncherState.EDIT_MODE)" in badges
 assert "addAllShortcuts(deepShortcutCount, otherActions)" in popup
 assert "APP SHORTCUTS" in popup and "notificationCard" in popup
 assert "NotificationListener.getInstanceIfConnected()" in menu
