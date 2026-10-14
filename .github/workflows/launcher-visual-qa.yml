@@ -27,6 +27,13 @@ jobs:
         run: ./gradlew --no-daemon --console=plain assembleLawnWithQuickstepGithubDebug
       - name: Screenshot analysis tools
         run: python3 -m pip install --break-system-packages Pillow
+      - name: Allow accelerated emulator access
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 666 /dev/kvm
+          else
+            echo 'Warning: /dev/kvm unavailable; emulator may be slow'
+          fi
       - name: Capture Android Home and edit mode
         uses: reactivecircus/android-emulator-runner@v2
         with:
