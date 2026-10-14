@@ -162,6 +162,9 @@ class EditModePageStrip @JvmOverloads constructor(
         val items = (0 until starts.size()).map { i ->
             PageItem(isDefault = i == defaultGroupIndex)
         }
+        val cellPx = (64 * resources.displayMetrics.density).toInt()
+        val sidePx = ((resources.displayMetrics.widthPixels - (items.size + 1) * cellPx) / 2).coerceAtLeast(12)
+        setPadding(sidePx, paddingTop, sidePx, paddingBottom)
         pageStripAdapter.setItems(items)
     }
 
