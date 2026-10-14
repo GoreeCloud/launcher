@@ -59,6 +59,14 @@ check(all(provider in overlay for provider in ("CalculatorSearchProvider", "Cont
       "Pull-down query must reuse on-device quick answer, contacts and file providers")
 check("LauncherApps.ShortcutQuery" in overlay and "startShortcut(" in overlay,
       "Pull-down query must support authorized app shortcuts")
+check("apps.profiles.flatMap" in overlay and "activity.user" in overlay,
+      "Universal Search must enumerate and launch authorized Personal and Work profile apps")
+check("profileBadgePosition.get()" in overlay and '"Work profile"' in overlay,
+      "Search results must honor the profile badge position")
+check("BraveWebSearchProvider.getSearchUrl(text)" in overlay,
+      "Explicit web action must open Brave Search only")
+check(strings.count('name="search_provider_brave"') == 1,
+      "Brave Search resource must be defined exactly once")
 check("IME Search is local" in overlay and "hideSoftInputFromWindow" in overlay,
       "IME submission must remain local; web search requires an explicit result action")
 check("prefs.hiddenApps.firstCached()" in overlay and "hiddenAppsInSearch.firstCached()" in overlay,

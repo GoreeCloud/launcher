@@ -128,7 +128,7 @@ check("class GoreeCloudWallpaperView" in root_view and
 check("Intent.ACTION_SET_WALLPAPER)" not in wallpaper_menu,
       "Launcher must not launch the external wallpaper catalog")
 check('stateManager.goToState(LauncherState.EDIT_MODE)' in root_view,
-      "Wallpaper history carousel must remain disabled")
+      "Empty Home long-press must open scaled page overview")
 for folder in ("res/xml", "lawnchair/res/xml"):
     for name in ("default_workspace_5x5.xml", "default_workspace_5x6.xml"):
         layout = ET.parse(ROOT / folder / name).getroot()
