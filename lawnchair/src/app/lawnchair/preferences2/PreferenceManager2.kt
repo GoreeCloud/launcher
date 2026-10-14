@@ -471,6 +471,13 @@ class PreferenceManager2 @Inject constructor(
         defaultValue = context.resources.getBoolean(R.bool.config_default_auto_show_keyboard_in_drawer),
     )
 
+    // Master switch for local-first Universal Search; optional sources keep
+    // their independent permissions and privacy/opt-in controls.
+    val universalSearchEnabled = preference(
+        key = booleanPreferencesKey(name = "universal_search_enabled"),
+        defaultValue = true,
+    )
+
     val workspaceTextColor = preference(
         key = stringPreferencesKey(name = "workspace_text_color"),
         defaultValue = ColorMode.AUTO,
@@ -829,7 +836,7 @@ class PreferenceManager2 @Inject constructor(
 
     val swipeDownGestureHandler = serializablePreference<GestureHandlerConfig>(
         key = stringPreferencesKey("swipe_down_gesture_handler"),
-        defaultValue = GestureHandlerConfig.OpenNotifications,
+        defaultValue = GestureHandlerConfig.OpenAppSearch,
     )
 
     val twoFingerSwipeUpGestureHandler = serializablePreference<GestureHandlerConfig>(
