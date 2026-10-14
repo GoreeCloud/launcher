@@ -159,9 +159,10 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onCreate(savedInstanceState: Bundle?) {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
+        applyGoreeCloudSystemBarWallpaper()
 
         // One non-interactive wallpaper behind the workspace; no external sources.
-        dragLayer.addView(
+        rootView.addView(
             GoreeCloudWallpaperView(this).apply {
                 tag = "goreecloud_wallpaper"
                 isClickable = false
@@ -363,6 +364,22 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    /** Draw the Home wallpaper continuously behind transparent system bars. */
+    private fun applyGoreeCloudSystemBarWallpaper() {
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            window.isStatusBarContrastEnforced = false
+            window.isNavigationBarContrastEnforced = false
+            window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
+        }
+        WindowInsetsControllerCompat(window, rootView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
+    }
+
     private fun installGoreeCloudHomeOverviewActions() {
         val scale = resources.displayMetrics.density
         fun dp(value: Int) = (value * scale + .5f).toInt()
@@ -537,8 +554,22 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    override fun startActivitySafely(
+        v: View?,
+        intent: Intent,
+        item: ItemInfo,
+    ): com.android.launcher3.util.RunnableList? {
+        val started = super.startActivitySafely(v, intent, item)
+        if (started != null) {
+            GoreeCloudHomeOnboarding.recordLaunch(
+                this, intent.component?.packageName ?: item.targetComponent?.packageName)
+        }
+        return started
+    }
+
     override fun onResume() {
         super.onResume()
+        applyGoreeCloudSystemBarWallpaper()
         restartIfPending()
         refreshPredictionContainersFromModel()
         dragLayer.post {

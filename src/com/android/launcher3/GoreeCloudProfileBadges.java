@@ -10,13 +10,15 @@ import android.os.UserHandle;
 import androidx.annotation.NonNull;
 import app.lawnchair.preferences.PreferenceManager;
 
-/** A readable P / W badge kept out of notification dots' top-right corner. */
+/** Home-only glyph badges; profile tabs distinguish drawer results. */
 public final class GoreeCloudProfileBadges {
     private static final Paint FILL = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private static final Paint LETTER = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final Paint GLYPH = new Paint(Paint.ANTI_ALIAS_FLAG);
     private GoreeCloudProfileBadges() { }
 
     public static void draw(@NonNull Canvas canvas, @NonNull BubbleTextView icon) {
+        // App drawer and search use separate profile pages: never overlay icon badges there.
+        if (icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE) return;
         Object item = icon.getTag();
         if (!(item instanceof com.android.launcher3.model.data.ItemInfoWithIcon info)) return;
         UserHandle user = info.user;
@@ -42,11 +44,25 @@ public final class GoreeCloudProfileBadges {
         canvas.drawCircle(cx, cy, radius + 1.5f * density, FILL);
         FILL.setColor(work ? Color.rgb(151, 76, 21) : Color.rgb(0, 104, 180));
         canvas.drawCircle(cx, cy, radius, FILL);
-        LETTER.setColor(Color.WHITE);
-        LETTER.setTypeface(android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD));
-        LETTER.setTextAlign(Paint.Align.CENTER);
-        LETTER.setTextSize(radius * 1.3f);
-        Paint.FontMetrics fm = LETTER.getFontMetrics();
-        canvas.drawText(work ? "W" : "P", cx, cy - (fm.ascent + fm.descent) / 2f, LETTER);
+        GLYPH.setColor(Color.WHITE);
+        GLYPH.setStyle(Paint.Style.FILL);
+        if (work) {
+            // Briefcase: body, carry handle and centre clasp.
+            canvas.drawRoundRect(cx - radius * .64f, cy - radius * .28f,
+                    cx + radius * .64f, cy + radius * .48f,
+                    radius * .12f, radius * .12f, GLYPH);
+            GLYPH.setStyle(Paint.Style.STROKE);
+            GLYPH.setStrokeWidth(radius * .16f);
+            canvas.drawRoundRect(cx - radius * .25f, cy - radius * .60f,
+                    cx + radius * .25f, cy + radius * .08f,
+                    radius * .13f, radius * .13f, GLYPH);
+            GLYPH.setStyle(Paint.Style.FILL);
+        } else {
+            // Person: head and shoulder silhouette, no letter overlays.
+            canvas.drawCircle(cx, cy - radius * .28f, radius * .28f, GLYPH);
+            canvas.drawRoundRect(cx - radius * .52f, cy + radius * .10f,
+                    cx + radius * .52f, cy + radius * .65f,
+                    radius * .35f, radius * .35f, GLYPH);
+        }
     }
 }

@@ -61,8 +61,8 @@ check("LauncherApps.ShortcutQuery" in overlay and "startShortcut(" in overlay,
       "Pull-down query must support authorized app shortcuts")
 check("apps.profiles.flatMap" in overlay and "activity.user" in overlay,
       "Universal Search must enumerate and launch authorized Personal and Work profile apps")
-check("profileBadgePosition.get()" in overlay and '"Work profile"' in overlay,
-      "Search results must honor the profile badge position")
+check(".take(columns * 2)" in overlay and "Profile pages select Personal or Work" in overlay,
+      "All search tabs must cap app results at two rows without profile letter badges")
 check("BraveWebSearchProvider.getSearchUrl(text)" in overlay,
       "Explicit web action must open Brave Search only")
 check(strings.count('name="search_provider_brave"') == 1,

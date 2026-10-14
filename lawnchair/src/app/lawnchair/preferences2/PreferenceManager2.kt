@@ -480,7 +480,7 @@ class PreferenceManager2 @Inject constructor(
 
     val universalSearchKeyboardOnOpen = preference(
         key = booleanPreferencesKey(name = "universal_search_keyboard_on_open"),
-        defaultValue = true,
+        defaultValue = false,
     )
 
     val workspaceTextColor = preference(

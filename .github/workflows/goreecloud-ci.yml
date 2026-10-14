@@ -21,6 +21,7 @@ jobs:
           python3 scripts/verify_onboarding_grid_about.py
           python3 scripts/verify_search_privacy.py
           python3 scripts/verify_universal_search.py
+          python3 scripts/verify_launcher_screenshot_ux.py
           python3 scripts/verify_glaze_context_overview.py
           python3 scripts/verify_contact_search.py
           python3 scripts/verify_calculator_features.py

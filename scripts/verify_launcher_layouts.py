@@ -172,10 +172,13 @@ for folder in ("res/xml", "lawnchair/res/xml"):
     check(len(workspace.findall("resolve")) == 5 and not workspace.findall("favorite"), "5x5 fallback must contain only dock")
 setup = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt").read_text()
 setup_ui = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt").read_text()
-for label in ("No Apps", "10 Recently Used Apps", "10 Most Used Apps"):
+for label in ("No Apps", "Recently Used", "Most Used"):
     check(label in setup_ui, "Missing onboarding choice: " + label)
-check("hasUsageAccess(launcher)" in setup, "Usage based selection must honor user permission")
-check("reserved.add(position)" in setup, "Onboarding must reserve each placement")
+check("usageAllowed(launcher)" in setup, "Usage based selection must honor user permission")
+check("MAX_ROWS = 2" in setup and "screen.isOccupied" in setup,
+      "Home ranks must fill no more than two rows without overwriting items")
+check("managed_ids" in setup and "deleteItemFromDatabase" in setup,
+      "Ranking changes must remove only previously managed shortcuts")
 dashboard = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt").read_text()
 check("        AnnouncementPreference()" not in dashboard, "Dashboard must not show inherited announcements")
 

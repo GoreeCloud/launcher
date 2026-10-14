@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+"""Source contracts for the 2026-10-14 Launcher screenshot regressions."""
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+r = Path(__file__).resolve().parents[1]
+read = lambda name: (r / name).read_text()
+cfg = ET.parse(r / "lawnchair/res/values/config.xml").getroot()
+settings = {e.get("name"): (e.text or "").strip() for e in cfg}
+assert settings["config_default_hide_app_drawer_search_bar"] == "true"
+assert settings["config_default_show_suggested_apps_at_drawer_top"] == "false"
+
+launcher = read("lawnchair/src/app/lawnchair/LawnchairLauncher.kt")
+assert "applyGoreeCloudSystemBarWallpaper()" in launcher
+assert "rootView.addView(\n            GoreeCloudWallpaperView" in launcher
+assert "window.statusBarColor = android.graphics.Color.TRANSPARENT" in launcher
+assert "window.navigationBarColor = android.graphics.Color.TRANSPARENT" in launcher
+assert "window.isNavigationBarContrastEnforced = false" in launcher
+
+setup = read("lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt")
+assert "WindowInsetsCompat.Type.systemBars()" in setup
+assert "Recently Used" in setup and "Most Used" in setup and "No Apps" in setup
+
+home = read("lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt")
+assert "MAX_ROWS = 2" in home and "managed_ids" in home
+assert "recordLaunch(" in home and "ranking_started" in setup
+assert "clearLegacyStarterPair" in home and 'info.cellX == 3' in home
+assert "deleteCollectionAndContentsFromDatabase" in home
+
+ns = "{http://schemas.android.com/apk/res-auto/com.android.launcher3}"
+for path in (r / "lawnchair/res/xml").glob("default_workspace*.xml"):
+    tree = ET.parse(path).getroot()
+    assert all(node.get(ns + "container") == "-101" for node in tree), path
+
+search = read("lawnchair/src/app/lawnchair/GoreeCloudUniversalSearchActivity.kt")
+assert search.count(".take(columns * 2)") == 3
+assert "setMargins(dp(18), dp(50), dp(18), 0)" in search
+assert "profileBadgePosition.get()" not in search
+badge = read("src/com/android/launcher3/GoreeCloudProfileBadges.java")
+assert "icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE" in badge
+assert 'drawText(work ? "W" : "P"' not in badge
+assert "canvas.drawRoundRect" in badge
+
+surface = ET.parse(r / "res/drawable/popup_background.xml").getroot()
+assert surface.find("stroke") is not None
+assert ET.parse(r / "res/drawable/goreecloud_launcher_foreground.xml").getroot().find("group") is not None
+print("PASS: screenshot UX source contracts; real-device validation still required")
