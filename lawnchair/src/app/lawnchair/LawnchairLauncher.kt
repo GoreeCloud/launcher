@@ -387,26 +387,13 @@ class LawnchairLauncher : QuickstepLauncher() {
                 setOnClickListener { onClick() }
             }, android.widget.LinearLayout.LayoutParams(0, dp(62), 1f))
         }
-        option("Wallpapers", "▧") { GoreeCloudWallpapers.showPicker(this) }
+        option("Wallpapers & themes", "▤") { GoreeCloudWallpapers.showPicker(this) }
         option("Widgets", "⊞") {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Add page", "＋") {
-            if (workspace.childCount < 16) {
-                workspace.addExtraEmptyScreens()
-                workspace.commitExtraEmptyScreens()
-                workspace.snapToPage(workspace.childCount - 1)
-                findViewById<app.lawnchair.views.EditModePageStrip>(
-                    R.id.edit_mode_page_strip,
-                )?.refreshItems()
-            } else {
-                android.widget.Toast.makeText(this, "Maximum 16 Home pages", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        }
-        option("Settings", "⚙") {
+        option("Home screen settings", "⚙") {
             startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
         }
-        option("Done", "✓") { stateManager.goToState(LauncherState.NORMAL) }
         dragLayer.addView(bar, android.widget.FrameLayout.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
