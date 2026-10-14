@@ -388,11 +388,9 @@ class LawnchairLauncher : QuickstepLauncher() {
     /** Draw the Home wallpaper continuously behind transparent system bars. */
     private fun applyGoreeCloudSystemBarWallpaper() {
         val targetWindow = window ?: return
+        // WindowCompat owns edge-to-edge layout. Writing legacy systemUiVisibility
+        // flags here conflicts with WindowCompat and can clip system-bar icons.
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(targetWindow, false)
-        rootView.systemUiVisibility = rootView.systemUiVisibility or
-            View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-            View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-            View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         targetWindow.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
         targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT
         targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT
@@ -471,6 +469,24 @@ class LawnchairLauncher : QuickstepLauncher() {
             rightMargin = dp(16)
         })
         goreecloudEditActions = bar
+        // The legacy DragLayer intercepts gestures while Workspace is inaccessible
+        // in edit mode. Host page navigation above it, beside other edit controls,
+        // so page dots and Add page receive real taps on a phone.
+        findViewById<app.lawnchair.views.EditModePageStrip>(
+            R.id.edit_mode_page_strip,
+        )?.let { strip ->
+            if (strip.parent !== rootView) {
+                (strip.parent as? android.view.ViewGroup)?.removeView(strip)
+                strip.setPadding(0, 0, 0, 0)
+                rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(38),
+                ).apply {
+                    ignoreInsets = true
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                })
+            }
+        }
         stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
                 bar.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE

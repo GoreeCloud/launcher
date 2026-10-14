@@ -190,7 +190,8 @@ class EditModePageStrip @JvmOverloads constructor(
         val targetIndex = movable.indexOf(visible[to])
         if (sourceIndex < 0 || targetIndex < 0 ||
             !ws.moveReorderablePageGroup(sourceIndex, targetIndex)) return false
-        refreshItems()
+        // Keep RecyclerView adapter mutations granular during ItemTouchHelper drag.
+        pageStripAdapter.moveItem(from, to)
         return true
     }
 

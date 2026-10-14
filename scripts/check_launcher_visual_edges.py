@@ -48,6 +48,19 @@ for state in ("home", "edit", "edit-added"):
         "navigation_distance": distance(lower, navigation),
         "warning": "Color-distance measurements are diagnostic; inspect the images visually."
     }
+    if state in ("home", "edit"):
+        # Detect narrow vertical status glyphs as a possible clipping symptom.
+        # This is diagnostic, not a generic threshold for all Android devices.
+        bands = [(int(w * .05), int(w * .24)), (int(w * .78), int(w * .96))]
+        ink_rows = []
+        for y in range(int(h * .008), int(h * .075)):
+            bright = sum(1 for left, right in bands for x in range(left, right)
+                         if min(image.getpixel((x, y))) > 190)
+            if bright >= 8:
+                ink_rows.append(y)
+        icon_span = max(ink_rows) - min(ink_rows) + 1 if ink_rows else 0
+        measurements[state]["status_glyph_span_px"] = icon_span
+        measurements[state]["status_possible_clipping"] = icon_span < h * .009
 home_img = Image.open(out / "home.png").convert("RGB")
 edit_img = Image.open(out / "edit.png").convert("RGB")
 if home_img.size != edit_img.size:

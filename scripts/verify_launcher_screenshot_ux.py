@@ -21,8 +21,9 @@ wallpaper_section = launcher.split("GoreeCloudWallpaperView(this).apply", 1)[1].
 assert "InsettableFrameLayout.LayoutParams" in wallpaper_section
 assert "ignoreInsets = true" in wallpaper_section
 assert "Gravity.FILL" in wallpaper_section
-assert "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN" in launcher
-assert "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION" in launcher
+assert "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN" not in launcher
+assert "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION" not in launcher
+assert "rootView.systemUiVisibility =" not in launcher
 
 setup = read("lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt")
 assert "WindowInsetsCompat.Type.systemBars()" in setup
@@ -59,6 +60,9 @@ assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "alignGoreeCloudEditNavigation()" in launcher
+assert "strip.parent !== rootView" in launcher
+assert "rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(" in launcher
+assert "strip.bringToFront()" in launcher
 assert "preferredTop = frameBottom + gap" in launcher
 assert "val stripHeight = dp(38)" in launcher
 assert "mEditModePageStrip.dismissEducationTip()" in read("src/com/android/launcher3/Launcher.java")
