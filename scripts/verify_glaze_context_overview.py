@@ -19,6 +19,9 @@ assert "Preview Home page" in pager and "Default Home page" in pager
 assert "GoreeCloudOverviewToolbar.install(this)" in launcher
 assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in toolbar
 assert "deleteItemFromDatabase" in toolbar and "getCurrentPageLayout" in toolbar
+assert "showAddApps(host)" in toolbar and "AlertDialog.Builder(host)" in toolbar
+assert "getScreenIdForPageIndex(index)" in toolbar and "page.isOccupied(x, y)" in toolbar
+assert "if (item is FolderInfo)" in toolbar and "return@setOnClickListener" in toolbar
 assert "alignGoreeCloudEditNavigation()" in launcher
 assert "minOf(preferredTop, safeTop)" in launcher
 frames=get("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")

@@ -1,5 +1,8 @@
 package app.lawnchair.views
 
+import android.app.AlertDialog
+import android.content.pm.LauncherApps
+import android.os.Process
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Rect
@@ -12,8 +15,11 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
+import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
+import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
 import com.android.launcher3.statemanager.StateManager
 import java.util.WeakHashMap
@@ -49,6 +55,60 @@ object GoreeCloudOverviewToolbar {
             },
         )
         view.visibility = View.GONE
+    }
+
+    /**
+     * Add apps directly to the selected page without leaving Edit Home mode.
+     * Only the personal profile is queried; the dialog never modifies the
+     * workspace until the owner selects an app and an unoccupied cell exists.
+     */
+    private fun showAddApps(host: LawnchairLauncher) {
+        if (!host.isInState(LauncherState.EDIT_MODE)) return
+        val service = host.getSystemService(LauncherApps::class.java) ?: return
+        val profile = Process.myUserHandle()
+        val apps = service.getActivityList(null, profile)
+            .filter { it.componentName.packageName != host.packageName }
+            .distinctBy { it.componentName }
+            .sortedWith(compareBy({ it.label.toString().lowercase() },
+                { it.componentName.flattenToString() }))
+        if (apps.isEmpty()) {
+            Toast.makeText(host, "No apps available to add", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = apps.map { it.label.toString() }.toTypedArray()
+        AlertDialog.Builder(host)
+            .setTitle("Add apps to Home")
+            .setItems(labels) { _, which ->
+                if (which !in apps.indices || !host.isInState(LauncherState.EDIT_MODE)) {
+                    return@setItems
+                }
+                val ws = host.workspace
+                val index = ws.currentPage
+                val page = ws.getPageAt(index) ?: return@setItems
+                val screenId = ws.getScreenIdForPageIndex(index)
+                // The extra-empty placeholder has no persistent screen ID.
+                if (screenId < 0) {
+                    Toast.makeText(host, "Add this Home page first", Toast.LENGTH_SHORT).show()
+                    return@setItems
+                }
+                val slot = (0 until page.countY).asSequence()
+                    .flatMap { y -> (0 until page.countX).asSequence().map { x -> x to y } }
+                    .firstOrNull { (x, y) -> !page.isOccupied(x, y) }
+                if (slot == null) {
+                    Toast.makeText(host, "This Home page is full", Toast.LENGTH_SHORT).show()
+                    return@setItems
+                }
+                val info = AppInfo(host, apps[which], profile).makeWorkspaceItem(host)
+                host.modelWriter.addItemToDatabase(
+                    info, LauncherSettings.Favorites.CONTAINER_DESKTOP, screenId,
+                    slot.first, slot.second,
+                )
+                page.postDelayed({
+                    if (!host.isDestroyed) host.model.forceReload()
+                }, 350L)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     fun install(host: LawnchairLauncher) {
@@ -132,9 +192,7 @@ object GoreeCloudOverviewToolbar {
             actions.addView(column, LinearLayout.LayoutParams(dp(host, 73), dp(host, 78)))
         }
         action("Add apps", R.drawable.goreecloud_edit_apps) {
-            // App drawer owns app discovery; long-press from there copies to Home.
-            Toast.makeText(host, "Touch and hold an app to add it to Home", Toast.LENGTH_LONG).show()
-            host.stateManager.goToState(LauncherState.ALL_APPS)
+            showAddApps(host)
         }
         action("Remove", R.drawable.goreecloud_edit_remove) {
             val removed = host.workspace.removeEmptyWorkspacePageByIndex(host.workspace.currentPage)
@@ -243,6 +301,13 @@ object GoreeCloudOverviewToolbar {
                 }, FrameLayout.LayoutParams(dp(host, 21), dp(host, 21),
                     Gravity.TOP or Gravity.START))
                 setOnClickListener {
+                    // Deleting a folder record alone can orphan its children:
+                    // require users to move folder contents out first.
+                    if (item is FolderInfo) {
+                        Toast.makeText(host, "Move apps out of the folder before removing it",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnClickListener
+                    }
                     // Removes only this dock placement, never the installed app.
                     host.modelWriter.deleteItemFromDatabase(item, "Remove icon from dock in Edit Home")
                     host.rootView.postDelayed({

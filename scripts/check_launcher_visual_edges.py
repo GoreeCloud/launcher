@@ -18,6 +18,15 @@ for state in ("home", "edit"):
             raise SystemExit("The primary Home page indicator is missing from edit navigation")
         if state == "edit" and "add a home screen" not in xml:
             raise SystemExit("The add-page control is missing from edit navigation")
+        if state == "edit":
+            # Functional control accessibility doubles as a screenshot acceptance gate.
+            # These must all be present in the visible UI, not just static source.
+            controls = ("edit home screen", "done editing home screen",
+                        "add apps", "remove", "wallpapers", "themes",
+                        "widgets", "home screen settings")
+            for label in controls:
+                if label not in xml:
+                    raise SystemExit(f"Mockup editor control missing from UI hierarchy: {label}")
 added_hierarchy = out / "edit-added-hierarchy.xml"
 if added_hierarchy.exists():
     added_xml = added_hierarchy.read_text(errors="replace").lower()
