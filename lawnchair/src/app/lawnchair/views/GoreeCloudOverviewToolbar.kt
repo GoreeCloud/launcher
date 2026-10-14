@@ -26,13 +26,11 @@ object GoreeCloudOverviewToolbar {
             isFocusable = true
             setOnClickListener {
                 val workspace = host.workspace
-                val groups = workspace.reorderablePageGroupStarts
-                for (i in 0 until groups.size()) {
-                    if (groups[i] == workspace.currentPage) {
-                        workspace.setDefaultPageForReorderableGroup(i)
-                        host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
-                        break
-                    }
+                if (workspace.childCount > 0) {
+                    val panelCount = workspace.panelCount.coerceAtLeast(1)
+                    val page = (workspace.currentPage / panelCount) * panelCount
+                    workspace.setDefaultPage(page)
+                    host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
                 }
             }
         }

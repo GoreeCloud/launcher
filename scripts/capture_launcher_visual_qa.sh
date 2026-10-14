@@ -42,7 +42,29 @@ sleep 5
 adb shell screencap -p /sdcard/goreecloud-edit-qa.png
 adb pull /sdcard/goreecloud-edit-qa.png "$out/edit.png"
 adb shell uiautomator dump /sdcard/goreecloud-edit.xml >/dev/null || true
-adb pull /sdcard/goreecloud-edit.xml "$out/edit-hierarchy.xml" || true
+adb pull /sdcard/goreecloud-edit.xml "$out/edit-hierarchy.xml"
+# Exercise Add page in the disposable emulator, then capture adjacent pages.
+add_coords="$(python3 - "$out/edit-hierarchy.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+for node in root.iter("node"):
+    if node.attrib.get("content-desc") == "Add a Home screen":
+        x1, y1, x2, y2 = map(int, re.findall(r"[0-9]+", node.attrib["bounds"]))
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+else:
+    raise SystemExit("Add-page control is not exposed in the UI hierarchy")
+PY
+)"
+read -r add_x add_y <<< "$add_coords"
+adb shell input tap "$add_x" "$add_y"
+sleep 4
+adb shell screencap -p /sdcard/goreecloud-edit-added-qa.png
+adb pull /sdcard/goreecloud-edit-added-qa.png "$out/edit-added.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-added.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-added.xml "$out/edit-added-hierarchy.xml"
 adb logcat -d -t 1500 > "$out/logcat.txt"
 adb shell wm size > "$out/device-size.txt"
 python3 scripts/check_launcher_visual_edges.py "$out"

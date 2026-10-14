@@ -14,8 +14,17 @@ for state in ("home", "edit"):
             raise SystemExit(f"Stock Pixel Launcher ANR obscured {state} screenshot")
         if state == "edit" and "drag pages to reorder" in xml:
             raise SystemExit("Edit-mode tutorial obscures the live Home preview")
+        if state == "edit" and "default home page 1" not in xml:
+            raise SystemExit("The primary Home page indicator is missing from edit navigation")
+        if state == "edit" and "add a home screen" not in xml:
+            raise SystemExit("The add-page control is missing from edit navigation")
+added_hierarchy = out / "edit-added-hierarchy.xml"
+if added_hierarchy.exists():
+    added_xml = added_hierarchy.read_text(errors="replace").lower()
+    if "preview home page 2" not in added_xml and "default home page 2" not in added_xml:
+        raise SystemExit("Adding a Home page did not expose its page-navigation indicator")
 measurements = {}
-for state in ("home", "edit"):
+for state in ("home", "edit", "edit-added"):
     image = Image.open(out / (state + ".png")).convert("RGB")
     w, h = image.size
     if w < 360 or h < 640:

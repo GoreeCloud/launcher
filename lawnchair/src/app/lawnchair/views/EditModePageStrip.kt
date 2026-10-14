@@ -149,16 +149,22 @@ class EditModePageStrip @JvmOverloads constructor(
         translationY = 0f
     }
 
+    // Reorderable groups exclude pages Android currently considers immovable.
+    // That can hide the first (and only) Home page on a clean installation.
+    // Navigation must instead reflect every actual visible Workspace page.
+    private fun pageGroupStarts(ws: Workspace<*>): List<Int> =
+        (0 until ws.childCount step ws.panelCount.coerceAtLeast(1)).toList()
+
     fun refreshItems() {
         val ws = workspace
         if (ws == null) {
             pageStripAdapter.setItems(emptyList())
             return
         }
-        val starts = ws.reorderablePageGroupStarts
-        val defaultGroupIndex = ws.defaultPageGroupIndex
-        val items = (0 until starts.size()).map { i ->
-            PageItem(isDefault = i == defaultGroupIndex)
+        val starts = pageGroupStarts(ws)
+        val defaultPage = ws.defaultPage
+        val items = starts.map { start ->
+            PageItem(isDefault = start == defaultPage)
         }
         val cellPx = (38 * resources.displayMetrics.density).toInt()
         val sidePx = ((resources.displayMetrics.widthPixels - (items.size + 1) * cellPx) / 2).coerceAtLeast(12)
@@ -177,21 +183,23 @@ class EditModePageStrip @JvmOverloads constructor(
 
     private fun moveGroup(from: Int, to: Int): Boolean {
         val ws = workspace ?: return false
-        if (!ws.moveReorderablePageGroup(from, to)) {
-            return false
-        }
-        pageStripAdapter.moveItem(from, to)
+        val visible = pageGroupStarts(ws)
+        if (from !in visible.indices || to !in visible.indices) return false
+        val movable = ws.reorderablePageGroupStarts
+        val sourceIndex = movable.indexOf(visible[from])
+        val targetIndex = movable.indexOf(visible[to])
+        if (sourceIndex < 0 || targetIndex < 0 ||
+            !ws.moveReorderablePageGroup(sourceIndex, targetIndex)) return false
+        refreshItems()
         return true
     }
 
     private fun setHomeGroup(position: Int): Boolean {
         val ws = workspace ?: return false
-        val oldDefaultIndex = pageStripAdapter.indexOfDefault()
-        val set = ws.setDefaultPageForReorderableGroup(position)
-        if (!set) {
-            return false
-        }
-        pageStripAdapter.updateDefaultHome(oldDefaultIndex, position)
+        val pages = pageGroupStarts(ws)
+        if (position !in pages.indices) return false
+        ws.setDefaultPage(pages[position])
+        pageStripAdapter.updateDefaultHome(pageStripAdapter.indexOfDefault(), position)
         dismissEducationTip()
         return true
     }
@@ -214,7 +222,11 @@ class EditModePageStrip @JvmOverloads constructor(
 
         // The trailing + control is not a movable Home page.
         override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: ViewHolder): Int {
-            if (viewHolder.bindingAdapterPosition >= pageStripAdapter.itemCount - 1) return 0
+            val ws = workspace ?: return 0
+            val position = viewHolder.bindingAdapterPosition
+            val pages = pageGroupStarts(ws)
+            if (position !in pages.indices ||
+                ws.reorderablePageGroupStarts.indexOf(pages[position]) < 0) return 0
             return super.getMovementFlags(recyclerView, viewHolder)
         }
 
@@ -311,8 +323,8 @@ class EditModePageStrip @JvmOverloads constructor(
             }
             val item = items[position]
             val ws = workspace
-            val starts = ws?.reorderablePageGroupStarts
-            val isCurrent = ws != null && starts != null && position < starts.size() &&
+            val starts = ws?.let { pageGroupStarts(it) }
+            val isCurrent = ws != null && starts != null && position < starts.size &&
                 starts[position] == ws.currentPage
             holder.itemView.isSelected = isCurrent
             holder.itemView.isFocusable = true
@@ -341,8 +353,8 @@ class EditModePageStrip @JvmOverloads constructor(
             holder.removeButton.contentDescription = "Remove empty Home page ${position + 1}"
             holder.removeButton.setOnClickListener {
                 val current = holder.bindingAdapterPosition
-                val starts = ws?.reorderablePageGroupStarts
-                if (ws != null && starts != null && current in 0 until starts.size() &&
+                val starts = ws?.let { pageGroupStarts(it) }
+                if (ws != null && starts != null && current in starts.indices &&
                     ws.removeEmptyWorkspacePageByIndex(starts[current])) {
                     refreshItems()
                 } else {
@@ -351,9 +363,9 @@ class EditModePageStrip @JvmOverloads constructor(
             }
             holder.itemView.setOnClickListener {
                 val ws = workspace ?: return@setOnClickListener
-                val starts = ws.reorderablePageGroupStarts
+                val starts = pageGroupStarts(ws)
                 val index = holder.bindingAdapterPosition
-                if (index in 0 until starts.size()) {
+                if (index in starts.indices) {
                     ws.snapToPage(starts[index])
                 }
             }
