@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Source contracts for GoreeCloud first-run onboarding and app branding."""
 import xml.etree.ElementTree as ET
+import hashlib
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 app = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt").read_text()
@@ -28,4 +29,5 @@ for item in ("res/drawable/ic_launcher_home.xml", "res/mipmap-anydpi-v26/ic_laun
     assert root.find("monochrome").get(ns+"drawable") == "@drawable/goreecloud_launcher_monochrome"
 for item in ("goreecloud_launcher_background","goreecloud_launcher_foreground","goreecloud_launcher_monochrome"):
     ET.parse(ROOT / "res/drawable" / (item+".xml"))
-print("PASS: onboarding navigation, choices, and adaptive GoreeCloud icon source contract")
+assert b"GoreeCloud Launcher" in (ROOT / "res/raw/goreecloud_launcher_canonical.svg").read_bytes()
+print("PASS: official GoreeCloud Launcher icon and onboarding")

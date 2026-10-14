@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">GoreeCloud Launcher</title>
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#174EA6"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="18" y1="16" x2="46" y2="48" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity=".98"/>
+      <stop offset="1" stop-color="#DCEBFF" stop-opacity=".82"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)"/>
+  <circle cx="32" cy="32" r="20" fill="#fff" opacity=".07"/>
+  <rect x="17" y="17" width="13" height="13" rx="4" fill="url(#glass)"/>
+  <rect x="34" y="17" width="13" height="13" rx="4" fill="url(#glass)"/>
+  <rect x="17" y="34" width="13" height="13" rx="4" fill="url(#glass)"/>
+  <rect x="34" y="34" width="13" height="13" rx="4" fill="url(#glass)"/>
+  <circle cx="32" cy="32" r="3.2" fill="#8EC5FF"/>
+</svg>
