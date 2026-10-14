@@ -340,7 +340,7 @@ class EditModePageStrip @JvmOverloads constructor(
             }
         }
 
-        override fun getItemCount(): Int = items.size
+        override fun getItemCount(): Int = items.size + 1
     }
 
     private class PageStripViewHolder(itemView: View) : ViewHolder(itemView) {
