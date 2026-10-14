@@ -67,6 +67,14 @@ if ! grep -q "add-click" "$out/add-page-events.txt"; then
   echo "Add-page tap was not received by GoreeCloud Launcher"
   exit 1
 fi
+python3 - "$out/add-page-events.txt" <<'PY'
+import re, sys
+log = open(sys.argv[1]).read()
+before = re.search(r"add-click pages=(\d+)", log)
+after = re.search(r"add-result pages=(\d+)", log)
+if not before or not after or int(after.group(1)) <= int(before.group(1)):
+    raise SystemExit("Add-page handler did not increase the Workspace page count")
+PY
 adb shell screencap -p /sdcard/goreecloud-edit-added-qa.png
 adb pull /sdcard/goreecloud-edit-added-qa.png "$out/edit-added.png"
 adb shell uiautomator dump /sdcard/goreecloud-edit-added.xml >/dev/null

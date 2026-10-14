@@ -178,7 +178,14 @@ class EditModePageStrip @JvmOverloads constructor(
         android.util.Log.i("GoreeEditQA", "add-click pages=$before")
         if (before >= 16) return
         ws.addExtraEmptyScreens()
-        val committed = ws.commitExtraEmptyScreens()
+        var committed = ws.commitExtraEmptyScreens()
+        // A pristine Launcher may have exactly one EXTRA_EMPTY_SCREEN_ID page.
+        // Committing it converts the placeholder but doesn't create page two.
+        // Add and commit once more only when the screen count did not grow.
+        if (ws.childCount <= before) {
+            ws.addExtraEmptyScreens()
+            committed = ws.commitExtraEmptyScreens()
+        }
         android.util.Log.i("GoreeEditQA", "add-result pages=${ws.childCount} committed=$committed")
         if (ws.childCount <= before) {
             Toast.makeText(context, "Unable to add Home screen", Toast.LENGTH_SHORT).show()

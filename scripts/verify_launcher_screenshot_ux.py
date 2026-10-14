@@ -74,7 +74,12 @@ assert "InsettableFrameLayout.LayoutParams" in launcher
 assert "ignoreInsets = true" in launcher
 assert "getEditModeWorkspaceScaleAndTranslation(launcher).scale" in read("src/com/android/launcher3/states/EditModeState.kt")
 assert "-offset * 0.55f" in read("src/com/android/launcher3/states/EditModeState.kt")
-assert "holder.itemView.isSelected = isCurrent" in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
+page_strip = read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
+assert "holder.itemView.isSelected = isCurrent" in page_strip
+assert "if (ws.childCount <= before)" in page_strip
+assert "committed = ws.commitExtraEmptyScreens()" in page_strip
+assert page_strip.count("ws.addExtraEmptyScreens()") == 2
+assert "ws.snapToPage(ws.childCount - 1)" in page_strip
 assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "ignoreInsets = true" in edit
