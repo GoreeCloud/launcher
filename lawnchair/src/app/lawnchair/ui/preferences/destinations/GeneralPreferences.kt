@@ -104,9 +104,9 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
             ListPreference(
                 adapter = prefs.profileBadgePosition.getAdapter(),
                 entries = listOf(
-                    ListPreferenceEntry(value = "top_left", label = { Text("Top left (default)") }),
-                    ListPreferenceEntry(value = "bottom_left", label = { Text("Bottom left") }),
-                    ListPreferenceEntry(value = "bottom_right", label = { Text("Bottom right") }),
+                    ListPreferenceEntry(value = "top_left", label = { "Top left (default)" }),
+                    ListPreferenceEntry(value = "bottom_left", label = { "Bottom left" }),
+                    ListPreferenceEntry(value = "bottom_right", label = { "Bottom right" }),
                 ),
                 label = "Profile badge position",
             )
