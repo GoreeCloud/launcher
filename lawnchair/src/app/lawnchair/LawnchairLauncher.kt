@@ -884,8 +884,55 @@ object GoreeCloudWallpapers {
         )
         canvas.drawCircle(w * .8f, h * .38f, w * .9f, paint)
         paint.shader = null
-        paint.color = android.graphics.Color.argb(18, 255, 255, 255)
-        canvas.drawCircle(w * .12f, h * .82f, w * .7f, paint)
+
+        // Three broad curved Glaze ribbons add depth without bitmap assets,
+        // network calls or changing a user's selected GoreeCloud theme.
+        // Coordinates are normalized so the shape survives phone aspect ratios.
+        val upperFold = android.graphics.Path().apply {
+            moveTo(-w * .18f, h * .08f)
+            cubicTo(w * .36f, -h * .03f, w * .51f, h * .11f, w * .35f, h * .27f)
+            cubicTo(w * .20f, h * .43f, -w * .08f, h * .39f, -w * .18f, h * .42f)
+            close()
+        }
+        paint.color = android.graphics.Color.argb(23, 176, 228, 249)
+        canvas.drawPath(upperFold, paint)
+
+        val aquaRibbon = android.graphics.Path().apply {
+            moveTo(-w * .26f, h * .74f)
+            cubicTo(w * .04f, h * .50f, w * .38f, h * .38f, w * .66f, h * .28f)
+            cubicTo(w * .88f, h * .21f, w * 1.06f, h * .14f, w * 1.18f, h * .04f)
+            lineTo(w * 1.2f, h * .58f)
+            cubicTo(w * .94f, h * .72f, w * .53f, h * .71f, w * .29f, h * .86f)
+            lineTo(-w * .26f, h * 1.05f)
+            close()
+        }
+        paint.shader = android.graphics.LinearGradient(
+            0f, h * .8f, w, h * .15f,
+            intArrayOf(
+                android.graphics.Color.argb(18, 31, 127, 186),
+                android.graphics.Color.argb(94, android.graphics.Color.red(glow),
+                    android.graphics.Color.green(glow), android.graphics.Color.blue(glow)),
+                android.graphics.Color.argb(20, 154, 231, 244),
+            ), floatArrayOf(0f, .6f, 1f), android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawPath(aquaRibbon, paint)
+        paint.shader = null
+
+        val deepRibbon = android.graphics.Path().apply {
+            moveTo(-w * .18f, h * .98f)
+            cubicTo(w * .02f, h * .73f, w * .35f, h * .66f, w * .59f, h * .56f)
+            cubicTo(w * .79f, h * .47f, w * .96f, h * .37f, w * 1.16f, h * .26f)
+            lineTo(w * 1.16f, h * .74f)
+            cubicTo(w * .82f, h * .95f, w * .44f, h * .87f, w * .21f, h * 1.07f)
+            close()
+        }
+        paint.shader = android.graphics.LinearGradient(
+            0f, h * .4f, w * .7f, h,
+            intArrayOf(0x74102752, 0xAB083B68.toInt(), 0x3A00658F),
+            null, android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawPath(deepRibbon, paint)
+        paint.shader = null
     }
 
     /** Picker is strictly the three bundled GoreeCloud themes. */

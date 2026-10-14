@@ -82,3 +82,36 @@ adb pull /sdcard/goreecloud-edit-added.xml "$out/edit-added-hierarchy.xml"
 adb logcat -d -t 1500 > "$out/logcat.txt"
 adb shell wm size > "$out/device-size.txt"
 python3 scripts/check_launcher_visual_edges.py "$out"
+
+# Exercise the new functional Add apps picker only on the disposable emulator,
+# after preserving the Home/edit/add-page evidence above.
+picker_coords="$(python3 - "$out/edit-added-hierarchy.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+for node in nodes:
+    if node.get("content-desc") == "Add apps" and node.get("clickable") == "true":
+        x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds", "")))
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+else:
+    raise SystemExit("Edit Home Add apps button is not actionable")
+PY
+)"
+read -r picker_x picker_y <<< "$picker_coords"
+adb shell input tap "$picker_x" "$picker_y"
+sleep 2
+adb shell screencap -p /sdcard/goreecloud-edit-picker-qa.png
+adb pull /sdcard/goreecloud-edit-picker-qa.png "$out/edit-app-picker.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-picker.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-picker.xml "$out/edit-app-picker-hierarchy.xml"
+python3 - "$out/edit-app-picker-hierarchy.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in nodes)
+if "Add apps to Home" not in visible:
+    raise SystemExit("Add apps picker did not open in the emulator")
+PY
+adb shell input keyevent KEYCODE_BACK
