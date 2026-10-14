@@ -75,9 +75,10 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
         columns = prefs.drawerColumns.firstCached(
             InvariantDeviceProfile.INSTANCE.get(this).closestProfile).coerceIn(4, 6)
         apps = getSystemService(LauncherApps::class.java)
-        allApps = apps.getActivityList(null, Process.myUserHandle())
-            .filter { it.componentName.packageName != packageName }
-            .distinctBy { it.componentName }
+        allApps = apps.profiles.flatMap { profile ->
+            runCatching { apps.getActivityList(null, profile) }.getOrDefault(emptyList())
+        }.filter { it.componentName.packageName != packageName }
+            .distinctBy { it.componentName to it.user }
         window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
         window.attributes = window.attributes.apply { dimAmount = .18f }
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
@@ -226,7 +227,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
         val hiddenPolicy = prefs.hiddenAppsInSearch.firstCached()
         val visible = allApps.filter { activity ->
             val key = com.android.launcher3.util.ComponentKey(
-                activity.componentName, Process.myUserHandle()).toString()
+                activity.componentName, activity.user).toString()
             key !in hidden || when (hiddenPolicy) {
                 app.lawnchair.ui.preferences.components.HiddenAppsInSearch.ALWAYS -> true
                 app.lawnchair.ui.preferences.components.HiddenAppsInSearch.IF_NAME_TYPED ->
@@ -310,7 +311,21 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                         setImageDrawable(app.getIcon(resources.displayMetrics.densityDpi))
                         scaleType = ImageView.ScaleType.FIT_CENTER
                     }
-                    tile.addView(icon, LinearLayout.LayoutParams(dp(43), dp(43)).apply {
+                    val frame = FrameLayout(this)
+                    frame.addView(icon, FrameLayout.LayoutParams(dp(43), dp(43)))
+                    val badgePosition = app.lawnchair.preferences.PreferenceManager.getInstance(this)
+                        .profileBadgePosition.get()
+                    val badgeGravity = when (badgePosition) {
+                        "bottom_left" -> Gravity.BOTTOM or Gravity.START
+                        "bottom_right" -> Gravity.BOTTOM or Gravity.END
+                        else -> Gravity.TOP or Gravity.START
+                    }
+                    val workProfile = app.user != Process.myUserHandle()
+                    frame.addView(text(if (workProfile) "W" else "P", 10f, true, Color.WHITE).apply {
+                        this.background = shape(if (workProfile) 0xFF96501C.toInt() else accent, 10)
+                        contentDescription = if (workProfile) "Work profile" else "Personal profile"
+                    }, FrameLayout.LayoutParams(dp(17), dp(17), badgeGravity))
+                    tile.addView(frame, LinearLayout.LayoutParams(dp(45), dp(45)).apply {
                         gravity = Gravity.CENTER_HORIZONTAL
                     })
                     val title = text(app.label.toString(), 11f).apply {
@@ -411,7 +426,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                             LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
                             LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED
                     )
-                apps.getShortcuts(q, Process.myUserHandle()).orEmpty()
+                apps.getShortcuts(q, matching.first().user).orEmpty()
             } catch (_: Exception) {
                 emptyList()
             }
@@ -421,7 +436,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                     actionRow(shortcut.shortLabel?.toString() ?: shortcut.id) {
                         try {
                             apps.startShortcut(
-                                shortcut.`package`, shortcut.id, null, null, Process.myUserHandle()
+                                shortcut.`package`, shortcut.id, null, null, matching.first().user
                             )
                             finish()
                         } catch (_: Exception) {
@@ -469,7 +484,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
         val packageId = activity.componentName.packageName
         val history = getSharedPreferences("goreecloud_universal_search_history", Context.MODE_PRIVATE)
         try {
-            apps.startMainActivity(activity.componentName, Process.myUserHandle(), null, null)
+            apps.startMainActivity(activity.componentName, activity.user, null, null)
             history.edit()
                 .putLong("opened_$packageId", System.currentTimeMillis())
                 .putInt("count_$packageId", history.getInt("count_$packageId", 0) + 1)
@@ -482,7 +497,9 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
 
     private fun explicitWebSearch(text: String) {
         if (text.isBlank()) return
-        val intent = Intent(Intent.ACTION_WEB_SEARCH).putExtra(SearchManager.QUERY, text)
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(
+            app.lawnchair.search.algorithms.engine.provider.web.BraveWebSearchProvider.getSearchUrl(text)
+        ))
         if (intent.resolveActivity(packageManager) != null) {
             startActivity(intent)
             finish()

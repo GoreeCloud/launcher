@@ -3435,6 +3435,33 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
         return true;
     }
 
+    /**
+     * Deletes only a verified empty secondary Home page. Populated pages must
+     * have their contents moved first; their items are never silently deleted.
+     */
+    public boolean removeEmptyWorkspacePageByIndex(int pageIndex) {
+        if (mLauncher.isWorkspaceLoading() || pageIndex <= 0
+                || getChildCount() <= getPanelCount() || pageIndex >= getChildCount()
+                || isPageInTransition() || isTwoPanelEnabled()) {
+            return false;
+        }
+        int id = getScreenIdForPageIndex(pageIndex);
+        CellLayout page = getScreenWithId(id);
+        if (page == null || id == FIRST_SCREEN_ID || isExtraEmptyScreen(id)
+                || page.getShortcutsAndWidgets().getChildCount() != 0) {
+            return false;
+        }
+        if (getDefaultPage() == pageIndex) setDefaultPage(0);
+        mWorkspaceScreens.remove(id);
+        mScreenOrder.removeValue(id);
+        removeView(page);
+        persistCurrentScreenOrderSync();
+        updatePageScrollValues();
+        updateCellLayoutMeasures();
+        snapToPage(Math.min(pageIndex, getChildCount() - 1));
+        return true;
+    }
+
     public IntArray getReorderablePageGroupStarts() {
         IntArray starts = new IntArray();
         int panelCount = getPanelCount();

@@ -1,6 +1,8 @@
 package app.lawnchair.views
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +10,8 @@ import android.view.View.GONE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.Toast
 import android.widget.TextView
 import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -285,6 +289,24 @@ class EditModePageStrip @JvmOverloads constructor(
             } else {
                 resources.getString(R.string.edit_mode_page_strip_page, position + 1)
             }
+            val ws = workspace
+            val pageStarts = ws?.reorderablePageGroupStarts
+            val start = if (pageStarts != null && position < pageStarts.size())
+                pageStarts[position] else -1
+            val page = if (start >= 0) ws?.getChildAt(start) else null
+            if (page != null && page.width > 0 && page.height > 0) {
+                val bitmap = Bitmap.createBitmap(124, 78, Bitmap.Config.ARGB_8888)
+                Canvas(bitmap).apply {
+                    drawColor(0xFFE8F1FA.toInt())
+                    save()
+                    scale(124f / page.width, 78f / page.height)
+                    page.draw(this)
+                    restore()
+                }
+                holder.preview.setImageBitmap(bitmap)
+            } else {
+                holder.preview.setImageDrawable(null)
+            }
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {
                 resources.getString(R.string.edit_mode_page_strip_home_selected)
@@ -295,6 +317,17 @@ class EditModePageStrip @JvmOverloads constructor(
                 val index = holder.bindingAdapterPosition
                 if (index != NO_POSITION) {
                     setHomeGroup(index)
+                }
+            }
+            holder.removeButton.contentDescription = "Remove empty Home page ${position + 1}"
+            holder.removeButton.setOnClickListener {
+                val current = holder.bindingAdapterPosition
+                val starts = ws?.reorderablePageGroupStarts
+                if (ws != null && starts != null && current in 0 until starts.size() &&
+                    ws.removeEmptyWorkspacePageByIndex(starts[current])) {
+                    refreshItems()
+                } else {
+                    Toast.makeText(context, "Move shortcuts and widgets off this page before removal", Toast.LENGTH_LONG).show()
                 }
             }
             holder.itemView.setOnClickListener {
@@ -313,6 +346,8 @@ class EditModePageStrip @JvmOverloads constructor(
     private class PageStripViewHolder(itemView: View) : ViewHolder(itemView) {
         val title: TextView = itemView.findViewById(R.id.page_strip_title)
         val homeButton: ImageButton = itemView.findViewById(R.id.page_strip_home_button)
+        val preview: ImageView = itemView.findViewById(R.id.page_strip_preview)
+        val removeButton: ImageButton = itemView.findViewById(R.id.page_strip_remove_button)
     }
 
     private data class PageItem(

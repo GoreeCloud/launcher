@@ -48,23 +48,10 @@ interface WebSearchProvider {
     override fun toString(): String
 
     companion object WebSearchProviderCompanion {
-        fun values(): List<WebSearchProvider> = listOf(
-            GoogleWebSearchProvider,
-            DuckDuckGoWebSearchProvider,
-            StartPageWebSearchProvider,
-            StartPageEUWebSearchProvider,
-            KagiWebSearchProvider,
-            CustomWebSearchProvider,
-        )
+        // Only Brave is supported until both GoreeCloud Search and Index
+        // have independently passed Stable release gates. Migrate legacy values.
+        fun values(): List<WebSearchProvider> = listOf(BraveWebSearchProvider)
 
-        fun fromString(value: String): WebSearchProvider = when (value) {
-            "google" -> GoogleWebSearchProvider
-            "duckduckgo" -> DuckDuckGoWebSearchProvider
-            "startpage" -> StartPageWebSearchProvider
-            "startpage-eu" -> StartPageEUWebSearchProvider
-            "kagi" -> KagiWebSearchProvider
-            "custom" -> CustomWebSearchProvider
-            else -> CustomWebSearchProvider
-        }
+        fun fromString(value: String): WebSearchProvider = BraveWebSearchProvider
     }
 }

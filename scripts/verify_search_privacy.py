@@ -43,7 +43,7 @@ require("import kotlinx.coroutines.CancellationException" in web and
 require('!webProvider.getSearchUrl(query).startsWith("https://", ignoreCase = true)' in web,
         "Web suggestions fail closed with unusable search destination")
 provider = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/WebSearchProvider.kt")
-require("else -> CustomWebSearchProvider" in provider, "Unknown provider IDs must not default to Google")
+require("fun fromString(value: String): WebSearchProvider = BraveWebSearchProvider" in provider, "Unknown provider IDs must not default to Google")
 custom = text("lawnchair/src/app/lawnchair/search/algorithms/engine/provider/web/CustomWebSearchProvider.kt")
 require("!isValidHttpsTemplate(suggestionsUrlTemplate)" in custom, "Validate custom suggestion URL")
 require("!isValidHttpsTemplate(searchUrlTemplate)" in custom, "Validate custom search URL")
@@ -94,8 +94,8 @@ require('searchUrl.startsWith("https://", ignoreCase = true)' in search,
 require("SearchResult.Action.MarketSearch" not in search,
         "No automatic app-market placement among local search results")
 popup = text("lawnchair/src/app/lawnchair/ui/preferences/components/search/WebSearchProvider.kt")
-require("CustomWebSearchProvider.isValidHttpsTemplate(it)" in popup,
-        "Custom URL editor validates HTTPS")
+require("SearchPopupPreference(" not in popup[:popup.index("@Composable\nfun SearchPopupPreference")],
+        "Brave-only selection must expose no custom provider editor")
 require("enabled = !isErrorCheck(value.text)" in popup,
         "Invalid custom URLs cannot be saved")
 require("value = TextFieldValue(initialValue)" in popup and

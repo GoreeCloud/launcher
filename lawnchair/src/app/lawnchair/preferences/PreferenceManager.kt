@@ -102,6 +102,8 @@ class PreferenceManager @Inject constructor(
         else -> LayoutConfig(5, 5, 7)
     }
 
+    // Top-right is reserved for the launcher notification dot.
+    val profileBadgePosition = StringPref("goreecloud_profile_badge_position", "top_left", reloadGrid)
     val hotseatColumns = IntPref("pref_hotseatColumns", calculatedGridSpec.hotseatColumns, reloadGrid)
     val hotseatColumnsUnfolded = IntPref("pref_hotseatColumnsUnfolded", calculatedGridSpec.hotseatColumnsUnfolded, reloadGrid)
     val hotseatRows = IntPref("pref_hotseatRows", 1, reloadGrid)
@@ -113,7 +115,6 @@ class PreferenceManager @Inject constructor(
 
     val drawerOpacity = FloatPref("pref_drawerOpacity", 1f, recreate)
     val coloredBackgroundLightness = FloatPref("pref_coloredBackgroundLightness", 1F)
-    val feedProvider = StringPref("pref_feedProvider", "")
     val ignoreFeedWhitelist = BoolPref("pref_ignoreFeedWhitelist", false)
     val launcherTheme = StringPref("pref_launcherTheme", "system")
     val overrideWindowCornerRadius = BoolPref("pref_overrideWindowCornerRadius", false, recreate)

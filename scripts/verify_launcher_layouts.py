@@ -127,7 +127,7 @@ check("class GoreeCloudWallpaperView" in root_view and
       "Wallpaper catalog must use GoreeCloud assets and picker")
 check("Intent.ACTION_SET_WALLPAPER)" not in wallpaper_menu,
       "Launcher must not launch the external wallpaper catalog")
-check('showWallpaperCarousel = false' in root_view,
+check('stateManager.goToState(LauncherState.EDIT_MODE)' in root_view,
       "Wallpaper history carousel must remain disabled")
 for folder in ("res/xml", "lawnchair/res/xml"):
     for name in ("default_workspace_5x5.xml", "default_workspace_5x6.xml"):

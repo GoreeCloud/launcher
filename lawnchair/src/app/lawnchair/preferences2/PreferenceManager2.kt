@@ -693,11 +693,6 @@ class PreferenceManager2 @Inject constructor(
         },
     )
 
-    val enableFeed = preference(
-        key = booleanPreferencesKey(name = "enable_feed"),
-        defaultValue = context.resources.getBoolean(R.bool.config_default_enable_feed),
-    )
-
     val showComponentNames = preference(
         key = booleanPreferencesKey(name = "show_component_names"),
         defaultValue = context.resources.getBoolean(R.bool.config_default_show_component_names),

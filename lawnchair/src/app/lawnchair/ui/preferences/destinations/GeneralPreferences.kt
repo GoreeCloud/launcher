@@ -16,6 +16,7 @@
 
 package app.lawnchair.ui.preferences.destinations
 
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -97,6 +98,17 @@ fun GeneralPreferences(modifier: Modifier = Modifier) {
                 adapter = prefs.allowRotation.getAdapter(),
                 label = stringResource(id = R.string.home_screen_rotation_label),
                 description = stringResource(id = R.string.home_screen_rotation_description),
+            )
+        }
+        PreferenceGroup(heading = "App profile badges") {
+            ListPreference(
+                adapter = prefs.profileBadgePosition.getAdapter(),
+                entries = listOf(
+                    ListPreferenceEntry(value = "top_left", label = { Text("Top left (default)") }),
+                    ListPreferenceEntry(value = "bottom_left", label = { Text("Bottom left") }),
+                    ListPreferenceEntry(value = "bottom_right", label = { Text("Bottom right") }),
+                ),
+                label = "Profile badge position",
             )
         }
         PreferenceGroup(heading = stringResource(id = R.string.updater)) {

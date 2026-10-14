@@ -923,6 +923,7 @@ public class BubbleTextView extends TextView implements ItemInfoUpdateReceiver,
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         drawDotIfNecessary(canvas);
+        GoreeCloudProfileBadges.draw(canvas, this);
         drawRunningAppIndicatorIfNecessary(canvas);
     }
 

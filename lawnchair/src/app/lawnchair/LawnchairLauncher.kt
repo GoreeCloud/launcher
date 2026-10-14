@@ -39,7 +39,6 @@ import app.lawnchair.gestures.GestureController
 import app.lawnchair.gestures.VerticalSwipeTouchController
 import app.lawnchair.gestures.config.GestureHandlerConfig
 import app.lawnchair.gestures.ui.LawnchairShortcutActivity
-import app.lawnchair.nexuslauncher.OverlayCallbackImpl
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.preferences2.firstCached
@@ -97,7 +96,6 @@ import kotlinx.coroutines.launch
 
 class LawnchairLauncher : QuickstepLauncher() {
     private var goreecloudSetupLaunching = false
-    private val defaultOverlay by unsafeLazy { OverlayCallbackImpl(this) }
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
     private val insetsController: WindowInsetsControllerCompat by lazy {
@@ -177,11 +175,10 @@ class LawnchairLauncher : QuickstepLauncher() {
             ),
         )
 
+        installGoreeCloudHomeOverviewActions()
+
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
-        prefs.feedProvider.subscribeChanges(this, defaultOverlay::reconnect)
-        preferenceManager2.enableFeed.get().distinctUntilChanged().onEach { enable ->
-            defaultOverlay.setEnableFeed(enable)
-        }.launchIn(scope = lifecycleScope)
+
         launcher.stateManager.addStateListener(clearSearchStateListener)
 
         if (prefs.autoLaunchRoot.get()) {
@@ -365,18 +362,69 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
-    override fun showDefaultOptions(x: Float, y: Float) {
-        val showWallpaperCarousel = false // Exclude history and system wallpapers from GoreeCloud picker
-
-        if (showWallpaperCarousel) {
-            show<LawnchairLauncher>(
-                this,
-                getPopupTarget(x, y),
-                OptionsPopupView.getOptions(this),
-            )
-        } else {
-            super.showDefaultOptions(x, y)
+    private fun installGoreeCloudHomeOverviewActions() {
+        val scale = resources.displayMetrics.density
+        fun dp(value: Int) = (value * scale + .5f).toInt()
+        val bar = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setBackgroundColor(0xEAF7FAFF.toInt())
+            elevation = dp(8).toFloat()
+            visibility = View.GONE
+            tag = "goreecloud_home_overview_actions"
         }
+        fun option(label: String, glyph: String, onClick: () -> Unit) {
+            bar.addView(android.widget.TextView(this).apply {
+                text = "$glyph\n$label"
+                gravity = android.view.Gravity.CENTER
+                textSize = 11f
+                setTextColor(0xFF1B3652.toInt())
+                minHeight = dp(54)
+                isClickable = true
+                isFocusable = true
+                contentDescription = label
+                setOnClickListener { onClick() }
+            }, android.widget.LinearLayout.LayoutParams(0, dp(62), 1f))
+        }
+        option("Wallpapers", "▧") { GoreeCloudWallpapers.showPicker(this) }
+        option("Widgets", "⊞") {
+            com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
+        }
+        option("Add page", "＋") {
+            if (workspace.childCount < 16) {
+                workspace.addExtraEmptyScreens()
+                workspace.commitExtraEmptyScreens()
+                workspace.snapToPage(workspace.childCount - 1)
+                findViewById<app.lawnchair.views.EditModePageStrip>(
+                    R.id.edit_mode_page_strip,
+                )?.refreshItems()
+            } else {
+                android.widget.Toast.makeText(this, "Maximum 16 Home pages", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+        option("Settings", "⚙") {
+            startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
+        }
+        option("Done", "✓") { stateManager.goToState(LauncherState.NORMAL) }
+        dragLayer.addView(bar, android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+            android.view.Gravity.BOTTOM,
+        ).apply { bottomMargin = dp(154) })
+        stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
+            override fun onStateTransitionStart(toState: LauncherState) {
+                bar.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+            }
+            override fun onStateTransitionComplete(finalState: LauncherState) {
+                bar.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+            }
+        })
+    }
+
+    /** Empty Home long-press opens page overview, never the legacy popup. */
+    override fun showDefaultOptions(x: Float, y: Float) {
+        stateManager.goToState(LauncherState.EDIT_MODE)
     }
 
     private fun <T> show(
@@ -533,7 +581,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         SmartspacerClient.close()
     }
 
-    override fun getDefaultOverlay(): LauncherOverlayManager = defaultOverlay
+    override fun getDefaultOverlay(): LauncherOverlayManager = object : LauncherOverlayManager {}
+
+    // GoreeCloud deliberately has no minus-one Feeds page, including plugins.
+    override fun onPluginConnected(overlayManager: com.android.systemui.plugins.LauncherOverlayPlugin, context: Context) = Unit
 
     fun recreateIfNotScheduled() {
         if (sRestartFlags == 0) {
