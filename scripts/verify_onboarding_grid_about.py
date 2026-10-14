@@ -17,7 +17,9 @@ assert all(t in setup for t in (
 ))
 assert 'grid.workspaceColumns.set(homeColumns)' in setup
 assert 'grid.hotseatColumns.set(dockColumns)' in setup
-assert 'prefs.drawerColumns.set(drawerColumns)' in setup
+assert 'prefs.drawerColumns.set(drawerColumns,' in setup
+assert '.closestProfile)' in setup
+assert setup.index('.putBoolean("onboarding_finished", true).commit()') < setup.index('onPreferencesChanged(this@GoreeCloudSetupActivity)')
 assert 'onPreferencesChanged(this@GoreeCloudSetupActivity)' in setup
 assert 'STEP ${page + 1} OF 6' in setup
 assert 'page == 5' in setup

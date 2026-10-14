@@ -55,6 +55,10 @@ check("SOFT_INPUT_ADJUST_RESIZE" in overlay and "showSoftInput(input" in overlay
       "Pull-down keyboard preference must control keyboard focus")
 check("queryAndAggregateUsageStats" in overlay and "hasUsageAccess()" in overlay,
       "Recent/frequent rankings must require authorized usage data")
+check(all(provider in overlay for provider in ("CalculatorSearchProvider", "ContactsSearchProvider", "FileSearchProvider")),
+      "Pull-down query must reuse on-device quick answer, contacts and file providers")
+check("LauncherApps.ShortcutQuery" in overlay and "startShortcut(" in overlay,
+      "Pull-down query must support authorized app shortcuts")
 check("prefs.hiddenApps.firstCached()" in overlay and "hiddenAppsInSearch.firstCached()" in overlay,
       "Overlay must enforce existing hidden-app search preferences")
 check('android:name="app.lawnchair.GoreeCloudUniversalSearchActivity"' in manifest and

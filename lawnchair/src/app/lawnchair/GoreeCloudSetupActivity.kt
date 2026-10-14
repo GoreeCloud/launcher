@@ -20,7 +20,7 @@ import app.lawnchair.preferences2.PreferenceManager2
 import com.android.launcher3.InvariantDeviceProfile
 import kotlinx.coroutines.launch
 
-/** Five-step GoreeCloud setup, with visible Back, Skip and Continue actions. */
+/** Six-step GoreeCloud setup, with visible Back, Skip and Continue actions. */
 class GoreeCloudSetupActivity : ComponentActivity() {
     private val store by lazy { getSharedPreferences("goreecloud_home_onboarding", Context.MODE_PRIVATE) }
     private var page = 0
@@ -241,6 +241,13 @@ class GoreeCloudSetupActivity : ComponentActivity() {
         val selectedMode = if (skip) 0 else homeMode
         lifecycleScope.launch {
             try {
+                // Commit completion before the grid reload can recreate Launcher.
+                // If settings fail, the recovery path below re-enables onboarding.
+                if (!store.edit().putInt("mode", selectedMode)
+                        .putBoolean("completed", selectedMode == 0)
+                        .putBoolean("onboarding_finished", true).commit()) {
+                    throw IllegalStateException("Could not persist onboarding")
+                }
                 if (!skip) {
                     val prefs = PreferenceManager2.getInstance(this@GoreeCloudSetupActivity)
                     prefs.homeIconSizeFactor.set(if (compact) 0.78f else 0.90f)
@@ -253,15 +260,14 @@ class GoreeCloudSetupActivity : ComponentActivity() {
                         grid.hotseatColumns.set(dockColumns)
                         grid.hotseatColumnsUnfolded.set(dockColumns)
                     }
-                    prefs.drawerColumns.set(drawerColumns)
+                    prefs.drawerColumns.set(drawerColumns,
+                        InvariantDeviceProfile.INSTANCE.get(this@GoreeCloudSetupActivity).closestProfile)
                     InvariantDeviceProfile.INSTANCE.get(this@GoreeCloudSetupActivity)
                         .onPreferencesChanged(this@GoreeCloudSetupActivity)
                 }
-                store.edit().putInt("mode", selectedMode)
-                    .putBoolean("completed", selectedMode == 0)
-                    .putBoolean("onboarding_finished", true).apply()
                 finish()
             } catch (_: Exception) {
+                store.edit().putBoolean("onboarding_finished", false).apply()
                 saving = false
                 Toast.makeText(this@GoreeCloudSetupActivity,
                     "Setup could not be saved. Please try again.", Toast.LENGTH_LONG).show()

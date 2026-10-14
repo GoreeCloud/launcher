@@ -3,6 +3,10 @@ package app.lawnchair
 import android.app.Activity
 import android.app.AppOpsManager
 import android.app.SearchManager
+import android.net.Uri
+import android.content.ContentUris
+import android.provider.ContactsContract
+import android.provider.MediaStore
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -27,7 +31,19 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.android.launcher3.InvariantDeviceProfile
 import app.lawnchair.preferences2.PreferenceManager2
+import app.lawnchair.search.algorithms.engine.SearchResult
+import app.lawnchair.search.algorithms.engine.provider.CalculatorSearchProvider
+import app.lawnchair.search.algorithms.engine.provider.ContactsSearchProvider
+import app.lawnchair.search.algorithms.engine.provider.FileSearchProvider
+import app.lawnchair.search.algorithms.data.FileInfo
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import app.lawnchair.preferences2.firstCached
 import java.util.Locale
 import kotlin.math.min
@@ -37,7 +53,7 @@ import kotlin.math.min
  * not a navigation to All Apps. Personal profile results stay local. Android
  * Usage Access is optional; launcher-owned open history is a local fallback.
  */
-class GoreeCloudUniversalSearchActivity : Activity() {
+class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() {
     private val accent = Color.rgb(0, 103, 181)
     private val dark = Color.rgb(24, 36, 54)
     private val muted = Color.rgb(98, 110, 123)
@@ -48,6 +64,7 @@ class GoreeCloudUniversalSearchActivity : Activity() {
     private lateinit var tabsBar: LinearLayout
     private var tab = 0
     private var query = ""
+    private var extraSearchJob: Job? = null
     private var columns = 5
     private var allApps: List<LauncherActivityInfo> = emptyList()
 
@@ -55,7 +72,8 @@ class GoreeCloudUniversalSearchActivity : Activity() {
         super.onCreate(state)
         val prefs = PreferenceManager2.getInstance(this)
         if (!prefs.universalSearchEnabled.firstCached()) { finish(); return }
-        columns = prefs.drawerColumns.firstCached().coerceIn(4, 6)
+        columns = prefs.drawerColumns.firstCached(
+            InvariantDeviceProfile.INSTANCE.get(this).closestProfile).coerceIn(4, 6)
         apps = getSystemService(LauncherApps::class.java)
         allApps = apps.getActivityList(null, Process.myUserHandle())
             .filter { it.componentName.packageName != packageName }
@@ -100,7 +118,7 @@ class GoreeCloudUniversalSearchActivity : Activity() {
         }
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = shape(Color.rgb(252, 251, 255), 26)
+            this.background = shape(Color.rgb(252, 251, 255), 26)
             elevation = dp(12).toFloat()
             isClickable = true
         }
@@ -125,7 +143,7 @@ class GoreeCloudUniversalSearchActivity : Activity() {
             setHintTextColor(muted)
             textSize = 19f
             hint = "Search apps and more"
-            background = null
+            this.background = null
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
             setPadding(dp(10), 0, 0, 0)
             addTextChangedListener(object : TextWatcher {
@@ -253,6 +271,7 @@ class GoreeCloudUniversalSearchActivity : Activity() {
 
     private fun showResults() {
         if (!::grid.isInitialized) return
+        extraSearchJob?.cancel()
         grid.removeAllViews()
         val results = rankedApps()
         if (results.isEmpty()) {
@@ -307,7 +326,130 @@ class GoreeCloudUniversalSearchActivity : Activity() {
             }
         }
         if (query.isNotBlank()) {
+            val searchTerm = query
+            extraSearchJob = lifecycleScope.launch { showEnabledSources(searchTerm) }
             actionRow("Search web for \"$query\"") { explicitWebSearch(query) }
+        }
+    }
+
+    /** Reuse the existing permission-aware providers; do not initiate any network search. */
+    private suspend fun showEnabledSources(term: String) {
+        delay(180L)
+        if (term != query || isFinishing) return
+        suspend fun gather(provider: app.lawnchair.search.algorithms.engine.SearchProvider): List<SearchResult> {
+            return try {
+                provider.search(this@GoreeCloudUniversalSearchActivity, term).first()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+        val calculator = gather(CalculatorSearchProvider).filterIsInstance<SearchResult.Calculation>().take(1)
+        val contacts = gather(ContactsSearchProvider).filterIsInstance<SearchResult.Contact>().take(4)
+        val files = gather(FileSearchProvider).filterIsInstance<SearchResult.File>().take(4)
+        if (term != query || isFinishing) return
+
+        if (calculator.isNotEmpty()) {
+            section("QUICK ANSWER")
+            calculator.forEach { result ->
+                actionRow("${result.data.equation} = ${result.data.result}") {
+                    (getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("Result", result.data.result))
+                    android.widget.Toast.makeText(this, "Answer copied", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        if (contacts.isNotEmpty()) {
+            section("CONTACTS")
+            contacts.forEach { result ->
+                val contact = result.data
+                actionRow("${contact.name}  ·  ${contact.number}") {
+                    val id = contact.contactId.toLongOrNull()
+                    val uri = if (id != null) ContentUris.withAppendedId(
+                        ContactsContract.Contacts.CONTENT_URI, id
+                    ) else Uri.parse("tel:${Uri.encode(contact.number)}")
+                    val action = if (id != null) Intent.ACTION_VIEW else Intent.ACTION_DIAL
+                    launchSupported(Intent(action, uri))
+                }
+            }
+        }
+        if (files.isNotEmpty()) {
+            section("FILES & DOCUMENTS")
+            files.forEach { result ->
+                val file = result.data
+                actionRow(file.name) {
+                    val id = (file as? FileInfo)?.fileId?.toLongOrNull()
+                    if (id == null) {
+                        launchSupported(Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                            addCategory(Intent.CATEGORY_OPENABLE)
+                            type = "*/*"
+                        })
+                    } else {
+                        val uri = ContentUris.withAppendedId(
+                            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL), id)
+                        launchSupported(Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(uri, (file as FileInfo).mimeType ?: "*/*")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        })
+                    }
+                }
+            }
+        }
+        // Android app shortcuts are queried only for an app already visible to
+        // this search, so hidden-app preferences apply to shortcut results too.
+        val matching = rankedApps()
+        if (matching.size == 1) {
+            val packageId = matching.first().componentName.packageName
+            val shortcuts = try {
+                val q = LauncherApps.ShortcutQuery()
+                    .setPackage(packageId)
+                    .setQueryFlags(
+                        LauncherApps.ShortcutQuery.FLAG_MATCH_DYNAMIC or
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_MANIFEST or
+                            LauncherApps.ShortcutQuery.FLAG_MATCH_PINNED
+                    )
+                apps.getShortcuts(q, Process.myUserHandle()).orEmpty()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            if (shortcuts.isNotEmpty() && term == query && !isFinishing) {
+                section("APP SHORTCUTS")
+                shortcuts.take(4).forEach { shortcut ->
+                    actionRow(shortcut.shortLabel?.toString() ?: shortcut.id) {
+                        try {
+                            apps.startShortcut(
+                                shortcut.package, shortcut.id, null, null, Process.myUserHandle()
+                            )
+                            finish()
+                        } catch (_: Exception) {
+                            android.widget.Toast.makeText(
+                                this, "Shortcut unavailable", android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun section(title: String) {
+        grid.addView(text(title, 12f, weight = true, color = muted).apply {
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(12), dp(8), dp(4))
+        })
+    }
+
+    private fun launchSupported(intent: Intent) {
+        try {
+            if (intent.resolveActivity(packageManager) != null) {
+                startActivity(intent)
+                finish()
+            } else {
+                android.widget.Toast.makeText(this, "No compatible application", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        } catch (_: Exception) {
+            android.widget.Toast.makeText(this, "Unable to open result", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
