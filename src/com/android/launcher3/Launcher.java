@@ -1330,7 +1330,8 @@ public class Launcher extends StatefulActivity<LauncherState>
                 @Override
                 public void onStateTransitionComplete(LauncherState finalState) {
                     if (finalState == EDIT_MODE) {
-                        mEditModePageStrip.maybeShowEducationTip(Launcher.this);
+                        // GoreeCloud keeps edit mode unobstructed: no first-run popup over the dock.
+                        mEditModePageStrip.dismissEducationTip();
                     }
                 }
             });

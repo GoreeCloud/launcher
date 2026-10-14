@@ -59,7 +59,7 @@ check("LocalGlazeMetrics provides GlazeAndroidContract.metrics" in read("lawncha
 check("GlazeAndroidContract.preferenceSurface" in read("lawnchair/src/app/lawnchair/ui/theme/Color.kt"), "Glaze settings surface")
 check((ROOT/"LICENSE.txt").exists(), "Upstream license retained")
 check("4793ba3a238bb1a3e786a3471a6d84767ed05267" in read("docs/UPSTREAM_PROVENANCE.md"), "Upstream provenance pin")
-check(sorted(p.name for p in (ROOT/".github/workflows").glob("*.yml")) == ["goreecloud-ci.yml", "launcher-qa-apk.yml"], "No unreviewed YAML workflows")
+check(sorted(p.name for p in (ROOT/".github/workflows").glob("*.yml")) == ["goreecloud-ci.yml", "launcher-qa-apk.yml", "launcher-visual-qa.yml"], "No unreviewed YAML workflows")
 try:
     entry = subprocess.check_output(["git", "ls-files", "--stage", "platform_frameworks_libs_systemui"], cwd=ROOT, text=True)
     check("160000 7d9e92bda50359dc66a530248e15f9748343524e" in entry, "Submodule pin")

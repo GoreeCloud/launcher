@@ -96,6 +96,7 @@ import kotlinx.coroutines.launch
 
 class LawnchairLauncher : QuickstepLauncher() {
     private var goreecloudSetupLaunching = false
+    private var goreecloudEditActions: View? = null
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
     private val insetsController: WindowInsetsControllerCompat by lazy {
@@ -159,9 +160,10 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onCreate(savedInstanceState: Bundle?) {
         layoutInflater.factory2 = LawnchairLayoutFactory(this)
         super.onCreate(savedInstanceState)
+        applyGoreeCloudSystemBarWallpaper()
 
         // One non-interactive wallpaper behind the workspace; no external sources.
-        dragLayer.addView(
+        rootView.addView(
             GoreeCloudWallpaperView(this).apply {
                 tag = "goreecloud_wallpaper"
                 isClickable = false
@@ -169,14 +171,19 @@ class LawnchairLauncher : QuickstepLauncher() {
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             },
             0,
-            android.widget.FrameLayout.LayoutParams(
+            com.android.launcher3.InsettableFrameLayout.LayoutParams(
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
                 android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
+            ).apply {
+                // The selected wallpaper must not inherit system-bar margins.
+                ignoreInsets = true
+                gravity = android.view.Gravity.FILL
+            },
         )
 
         installGoreeCloudHomeOverviewActions()
         app.lawnchair.views.GoreeCloudOverviewToolbar.install(this)
+        dragLayer.post { migrateGoreeCloudDrawerDefaults() }
 
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
 
@@ -363,52 +370,121 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    /** Apply changed defaults once to older installs, then honor later user choices. */
+    private fun migrateGoreeCloudDrawerDefaults() {
+        val migration = getSharedPreferences("goreecloud_launcher_migrations", Context.MODE_PRIVATE)
+        if (migration.getBoolean("drawer_search_hidden_v3", false)) return
+        if (!migration.edit().putBoolean("drawer_search_hidden_v3", true).commit()) return
+        lifecycleScope.launch {
+            if (!preferenceManager2.hideAppDrawerSearchBar.firstCached()) {
+                preferenceManager2.hideAppDrawerSearchBar.set(true)
+            }
+            if (preferenceManager2.showSuggestedAppsInDrawer.firstCached()) {
+                preferenceManager2.showSuggestedAppsInDrawer.set(false)
+            }
+        }
+    }
+
+    /** Draw the Home wallpaper continuously behind transparent system bars. */
+    private fun applyGoreeCloudSystemBarWallpaper() {
+        val targetWindow = window ?: return
+        // WindowCompat owns edge-to-edge layout. Writing legacy systemUiVisibility
+        // flags here conflicts with WindowCompat and can clip system-bar icons.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(targetWindow, false)
+        targetWindow.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT
+        targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            targetWindow.isStatusBarContrastEnforced = false
+            targetWindow.isNavigationBarContrastEnforced = false
+            targetWindow.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
+        }
+        WindowInsetsControllerCompat(targetWindow, rootView).apply {
+            isAppearanceLightStatusBars = false
+            isAppearanceLightNavigationBars = false
+        }
+    }
+
     private fun installGoreeCloudHomeOverviewActions() {
         val scale = resources.displayMetrics.density
         fun dp(value: Int) = (value * scale + .5f).toInt()
         val bar = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-            setBackgroundColor(android.graphics.Color.TRANSPARENT)
-            elevation = dp(8).toFloat()
+            setPadding(dp(6), dp(2), dp(6), dp(2))
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(android.graphics.Color.TRANSPARENT)
+                cornerRadius = dp(24).toFloat()
+                setStroke(0, android.graphics.Color.TRANSPARENT)
+            }
+            elevation = 0f
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
         }
-        fun option(label: String, glyph: String, onClick: () -> Unit) {
-            bar.addView(android.widget.TextView(this).apply {
-                text = android.text.SpannableString("$glyph\n$label").apply {
-                    setSpan(android.text.style.RelativeSizeSpan(1.65f), 0, glyph.length,
-                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
+        fun option(label: String, icon: Int, onClick: () -> Unit) {
+            val tile = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER
-                textSize = 15f
-                setTextColor(0xFFFFFFFF.toInt())
-                minHeight = dp(54)
+                contentDescription = label
                 isClickable = true
                 isFocusable = true
-                contentDescription = label
                 setOnClickListener { onClick() }
-            }, android.widget.LinearLayout.LayoutParams(0, dp(92), 1f))
+            }
+            tile.addView(android.widget.ImageView(this).apply {
+                setImageResource(icon)
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                imageTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+            }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
+            tile.addView(android.widget.TextView(this).apply {
+                text = when (label) {
+                    "Wallpapers & themes" -> "Wallpapers &\nthemes"
+                    "Home screen settings" -> "Home screen\nsettings"
+                    else -> label
+                }
+                textSize = 11f
+                gravity = android.view.Gravity.CENTER
+                maxLines = 2
+                includeFontPadding = false
+                setTextColor(0xFFFFFFFF.toInt())
+            }, android.widget.LinearLayout.LayoutParams(-1, dp(43)))
+            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(80), 1f))
         }
-        option("Wallpapers & themes", "▤") { GoreeCloudWallpapers.showPicker(this) }
-        option("Widgets", "⊞") {
+        option("Wallpapers & themes", R.drawable.goreecloud_edit_wallpaper) { GoreeCloudWallpapers.showPicker(this) }
+        option("Widgets", R.drawable.goreecloud_edit_widgets) {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Home screen settings", "⚙") {
+        option("Home screen settings", R.drawable.goreecloud_edit_settings) {
             startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
         }
-        dragLayer.addView(bar, android.widget.FrameLayout.LayoutParams(
+        // LauncherRootView is an InsettableFrameLayout: ordinary FrameLayout
+        // parameters are converted and can lose gravity, pinning actions to TOP.
+        rootView.addView(bar, com.android.launcher3.InsettableFrameLayout.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            android.view.Gravity.BOTTOM,
-        ).apply { bottomMargin = dp(18) })
+        ).apply {
+            ignoreInsets = true
+            gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(38)
+            leftMargin = dp(16)
+            rightMargin = dp(16)
+        })
+        goreecloudEditActions = bar
+        // The legacy DragLayer intercepts gestures while Workspace is inaccessible
+        // in edit mode. Host page navigation above it, beside other edit controls,
+        // so page dots and Add page receive real taps on a phone.
         findViewById<app.lawnchair.views.EditModePageStrip>(
             R.id.edit_mode_page_strip,
         )?.let { strip ->
-            (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { params ->
-                params.bottomMargin = dp(136)
-                strip.layoutParams = params
+            if (strip.parent !== rootView) {
+                (strip.parent as? android.view.ViewGroup)?.removeView(strip)
+                strip.setPadding(0, 0, 0, 0)
+                rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(38),
+                ).apply {
+                    ignoreInsets = true
+                    gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                })
             }
         }
         stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
@@ -417,8 +493,53 @@ class LawnchairLauncher : QuickstepLauncher() {
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
                 bar.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+                if (finalState == LauncherState.EDIT_MODE) {
+                    rootView.post { alignGoreeCloudEditNavigation() }
+                }
             }
         })
+    }
+
+    /**
+     * Anchor the Home/dot/add-page controls between the measured preview and
+     * footer actions. Fixed bottom margins caused them to overlap on phones.
+     */
+    private fun alignGoreeCloudEditNavigation() {
+        if (!isInState(LauncherState.EDIT_MODE)) return
+        val strip = findViewById<app.lawnchair.views.EditModePageStrip>(
+            R.id.edit_mode_page_strip,
+        ) ?: return
+        val actions = goreecloudEditActions ?: return
+        val page = workspace.getPageAt(workspace.currentPage) ?: return
+        val pageBounds = android.graphics.Rect()
+        val actionBounds = android.graphics.Rect()
+        if (!page.getGlobalVisibleRect(pageBounds) ||
+            !actions.getGlobalVisibleRect(actionBounds)
+        ) return
+        val parent = strip.parent as? View ?: return
+        val origin = IntArray(2)
+        parent.getLocationOnScreen(origin)
+        val dpScale = resources.displayMetrics.density
+        fun dp(value: Int) = (value * dpScale + .5f).toInt()
+        // Compact Home/dot/+ row stays visibly below the bordered page.
+        val stripHeight = dp(38)
+        val gap = dp(12)
+        val dockBounds = android.graphics.Rect()
+        val frameBottom = if (hotseat.getGlobalVisibleRect(dockBounds)) {
+            maxOf(pageBounds.bottom, dockBounds.bottom + dp(12))
+        } else pageBounds.bottom
+        val preferredTop = frameBottom + gap
+        val safeTop = actionBounds.top - stripHeight - gap
+        val screenTop = minOf(preferredTop, safeTop).coerceAtLeast(origin[1] + dp(48))
+        (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { lp ->
+            lp.gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+            lp.height = stripHeight
+            lp.topMargin = screenTop - origin[1]
+            lp.bottomMargin = 0
+            strip.layoutParams = lp
+        }
+        strip.refreshItems()
+        strip.bringToFront()
     }
 
     /** Empty Home long-press opens page overview, never the legacy popup. */
@@ -534,11 +655,27 @@ class LawnchairLauncher : QuickstepLauncher() {
         super.onPageEndTransition()
         if (stateManager.state == LauncherState.EDIT_MODE) {
             app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
+            app.lawnchair.views.GoreeCloudOverviewToolbar.refresh(this)
+            rootView.post { alignGoreeCloudEditNavigation() }
         }
+    }
+
+    override fun startActivitySafely(
+        v: View?,
+        intent: Intent,
+        item: ItemInfo?,
+    ): com.android.launcher3.util.RunnableList? {
+        val started = super.startActivitySafely(v, intent, item)
+        if (started != null) {
+            GoreeCloudHomeOnboarding.recordLaunch(
+                this, intent.component?.packageName ?: item?.targetComponent?.packageName)
+        }
+        return started
     }
 
     override fun onResume() {
         super.onResume()
+        applyGoreeCloudSystemBarWallpaper()
         restartIfPending()
         refreshPredictionContainersFromModel()
         dragLayer.post {

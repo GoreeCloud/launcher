@@ -149,18 +149,24 @@ class EditModePageStrip @JvmOverloads constructor(
         translationY = 0f
     }
 
+    // Reorderable groups exclude pages Android currently considers immovable.
+    // That can hide the first (and only) Home page on a clean installation.
+    // Navigation must instead reflect every actual visible Workspace page.
+    private fun pageGroupStarts(ws: Workspace<*>): List<Int> =
+        (0 until ws.childCount step ws.panelCount.coerceAtLeast(1)).toList()
+
     fun refreshItems() {
         val ws = workspace
         if (ws == null) {
             pageStripAdapter.setItems(emptyList())
             return
         }
-        val starts = ws.reorderablePageGroupStarts
-        val defaultGroupIndex = ws.defaultPageGroupIndex
-        val items = (0 until starts.size()).map { i ->
-            PageItem(isDefault = i == defaultGroupIndex)
+        val starts = pageGroupStarts(ws)
+        val defaultPage = ws.defaultPage
+        val items = starts.map { start ->
+            PageItem(isDefault = start == defaultPage)
         }
-        val cellPx = (52 * resources.displayMetrics.density).toInt()
+        val cellPx = (38 * resources.displayMetrics.density).toInt()
         val sidePx = ((resources.displayMetrics.widthPixels - (items.size + 1) * cellPx) / 2).coerceAtLeast(12)
         setPadding(sidePx, paddingTop, sidePx, paddingBottom)
         pageStripAdapter.setItems(items)
@@ -168,30 +174,49 @@ class EditModePageStrip @JvmOverloads constructor(
 
     private fun addHomePage() {
         val ws = workspace ?: return
-        if (ws.childCount >= 16) return
+        val before = ws.childCount
+        android.util.Log.i("GoreeEditQA", "add-click pages=$before")
+        if (before >= 16) return
         ws.addExtraEmptyScreens()
-        ws.commitExtraEmptyScreens()
-        ws.snapToPage(ws.childCount - 1)
+        var committed = ws.commitExtraEmptyScreens()
+        // A pristine Launcher may have exactly one EXTRA_EMPTY_SCREEN_ID page.
+        // Committing it converts the placeholder but doesn't create page two.
+        // Add and commit once more only when the screen count did not grow.
+        if (ws.childCount <= before) {
+            ws.addExtraEmptyScreens()
+            committed = ws.commitExtraEmptyScreens()
+        }
+        android.util.Log.i("GoreeEditQA", "add-result pages=${ws.childCount} committed=$committed")
+        if (ws.childCount <= before) {
+            Toast.makeText(context, "Unable to add Home screen", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Adding an empty page should reveal it as an adjacent preview, not
+        // change the selected page before its layout and scroll bounds settle.
         refreshItems()
+        post { refreshItems() }
     }
 
     private fun moveGroup(from: Int, to: Int): Boolean {
         val ws = workspace ?: return false
-        if (!ws.moveReorderablePageGroup(from, to)) {
-            return false
-        }
+        val visible = pageGroupStarts(ws)
+        if (from !in visible.indices || to !in visible.indices) return false
+        val movable = ws.reorderablePageGroupStarts
+        val sourceIndex = movable.indexOf(visible[from])
+        val targetIndex = movable.indexOf(visible[to])
+        if (sourceIndex < 0 || targetIndex < 0 ||
+            !ws.moveReorderablePageGroup(sourceIndex, targetIndex)) return false
+        // Keep RecyclerView adapter mutations granular during ItemTouchHelper drag.
         pageStripAdapter.moveItem(from, to)
         return true
     }
 
     private fun setHomeGroup(position: Int): Boolean {
         val ws = workspace ?: return false
-        val oldDefaultIndex = pageStripAdapter.indexOfDefault()
-        val set = ws.setDefaultPageForReorderableGroup(position)
-        if (!set) {
-            return false
-        }
-        pageStripAdapter.updateDefaultHome(oldDefaultIndex, position)
+        val pages = pageGroupStarts(ws)
+        if (position !in pages.indices) return false
+        ws.setDefaultPage(pages[position])
+        pageStripAdapter.updateDefaultHome(pageStripAdapter.indexOfDefault(), position)
         dismissEducationTip()
         return true
     }
@@ -214,7 +239,11 @@ class EditModePageStrip @JvmOverloads constructor(
 
         // The trailing + control is not a movable Home page.
         override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: ViewHolder): Int {
-            if (viewHolder.bindingAdapterPosition >= pageStripAdapter.itemCount - 1) return 0
+            val ws = workspace ?: return 0
+            val position = viewHolder.bindingAdapterPosition
+            val pages = pageGroupStarts(ws)
+            if (position !in pages.indices ||
+                ws.reorderablePageGroupStarts.indexOf(pages[position]) < 0) return 0
             return super.getMovementFlags(recyclerView, viewHolder)
         }
 
@@ -302,24 +331,30 @@ class EditModePageStrip @JvmOverloads constructor(
                 holder.itemView.isSelected = false
                 holder.itemView.isFocusable = true
                 holder.itemView.contentDescription = "Add a Home screen"
-                holder.title.text = "＋"
+                holder.title.text = "+"
+                holder.title.textSize = 18f
+                holder.title.setTextColor(0xFFFFFFFF.toInt())
+                holder.title.background = null
                 holder.itemView.setOnClickListener { addHomePage() }
                 return
             }
             val item = items[position]
-            holder.itemView.isSelected = item.isDefault
+            val ws = workspace
+            val starts = ws?.let { pageGroupStarts(it) }
+            val isCurrent = ws != null && starts != null && position < starts.size &&
+                starts[position] == ws.currentPage
+            holder.itemView.isSelected = isCurrent
             holder.itemView.isFocusable = true
             holder.itemView.contentDescription = if (item.isDefault) {
                 "Default Home page ${position + 1}"
             } else {
                 "Preview Home page ${position + 1}"
             }
-            holder.title.text = if (item.isDefault) {
-                "⌂"
-            } else {
-                "●"
-            }
-            val ws = workspace
+            holder.title.text = if (item.isDefault) "⌂" else "●"
+            holder.title.textSize = if (item.isDefault) 23f else 17f
+            holder.title.setTextColor(if (item.isDefault || isCurrent) 0xFFFFFFFF.toInt()
+                else 0xB3FFFFFF.toInt())
+            holder.title.background = null
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {
                 resources.getString(R.string.edit_mode_page_strip_home_selected)
@@ -335,8 +370,8 @@ class EditModePageStrip @JvmOverloads constructor(
             holder.removeButton.contentDescription = "Remove empty Home page ${position + 1}"
             holder.removeButton.setOnClickListener {
                 val current = holder.bindingAdapterPosition
-                val starts = ws?.reorderablePageGroupStarts
-                if (ws != null && starts != null && current in 0 until starts.size() &&
+                val starts = ws?.let { pageGroupStarts(it) }
+                if (ws != null && starts != null && current in starts.indices &&
                     ws.removeEmptyWorkspacePageByIndex(starts[current])) {
                     refreshItems()
                 } else {
@@ -345,9 +380,9 @@ class EditModePageStrip @JvmOverloads constructor(
             }
             holder.itemView.setOnClickListener {
                 val ws = workspace ?: return@setOnClickListener
-                val starts = ws.reorderablePageGroupStarts
+                val starts = pageGroupStarts(ws)
                 val index = holder.bindingAdapterPosition
-                if (index in 0 until starts.size()) {
+                if (index in starts.indices) {
                     ws.snapToPage(starts[index])
                 }
             }

@@ -1,7 +1,7 @@
 name: Launcher QA APK
 on:
   push:
-    branches: [feat/lawnchair16-glaze-foundation]
+    branches: [feat/lawnchair16-glaze-foundation, feat/launcher-fullscreen-search-onboarding-20261014]
   workflow_dispatch:
 permissions:
   contents: read

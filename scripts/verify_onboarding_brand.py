@@ -10,8 +10,9 @@ legacy = (ROOT / "lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt").read
 res = (ROOT / "res/values/strings.xml").read_text()
 assert "class GoreeCloudSetupActivity : ComponentActivity()" in app
 assert '"Skip"' in app and '"Back"' in app and '"Continue"' in app and '"Finish"' in app
-assert all(word in app for word in ("No Apps","10 Recently Used Apps","10 Most Used Apps"))
+assert all(word in app for word in ("No Apps","Recently Used","Most Used"))
 assert all(word in app for word in ("Universal Search","Privacy & finish","Appearance"))
+assert "WindowInsetsCompat.Type.systemBars()" in app
 assert "onSaveInstanceState" in app and '"onboarding_finished"' in app
 assert "lifecycleScope.launch" in app and "finish()" in app
 assert "android.app.AlertDialog" not in legacy and "setCancelable(false)" not in legacy

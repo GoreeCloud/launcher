@@ -14,6 +14,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import app.lawnchair.preferences.PreferenceManager
 import app.lawnchair.preferences2.PreferenceManager2
@@ -31,7 +34,7 @@ class GoreeCloudSetupActivity : ComponentActivity() {
     private var compact = true
     private var showLabels = true
     private var searchEnabled = true
-    private var keyboard = true
+    private var keyboard = false
     private var saving = false
     private val ink = Color.rgb(24, 42, 60)
     private val muted = Color.rgb(79, 101, 119)
@@ -49,9 +52,14 @@ class GoreeCloudSetupActivity : ComponentActivity() {
         compact = state?.getBoolean("compact") ?: true
         showLabels = state?.getBoolean("showLabels") ?: true
         searchEnabled = state?.getBoolean("searchEnabled") ?: true
-        keyboard = state?.getBoolean("keyboard") ?: true
+        keyboard = state?.getBoolean("keyboard") ?: false
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = pageBg
         window.navigationBarColor = pageBg
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
         render()
@@ -154,7 +162,14 @@ class GoreeCloudSetupActivity : ComponentActivity() {
 
     private fun render() {
         val names = arrayOf("Welcome", "Your Home screen", "Layout", "Appearance", "Universal Search", "Privacy & finish")
-        val root = column().apply { setBackgroundColor(pageBg) }
+        val root = column().apply {
+            setBackgroundColor(pageBg)
+            ViewCompat.setOnApplyWindowInsetsListener(this) { view, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                view.setPadding(0, bars.top, 0, bars.bottom)
+                insets
+            }
+        }
         val scroll = ScrollView(this).apply { isFillViewport = true }
         val content = column().apply { setPadding(dp(24), dp(24), dp(24), dp(16)) }
         content.addView(copy("GOREECLOUD  /  LAUNCHER", 13f, true, accent))
@@ -172,12 +187,12 @@ class GoreeCloudSetupActivity : ComponentActivity() {
                 info(content, "Private by default", "Protected search sources remain opt-in.")
             }
             1 -> {
-                content.addView(copy("Choose your initial Home shortcuts. Your dock remains separate.", 15f, color = muted))
+                content.addView(copy("Home begins empty. Optional rows fill as you use apps; the dock remains separate.", 15f, color = muted))
                 gap(content, 19)
                 choice(content, "No Apps", "Start with a clear Home screen. Recommended.", homeMode == 0) { homeMode = 0; render() }
-                choice(content, "10 Recently Used Apps", "Use permission-controlled on-device usage history.", homeMode == 1) { homeMode = 1; render() }
-                choice(content, "10 Most Used Apps", "Rank installed apps by usage time on your device.", homeMode == 2) { homeMode = 2; render() }
-                content.addView(copy("Any existing personalized Home layout is preserved during upgrades.", 13f, color = muted))
+                choice(content, "Recently Used", "Up to two rows, refreshed using recent launches.", homeMode == 1) { homeMode = 1; render() }
+                choice(content, "Most Used", "Up to two rows, refreshed using use frequency.", homeMode == 2) { homeMode = 2; render() }
+                content.addView(copy("Your manually placed apps are not replaced by automatic suggestions.", 13f, color = muted))
             }
             2 -> {
                 content.addView(copy("Choose the number of columns for each area. Five columns is the default.", 15f, color = muted))
@@ -245,6 +260,7 @@ class GoreeCloudSetupActivity : ComponentActivity() {
                 // If settings fail, the recovery path below re-enables onboarding.
                 if (!store.edit().putInt("mode", selectedMode)
                         .putBoolean("completed", selectedMode == 0)
+                        .putLong("ranking_started", System.currentTimeMillis())
                         .putBoolean("onboarding_finished", true).commit()) {
                     throw IllegalStateException("Could not persist onboarding")
                 }

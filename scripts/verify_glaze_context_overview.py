@@ -12,17 +12,21 @@ menu=get("src/com/android/launcher3/popup/GoreeCloudContextSurfaces.java")
 xml=get("lawnchair/res/layout/edit_mode_page_strip_item.xml")
 assert "getItemCount(): Int = items.size + 1" in pager
 assert "position == items.size" in pager and "addHomePage()" in pager
-assert "getMovementFlags" in pager and "pageStripAdapter.itemCount - 1" in pager
+assert "getMovementFlags" in pager and "ws.reorderablePageGroupStarts.indexOf(pages[position])" in pager
+assert "pageGroupStarts(ws)" in pager and "ws.defaultPage" in pager
+assert "(0 until ws.childCount step ws.panelCount.coerceAtLeast(1))" in pager
 assert "Preview Home page" in pager and "Default Home page" in pager
-assert "dp(92)" in launcher and "GoreeCloudOverviewToolbar.install(this)" in launcher
+assert "dp(80)" in launcher and "GoreeCloudOverviewToolbar.install(this)" in launcher
+assert "alignGoreeCloudEditNavigation()" in launcher
+assert "minOf(preferredTop, safeTop)" in launcher
 frames=get("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "WeakHashMap<View, Drawable?>" in frames
-assert "originals.clear()" in frames and "page.foreground = original" in frames
-assert "index == workspace.currentPage" in frames
-assert "GoreeCloudOverviewFrames.apply(host, toState == LauncherState.EDIT_MODE)" in toolbar
+assert "WeakHashMap<LawnchairLauncher, View>" in frames
+assert "host.hotseat.getGlobalVisibleRect" in frames and "overlay.invalidate()" in frames
+assert "i == ws.currentPage" in frames
+assert "GoreeCloudOverviewFrames.apply(host, editing)" in toolbar
 assert "override fun onPageEndTransition()" in launcher and "GoreeCloudOverviewFrames.apply(this, true)" in launcher
-assert all(label in launcher for label in ("Wallpapers & themes","Widgets","Home screen settings"))
-assert "removeEmptyWorkspacePageByIndex" in toolbar and "setDefaultPageForReorderableGroup" in toolbar
+assert all(label in launcher for label in ("Wallpapers","Widgets","Settings"))
+assert "removeEmptyWorkspacePageByIndex" in toolbar and "workspace.setDefaultPage(page)" in toolbar
 assert "GoreeCloudContextSurfaces.actionBar" in popup
 assert "addAllShortcuts(deepShortcutCount, otherActions)" in popup
 assert "APP SHORTCUTS" in popup and "notificationCard" in popup

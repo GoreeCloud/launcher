@@ -1,6 +1,5 @@
 package app.lawnchair
 
-import app.lawnchair.preferences.PreferenceManager as GoreeCloudPreferenceManager
 import android.app.Activity
 import android.app.AppOpsManager
 import android.app.SearchManager
@@ -32,6 +31,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import com.android.launcher3.R
 import com.android.launcher3.InvariantDeviceProfile
 import app.lawnchair.preferences2.PreferenceManager2
 import app.lawnchair.search.algorithms.engine.SearchResult
@@ -61,6 +61,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
     private val tabs = arrayOf("FREQUENT", "RECENT", "NEW/UPDATED")
     private lateinit var apps: LauncherApps
     private lateinit var input: EditText
+    private lateinit var clearButton: TextView
     private lateinit var grid: LinearLayout
     private lateinit var tabsBar: LinearLayout
     private var tab = 0
@@ -120,38 +121,42 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
         }
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            this.background = shape(Color.rgb(252, 251, 255), 26)
-            elevation = dp(12).toFloat()
+            this.background = shape(Color.rgb(250, 251, 255), 28)
+            setPadding(dp(15), dp(15), dp(15), dp(12))
+            elevation = dp(10).toFloat()
             isClickable = true
         }
         val cardLayout = FrameLayout.LayoutParams(-1, -2, Gravity.TOP).apply {
-            setMargins(dp(13), dp(8), dp(13), 0)
+            setMargins(dp(14), dp(74), dp(14), 0)
         }
         background.addView(card, cardLayout)
         val searchRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(8), dp(16), dp(8))
+            setPadding(dp(16), 0, dp(8), 0)
+            this.background = shape(Color.rgb(239, 243, 248), 30)
         }
         val searchIcon = ImageView(this).apply {
-            setImageResource(android.R.drawable.ic_menu_search)
-            imageTintList = android.content.res.ColorStateList.valueOf(dark)
+            setImageResource(R.drawable.goreecloud_ic_search)
             contentDescription = "Search"
         }
-        searchRow.addView(searchIcon, LinearLayout.LayoutParams(dp(31), dp(31)))
+        searchRow.addView(searchIcon, LinearLayout.LayoutParams(dp(23), dp(23)))
         input = EditText(this).apply {
             setSingleLine(true)
             setTextColor(dark)
             setHintTextColor(muted)
-            textSize = 19f
+            textSize = 17f
             hint = "Search apps and more"
             this.background = null
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
-            setPadding(dp(10), 0, 0, 0)
+            setPadding(dp(12), 0, dp(3), 0)
             addTextChangedListener(object : TextWatcher {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                     query = s?.toString().orEmpty()
+                    if (::clearButton.isInitialized) {
+                        clearButton.visibility = if (query.isEmpty()) View.GONE else View.VISIBLE
+                    }
                     showResults()
                 }
                 override fun afterTextChanged(s: Editable?) = Unit
@@ -163,23 +168,24 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                 true
             }
         }
-        searchRow.addView(input, LinearLayout.LayoutParams(0, dp(55), 1f))
-        val close = text("×", 28f, color = muted).apply {
-            contentDescription = "Close Universal Search"
-            setOnClickListener { finish() }
+        searchRow.addView(input, LinearLayout.LayoutParams(0, dp(54), 1f))
+        clearButton = text("×", 22f, color = muted).apply {
+            contentDescription = "Clear search"
+            visibility = View.GONE
             isFocusable = true
+            setOnClickListener { input.setText(""); input.requestFocus() }
         }
-        searchRow.addView(close, LinearLayout.LayoutParams(dp(35), dp(48)))
+        searchRow.addView(clearButton, LinearLayout.LayoutParams(dp(32), dp(48)))
         card.addView(searchRow)
         tabsBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8), dp(8), dp(8), 0)
+            setPadding(0, dp(17), 0, 0)
         }
         card.addView(tabsBar)
         grid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(9), dp(8), dp(9), dp(17))
+            setPadding(dp(1), dp(8), dp(1), 0)
         }
         val scroll = ScrollView(this).apply {
             isFillViewport = false
@@ -187,9 +193,12 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
         }
         scroll.addView(grid)
         // A bounded translucent panel leaves Home visible beneath the search.
-        val h = min(resources.displayMetrics.heightPixels * 45 / 100, dp(440))
+        val h = min(resources.displayMetrics.heightPixels * 33 / 100, dp(207))
         card.addView(scroll, LinearLayout.LayoutParams(-1, h))
         setContentView(background)
+        // Show the placeholder without a stray text cursor until the user taps search.
+        card.isFocusableInTouchMode = true
+        card.requestFocus()
         card.translationY = -dp(520).toFloat()
         card.animate().translationY(0f).setDuration(240L).start()
         showTabs()
@@ -207,8 +216,8 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                 contentDescription = "${tabs[i]} tab" + if (active) ", selected" else ""
                 setOnClickListener { tab = i; showTabs(); showResults() }
             }
-            slot.addView(text(tabs[i], 12f, active, if (active) dark else muted),
-                LinearLayout.LayoutParams(-1, dp(57)))
+            slot.addView(text(tabs[i], 11.5f, active, if (active) dark else muted),
+                LinearLayout.LayoutParams(-1, dp(41)))
             slot.addView(View(this).apply {
                 setBackgroundColor(if (active) accent else Color.TRANSPARENT)
             }, LinearLayout.LayoutParams(-1, dp(3)))
@@ -241,7 +250,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
             return visible.filter { activity ->
                 val name = activity.label.toString().lowercase(Locale.getDefault())
                 words.all(name::contains)
-            }.sortedBy { it.label.toString().lowercase(Locale.getDefault()) }.take(18)
+            }.sortedBy { it.label.toString().lowercase(Locale.getDefault()) }.take(columns * 2)
         }
         if (tab == 2) {
             return visible.sortedWith(compareByDescending<LauncherActivityInfo> { activity ->
@@ -249,7 +258,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                     val packageInfo = packageManager.getPackageInfo(activity.componentName.packageName, 0)
                     maxOf(packageInfo.firstInstallTime, packageInfo.lastUpdateTime)
                 } catch (_: Exception) { 0L }
-            }.thenBy { it.label.toString() }).take(18)
+            }.thenBy { it.label.toString() }).take(columns * 2)
         }
         val local = getSharedPreferences("goreecloud_universal_search_history", Context.MODE_PRIVATE)
         val usage = if (hasUsageAccess()) {
@@ -270,7 +279,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
             } else {
                 maxOf(stat?.lastTimeUsed ?: 0L, local.getLong("opened_$id", 0L))
             }
-        }.take(18)
+        }.take(columns * 2)
     }
 
     private fun showResults() {
@@ -306,39 +315,28 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                         isFocusable = true
                         contentDescription = "Open ${app.label}"
                         setOnClickListener { openApp(app) }
-                        setPadding(dp(2), dp(9), dp(2), dp(6))
+                        setPadding(dp(2), dp(6), dp(2), 0)
                     }
                     val icon = ImageView(this).apply {
                         setImageDrawable(app.getIcon(resources.displayMetrics.densityDpi))
                         scaleType = ImageView.ScaleType.FIT_CENTER
                     }
                     val frame = FrameLayout(this)
-                    frame.addView(icon, FrameLayout.LayoutParams(dp(43), dp(43)))
-                    val badgePosition = GoreeCloudPreferenceManager.getInstance(this@GoreeCloudUniversalSearchActivity)
-                        .profileBadgePosition.get()
-                    val badgeGravity = when (badgePosition) {
-                        "bottom_left" -> Gravity.BOTTOM or Gravity.START
-                        "bottom_right" -> Gravity.BOTTOM or Gravity.END
-                        else -> Gravity.TOP or Gravity.START
-                    }
-                    val workProfile = app.user != Process.myUserHandle()
-                    frame.addView(text(if (workProfile) "W" else "P", 10f, true, Color.WHITE).apply {
-                        this.background = shape(if (workProfile) 0xFF96501C.toInt() else accent, 10)
-                        contentDescription = if (workProfile) "Work profile" else "Personal profile"
-                    }, FrameLayout.LayoutParams(dp(17), dp(17), badgeGravity))
-                    tile.addView(frame, LinearLayout.LayoutParams(dp(45), dp(45)).apply {
+                    frame.addView(icon, FrameLayout.LayoutParams(dp(45), dp(45)))
+                    // Profile pages select Personal or Work. Search results have no badges.
+                    tile.addView(frame, LinearLayout.LayoutParams(dp(47), dp(47)).apply {
                         gravity = Gravity.CENTER_HORIZONTAL
                     })
-                    val title = text(app.label.toString(), 11f).apply {
+                    val title = text(app.label.toString(), 12f).apply {
                         maxLines = 2
                         ellipsize = android.text.TextUtils.TruncateAt.END
-                        setPadding(0, dp(7), 0, 0)
+                        setPadding(0, dp(5), 0, 0)
                     }
-                    tile.addView(title, LinearLayout.LayoutParams(-1, dp(46)))
-                    row.addView(tile, LinearLayout.LayoutParams(0, dp(112), 1f))
+                    tile.addView(title, LinearLayout.LayoutParams(-1, dp(34)))
+                    row.addView(tile, LinearLayout.LayoutParams(0, dp(96), 1f))
                 }
                 repeat(columns - chunk.size) {
-                    row.addView(View(this), LinearLayout.LayoutParams(0, dp(112), 1f))
+                    row.addView(View(this), LinearLayout.LayoutParams(0, dp(96), 1f))
                 }
                 grid.addView(row)
             }

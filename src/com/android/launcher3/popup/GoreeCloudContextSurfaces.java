@@ -31,7 +31,8 @@ public final class GoreeCloudContextSurfaces {
     private static GradientDrawable surface(int tint, View anchor) {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(tint);
-        bg.setCornerRadius(dp(anchor, 22));
+        bg.setCornerRadius(dp(anchor, 20));
+        bg.setStroke(dp(anchor, 1), 0xFFD9E5F0);
         return bg;
     }
 
@@ -48,9 +49,10 @@ public final class GoreeCloudContextSurfaces {
     public static View actionBar(Launcher launcher, BubbleTextView original,
             ItemInfo item, List<SystemShortcut> shortcuts) {
         LinearLayout bar = new LinearLayout(launcher);
-        bar.setOrientation(LinearLayout.HORIZONTAL);
-        bar.setBackground(surface(0xFFF8F7FC, original));
-        bar.setPadding(dp(original, 6), dp(original, 6), dp(original, 6), dp(original, 6));
+        bar.setOrientation(LinearLayout.VERTICAL);
+        bar.setBackground(surface(0xFFF8FBFF, original));
+        bar.setPadding(dp(original, 8), dp(original, 8), dp(original, 8), dp(original, 8));
+        bar.setElevation(dp(original, 6));
         SystemShortcut remove = null, customize = null, appInfo = null;
         for (SystemShortcut s : shortcuts) {
             if (s instanceof SystemShortcut.RemoveApp) remove = s;
@@ -59,34 +61,44 @@ public final class GoreeCloudContextSurfaces {
         }
         boolean home = item.container == LauncherSettings.Favorites.CONTAINER_DESKTOP
                 || item.container == LauncherSettings.Favorites.CONTAINER_HOTSEAT;
-        action(bar, original, "✓", "Select", home, v -> {
-            AbstractFloatingView.closeAllOpenViews(launcher);
-            original.setSelected(true);
-            launcher.getStateManager().goToState(LauncherState.EDIT_MODE);
-        });
-        action(bar, original, "▤", "Remove", home && remove != null,
-                remove == null ? null : remove::onClick);
-        action(bar, original, "✎", "Edit", customize != null,
-                customize == null ? null : customize::onClick);
-        action(bar, original, "ⓘ", "App info", appInfo != null,
-                appInfo == null ? null : appInfo::onClick);
+        LinearLayout first = new LinearLayout(launcher);
+        first.setOrientation(LinearLayout.HORIZONTAL);
+        if (home) {
+            action(first, original, "✓", "Select", true, v -> {
+                AbstractFloatingView.closeAllOpenViews(launcher);
+                original.setSelected(true);
+                launcher.getStateManager().goToState(LauncherState.EDIT_MODE);
+            });
+            if (remove != null) action(first, original, "▤", "Remove", true, remove::onClick);
+        }
+        if (first.getChildCount() > 0) bar.addView(first);
+        LinearLayout second = new LinearLayout(launcher);
+        second.setOrientation(LinearLayout.HORIZONTAL);
+        if (customize != null) action(second, original, "✎", "Edit", true, customize::onClick);
+        if (appInfo != null) action(second, original, "ⓘ", "App info", true, appInfo::onClick);
+        if (second.getChildCount() > 0) bar.addView(second);
         return bar;
     }
 
     private static void action(LinearLayout row, View anchor, String icon, String name,
             boolean enabled, View.OnClickListener click) {
+        if (!enabled || click == null) return;
         LinearLayout tile = new LinearLayout(anchor.getContext());
         tile.setOrientation(LinearLayout.VERTICAL);
         tile.setGravity(Gravity.CENTER);
-        TextView symbol = text(anchor, icon, 26);
-        TextView label = text(anchor, name, 12);
-        tile.addView(symbol, new LinearLayout.LayoutParams(-1, dp(anchor, 39)));
-        tile.addView(label, new LinearLayout.LayoutParams(-1, dp(anchor, 26)));
-        tile.setAlpha(enabled ? 1f : .35f);
+        tile.setBackground(surface(Color.WHITE, anchor));
+        TextView symbol = text(anchor, icon, 24);
+        symbol.setTextColor(0xFF116992);
+        TextView label = text(anchor, name, 13);
+        tile.addView(symbol, new LinearLayout.LayoutParams(-1, dp(anchor, 31)));
+        tile.addView(label, new LinearLayout.LayoutParams(-1, dp(anchor, 25)));
         tile.setContentDescription(name);
-        tile.setFocusable(enabled);
-        if (enabled && click != null) tile.setOnClickListener(click);
-        row.addView(tile, new LinearLayout.LayoutParams(0, dp(anchor, 72), 1f));
+        tile.setFocusable(true);
+        tile.setOnClickListener(click);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                0, dp(anchor, 66), 1f);
+        params.setMargins(dp(anchor, 4), dp(anchor, 4), dp(anchor, 4), dp(anchor, 4));
+        row.addView(tile, params);
     }
 
     /** No permission, no card. Never invent contextual data. */
