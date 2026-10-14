@@ -366,15 +366,16 @@ class LawnchairLauncher : QuickstepLauncher() {
 
     /** Draw the Home wallpaper continuously behind transparent system bars. */
     private fun applyGoreeCloudSystemBarWallpaper() {
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
-        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        val targetWindow = window ?: return
+        targetWindow.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
+        targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT
+        targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT
         if (android.os.Build.VERSION.SDK_INT >= 29) {
-            window.isStatusBarContrastEnforced = false
-            window.isNavigationBarContrastEnforced = false
-            window.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
+            targetWindow.isStatusBarContrastEnforced = false
+            targetWindow.isNavigationBarContrastEnforced = false
+            targetWindow.navigationBarDividerColor = android.graphics.Color.TRANSPARENT
         }
-        WindowInsetsControllerCompat(window, rootView).apply {
+        WindowInsetsControllerCompat(targetWindow, rootView).apply {
             isAppearanceLightStatusBars = false
             isAppearanceLightNavigationBars = false
         }
@@ -557,12 +558,12 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun startActivitySafely(
         v: View?,
         intent: Intent,
-        item: ItemInfo,
+        item: ItemInfo?,
     ): com.android.launcher3.util.RunnableList? {
         val started = super.startActivitySafely(v, intent, item)
         if (started != null) {
             GoreeCloudHomeOnboarding.recordLaunch(
-                this, intent.component?.packageName ?: item.targetComponent?.packageName)
+                this, intent.component?.packageName ?: item?.targetComponent?.packageName)
         }
         return started
     }

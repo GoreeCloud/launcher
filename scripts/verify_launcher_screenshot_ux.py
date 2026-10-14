@@ -13,9 +13,9 @@ assert settings["config_default_show_suggested_apps_at_drawer_top"] == "false"
 launcher = read("lawnchair/src/app/lawnchair/LawnchairLauncher.kt")
 assert "applyGoreeCloudSystemBarWallpaper()" in launcher
 assert "rootView.addView(\n            GoreeCloudWallpaperView" in launcher
-assert "window.statusBarColor = android.graphics.Color.TRANSPARENT" in launcher
-assert "window.navigationBarColor = android.graphics.Color.TRANSPARENT" in launcher
-assert "window.isNavigationBarContrastEnforced = false" in launcher
+assert "targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT" in launcher
+assert "targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT" in launcher
+assert "targetWindow.isNavigationBarContrastEnforced = false" in launcher
 
 setup = read("lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt")
 assert "WindowInsetsCompat.Type.systemBars()" in setup
