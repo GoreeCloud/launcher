@@ -1,0 +1,83 @@
+# GoreeCloud Launcher — Lawnchair-derived rebuild
+
+**State: Development. Not released, Glaze-conformant, representative-device-accepted, or Stable.**
+
+## Working baseline
+
+- Android 16 Launcher3/Lawnchair-based HOME functionality, icon/workspace management, search and widgets enter the GoreeCloud development branch as upstream source, **not verified product features**.
+- GoreeCloud app identity and native Glaze 1.7.0 semantic entry points are the first integration increment.
+- Settings deep links and external shortcut/icon-pack intent actions now use unique GoreeCloud Launcher identities rather than Lawnchair's inherited intent namespace. External icon-pack app-to-launcher shortcuts must be compatibility-tested separately; users can continue choosing icon packs within Launcher preferences.
+- Initial privacy defaults have now been tightened: local on-device QSB provider on a new installation, sponsored provider exclusion, removal of sponsorship surfaces and upstream release workflow isolation. This does **not** certify the broader network/permission behavior.
+- Added a 5x6 Home grid preset with a dedicated clean five-role local-app dock, preserving 5x5 and smaller-device choices. Removed inherited vendor-folder, marketplace and example-website starter shortcuts; structural layout tests now run in CI. Source-level Glaze integration also applies the 48dp minimum touch target and card-radius metric to shared settings components. Device acceptance and migration testing are still pending.
+- GoreeCloud policies require no ads, no sponsored placement, no silent analytics, offline-capable core launcher functions, user-controlled online search, user privacy and data control.
+- Search provider fallback remains on-device when the configured provider is unusable; the launcher does not silently substitute another installed external provider. Two obsolete browser-history permissions were removed from the application manifest.
+- Local calculator results are enabled by default in app search without new permissions or network requests. The tap-to-copy result also has a screen-reader label, pending TalkBack acceptance. Opt-in built-in suggestion endpoints also reject redirects, prevent double-encoding Retrofit query parameters, and omit exception details from diagnostics. Custom HTTPS search templates now reject credentials, URL fragments and query placeholders inside URI authority/hostname; custom remote suggestion responses are capped at 64 KiB, including streaming responses with no length header. Built-in suggestion providers now also cap streamed payloads at 64 KiB and clamp persisted suggestion-count values to the supported 0–10 safety range. Custom suggestion HTTP redirects are blocked to avoid silently transmitting entered terms to another endpoint; network/provider failures produce empty suggestions without logging query-bearing exception details. This is source behavior only, awaiting network-observed verification. Online query suggestions are opt-in on **new installations**; the settings switch discloses that enabling them transmits typed terms to the selected provider. Previously saved preferences remain unchanged and require a migration audit. Custom providers require valid HTTPS query-template URLs; invalid templates never silently redirect to Google. Inherited Startpage partner identifiers and the default app-market search placement were removed. CI checks source-level privacy invariants, but network observation and regression/device tests remain outstanding.
+- The old original GoreeCloud Launcher spec and task evidence describe an earlier GitHub history no longer present in the live target repository. Treat those assertions as historical until evaluated against the newly imported code.
+
+## Delivery gates
+
+1. **Provenance and privacy:** audit every dependency, manifest permission, network call, usage access, analytics hook, deep link, exported component, content-provider integration and user-data store. Remove, default-off or gate anything incompatible with GoreeCloud policy.
+2. **Identity and native Glaze:** theme semantic mapping, typography, spacing, minimum 48 dp touch target, menus, Home, drawer, dock, folders, widgets, settings, onboarding, light/dark and reduced-motion behavior. Validate visual contrast and screen reader interactions.
+3. **Launcher product parity:** deterministic 5×6 default grid, 5-app starter dock with overflow, Edit Home, local app discovery/search, drag/drop, shortcuts, AppWidgetHost, multi-user/work profile identity and keyboard accessibility. Check upstream behavior, then replace or adapt where necessary.
+4. **GoreeCloud differentiation:** Glaze widgets and wallpapers, user-controlled advanced local search, privacy controls, bounded backup/restore, resilient migration and optional integrations. Online providers must not receive queries without explicit user action and authorization.
+5. **Build and compatibility:** Android SDK/Gradle dependency audit, reproducible debug APK, unit/lint/instrumentation on Android 16, upgrade and restore paths, representative phone/tablet/managed-profile tests, performance and power budgets.
+6. **Protected delivery:** protected Development signing, monotonically increasing versionCode, exact-head CI, proper review, rollback plan, known-issue assessment, then separate candidate and release acceptance.
+
+## Rollback and upgrade
+
+The existing `main` initial commit remains untouched by this import branch. Revert the branch/PR to roll back source changes. This new package identity does not guarantee upgrade compatibility with the earlier GoreeCloud Launcher or upstream Lawnchair app: storage migration and signing continuity require separate explicit validation.
+
+## Open blockers
+
+- Build, real Android device, accessibility and security runtime acceptance are **unverified**.
+- Full visual and interaction redesign, search/privacy safeguards and the complete GoreeCloud feature contract are **not implemented** merely by importing upstream.
+- Licensing/dependency compliance and Glaze consumer acceptance require separate evidence.
+
+
+### 2026-10-12 — Offline calculator typing improvements (development candidate)
+Launcher search's local calculator now accepts mathematical multiplication (×), division (÷), Unicode minus (−), full-width plus/parentheses, and optional trailing equals while retaining the original expression in the result. An input-length guard rejects unreasonably long expressions. The new CI source-policy assertion checks the route and keeps calculator evaluation local, behind its existing enabled preference. Android compilation and interactive text-entry/clipboard usability acceptance are separate pending gates.
+
+
+### 2026-10-12 — Useful recent search history (development candidate)
+On-device recent-search suggestions now filter blank entries and deduplicate case-insensitively after newest-first ordering, keeping the latest usable instance of each query. Results are capped even if the stored maximum becomes corrupted. This does not send search history to a remote provider and does not change the user's existing history-retention controls. CI static regression and Android compilation must pass; interactive history and search-action behavior require device acceptance.
+
+
+### 2026-10-12 — Offline percent-of arithmetic (development candidate)
+Typing a simple expression such as 15% of 80 into Launcher search can now evaluate directly to 12 without network requests. This is intentionally distinct from the expression engine's existing binary percent modulo operator, which remains unchanged. The implementation supports signed integer and dot-decimal operands and a trailing equals sign; it does not claim locale-specific percentages or arbitrary nested percent expressions. Source regression is included; Android compilation and interactive results require acceptance.
+
+
+### 2026-10-12 — Bounded recent-search buffer
+The on-device recent-history adapter now keeps no more than 512 recent provider rows in memory before applying its existing newest-first ordering, blank filtering, deduplication and visible result count cap. A zero/negative configured result count skips provider access. Source-policy checks cover the buffer and skip behavior; Android CI, interactive search history and real-device privacy acceptance remain separate requirements.
+
+### 2026-10-12 — Stable chronological history cursor order
+The on-device recent-search provider now receives an explicit ascending date and row-id sort, matching Android's generic suggestions URI behavior. The bounded in-memory deque retains the latest rows before the UI reverses them newest-first. Without this, a provider's unspecified SQLite row order could retain stale rows and omit recent searches. Regression source policy enforces the ordering, pending Android/device acceptance.
+
+### 2026-10-12 — Legacy sensitive permission regression guard
+Read-only testing on the connected Android 16 Development device found that its older installed Launcher variant requests SMS, call log, location and contacts permissions. On that device, SMS/call-log/location access is not granted and contacts access is user-granted. The current rebuild source has no SMS, call-log or location manifest declarations and requires runtime permission for contacts search; source-policy checks now reject reintroduction of those legacy permission declarations. This is **source evidence**, not a merged-manifest or user-device upgrade pass. We did not modify device permissions.
+
+### 2026-10-12 — Build-time merged manifest permission verification
+The CI Android debug job now inspects the actual merged and packaged Lawn-with-Quickstep-GitHub Debug manifest and rejects SMS, call-log and location declarations, including SDK-specific permission tags. Source-policy CI executes synthetic positive/negative fixtures for this guard before Android compilation. No APK installation, signing or device permission changes are implied.
+
+### 2026-10-12 — Fail-closed zero-result web suggestions
+A zero or negative configured web-suggestion count now short-circuits before any third-party suggestion provider is configured or called. Discarding the results after fetching was insufficient because it still transmitted the typed query. The source-policy gate asserts that the early return precedes network request construction; exact-head CI and on-device network observation remain required.
+
+### 2026-10-12 — Cancellation-safe recent history search
+History lookup now rethrows Kotlin coroutine cancellation rather than treating it as a recoverable provider error. This prevents abandoned search jobs from silently continuing after UI cancellation. Provider exceptions still fail closed to an empty list without leaking typed queries through logs. Exact-head Android CI and device cancellation acceptance are separate verification gates.
+
+### 2026-10-13 — Local contacts search and custom-search editor correctness
+
+Optional on-device contacts search now treats user-entered SQL LIKE wildcard characters as literal name characters, clamps the visible result count and total cursor scan, bounds query length, cooperates with coroutine cancellation, and suppresses query-bearing exception details from logs. Contacts search remains opt-in and subject to Android READ_CONTACTS permission. A CI policy check uses synthetic in-memory SQLite data to exercise %, _ and ! wildcard escaping, and checks the source bounds; this is not an Android ContactsProvider instrumentation test.
+
+The custom search settings dialog resets unsaved text to the saved value when reopened and displays the persisted value rather than an abandoned draft. Source-policy checks guard the dialog implementation. Real-device keyboard, TalkBack, permissions, ContactsProvider and saved-preference behavior remain pending, as do exact-head Android CI and any release or upgrade decisions.
+
+### 2026-10-13 — Glaze dock silhouette correction (development candidate)
+
+Compared the owner-submitted dock screenshot to the saved GoreeCloud Launcher Home mockup in the authorized GoreeCloud Drive. The mockup uses a pale frosted rounded capsule behind a five-icon, rounded-square dock, not a dark full-hotseat surface. The Android source now enables the dock capsule on new installs, applies a lightly translucent pale color and 30dp corner default, keeps a subtle light border, scopes the background to the icon-band container, and suppresses the phone-style capsule in landscape side-dock layouts. The initial icon mask defaults to rounded square on new installs. The existing customizable background color, opacity, radius and dock inset preferences are preserved; existing user-selected settings are not overwritten. Five dock slots, empty main Home defaults, QSB-off first run, and local GoreeCloud wallpapers remain governed by their separate source checks.
+
+Source-level verification is not screenshot/device evidence. Verify a clean install and an upgraded profile on representative Android devices at light/dark wallpapers and display sizes. In particular check dock height, background clipping, wallpaper readability, dock click/drag hit targets, page indicator behavior, RTL, orientation, notification indicators, user customization and accessibility before labeling this mockup compliant. Debug CI signing is not a protected Development update signature.
+
+Follow-up: corrected fallback detection to target only the legacy Default sentinel, preserving explicitly selected transparent custom dock colors.
+
+### 2026-10-13 — Owner screenshot corrections (Development only)
+
+Reduce the default Home and dock icon scale to 78%, reduce dock bottom spacing to 70%, and add a small visual-only inset to the Glaze capsule without reducing touch areas. Clean new installations use dock-only 5x5 and 5x6 workspaces. Add a once-per-install onboarding choice between No Apps, 10 Recently Used Apps, and 10 Most Used Apps. History-based modes require explicit Android Usage Access and use only observed local personal-profile app history; never fill with guesswork. Existing Home content is not removed. Remove the inherited announcement cards from the settings dashboard and relocate the development warning below settings navigation. Source checks are not physical-device acceptance. Verify exact-head Android CI, permissions denial and grant, existing-profile updates, workspace occupancy, TalkBack, and visual mockup parity before release.
