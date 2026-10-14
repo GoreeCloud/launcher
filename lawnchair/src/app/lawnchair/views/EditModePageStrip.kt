@@ -299,9 +299,9 @@ class EditModePageStrip @JvmOverloads constructor(
             val item = items[position]
             holder.itemView.isSelected = item.isDefault
             holder.title.text = if (item.isDefault) {
-                resources.getString(R.string.edit_mode_page_strip_default)
+                "⌂"
             } else {
-                resources.getString(R.string.edit_mode_page_strip_page, position + 1)
+                "●"
             }
             val ws = workspace
             holder.homeButton.isSelected = item.isDefault
