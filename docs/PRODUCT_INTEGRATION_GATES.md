@@ -14,3 +14,6 @@ Empty-area Home long-press enters scaled edit overview with a preview strip, pag
 
 ## Acceptance outstanding
 Physical device: preview correctness, page persistence across restart/reload, 4/5/6 grid and screen widths, Work profile badges/permissions, notifications collision, Brave-only network traffic, long-press and gesture priority, keyboard/TalkBack navigation, landscape and foldable behavior. Verify compilation, APK package/permissions/signing before installation. Development-only pending gates.
+
+## Mockup-aligned Home edit and app context acceptance (Development)
+Empty-area long-press enters the scaled live Home workspace with neighboring pages, accessible Home/dot/Add markers, a page toolbar (set default, safely remove blank page, finish), and three footer actions: Wallpapers & themes, Widgets, Home screen settings. Empty secondary pages alone are removable; moving content is required before deleting a populated page. The icon long-press menu uses Android's genuine Select/edit mode, Remove shortcut, Edit customization, App info, published app shortcuts and a separate, profile-matched notification card only when notification access and device-unlocked privacy conditions permit. Availability of controls depends on source Android APIs; real-device visual accuracy, TalkBack, landscape, drag/drop and notification consent are unverified until tested.

@@ -18,7 +18,7 @@ object GoreeCloudOverviewToolbar {
         fun item(glyph: String, description: String, click: () -> Unit) {
             row.addView(TextView(host).apply {
                 text = glyph; textSize = 26f
-                gravity = Gravity.CENTER; setTextColor(0xFFFFFFFF.toInt())
+                gravity = Gravity.CENTER; setTextColor(if (description == "Remove empty Home page") 0xFFFF6480.toInt() else 0xFFFFFFFF.toInt())
                 contentDescription = description; isFocusable = true
                 setOnClickListener { click() }
             }, LinearLayout.LayoutParams(dp(64), dp(52)))

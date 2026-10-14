@@ -1,6 +1,8 @@
 package com.android.launcher3.popup;
 
 import android.app.Notification;
+import android.app.KeyguardManager;
+import android.content.Context;
 import android.app.PendingIntent;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -91,11 +93,14 @@ public final class GoreeCloudContextSurfaces {
     public static View notificationCard(Launcher launcher, BubbleTextView anchor, ItemInfo item) {
         NotificationListener listener = NotificationListener.getInstanceIfConnected();
         if (listener == null || item.user == null || item.getTargetPackage() == null) return null;
+        KeyguardManager keyguard = (KeyguardManager) launcher.getSystemService(Context.KEYGUARD_SERVICE);
+        if (keyguard != null && keyguard.isKeyguardLocked()) return null;
         try {
             StatusBarNotification latest = null;
             StatusBarNotification[] all = listener.getActiveNotifications();
             if (all == null) return null;
             for (StatusBarNotification sbn : all) {
+                if ((sbn.getNotification().flags & Notification.FLAG_GROUP_SUMMARY) != 0) continue;
                 if (!item.user.equals(sbn.getUser())
                         || !item.getTargetPackage().equals(sbn.getPackageName())) continue;
                 if (latest == null || sbn.getPostTime() > latest.getPostTime()) latest = sbn;
@@ -109,6 +114,9 @@ public final class GoreeCloudContextSurfaces {
             card.setOrientation(LinearLayout.VERTICAL);
             card.setPadding(dp(anchor, 16), dp(anchor, 10), dp(anchor, 16), dp(anchor, 12));
             card.setBackground(surface(0xFFF4EDF9, anchor));
+            TextView section = text(anchor, "RECENT NOTIFICATION", 11);
+            section.setGravity(Gravity.START);
+            card.addView(section);
             TextView head = text(anchor, title == null ? "Notification" : title.toString(), 15);
             head.setGravity(Gravity.START);
             head.setTypeface(null, android.graphics.Typeface.BOLD);

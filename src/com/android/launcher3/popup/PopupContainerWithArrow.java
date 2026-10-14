@@ -43,6 +43,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import androidx.annotation.LayoutRes;
 
@@ -298,6 +299,16 @@ public class PopupContainerWithArrow<T extends Context & ActivityContext>
         addView(actionBar, 0, new LayoutParams(mContainerWidth,
                 Math.round(86 * getResources().getDisplayMetrics().density)));
 
+        if (deepShortcutCount > 0 || !otherActions.isEmpty()) {
+            TextView heading = new TextView(getContext());
+            heading.setText(deepShortcutCount > 0 ? "APP SHORTCUTS" : "APP ACTIONS");
+            heading.setTextSize(11f);
+            heading.setTextColor(0xFF63748B);
+            int padding = Math.round(14 * getResources().getDisplayMetrics().density);
+            heading.setPadding(padding, padding / 2, padding, 0);
+            addView(heading, new LayoutParams(mContainerWidth,
+                    Math.round(30 * getResources().getDisplayMetrics().density)));
+        }
         if (deepShortcutCount > 0) {
             addAllShortcuts(deepShortcutCount, otherActions);
         } else if (!otherActions.isEmpty()) {

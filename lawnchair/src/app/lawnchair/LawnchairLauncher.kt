@@ -377,7 +377,10 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
         fun option(label: String, glyph: String, onClick: () -> Unit) {
             bar.addView(android.widget.TextView(this).apply {
-                text = "$glyph\n$label"
+                text = android.text.SpannableString("$glyph\n$label").apply {
+                    setSpan(android.text.style.RelativeSizeSpan(1.65f), 0, glyph.length,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
                 gravity = android.view.Gravity.CENTER
                 textSize = 15f
                 setTextColor(0xFFFFFFFF.toInt())
@@ -386,7 +389,7 @@ class LawnchairLauncher : QuickstepLauncher() {
                 isFocusable = true
                 contentDescription = label
                 setOnClickListener { onClick() }
-            }, android.widget.LinearLayout.LayoutParams(0, dp(62), 1f))
+            }, android.widget.LinearLayout.LayoutParams(0, dp(92), 1f))
         }
         option("Wallpapers & themes", "▤") { GoreeCloudWallpapers.showPicker(this) }
         option("Widgets", "⊞") {
@@ -404,7 +407,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             R.id.edit_mode_page_strip,
         )?.let { strip ->
             (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { params ->
-                params.bottomMargin = dp(112)
+                params.bottomMargin = dp(136)
                 strip.layoutParams = params
             }
         }

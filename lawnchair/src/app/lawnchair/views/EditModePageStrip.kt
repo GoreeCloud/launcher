@@ -1,8 +1,6 @@
 package app.lawnchair.views
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
@@ -162,7 +160,7 @@ class EditModePageStrip @JvmOverloads constructor(
         val items = (0 until starts.size()).map { i ->
             PageItem(isDefault = i == defaultGroupIndex)
         }
-        val cellPx = (64 * resources.displayMetrics.density).toInt()
+        val cellPx = (52 * resources.displayMetrics.density).toInt()
         val sidePx = ((resources.displayMetrics.widthPixels - (items.size + 1) * cellPx) / 2).coerceAtLeast(12)
         setPadding(sidePx, paddingTop, sidePx, paddingBottom)
         pageStripAdapter.setItems(items)
@@ -213,6 +211,12 @@ class EditModePageStrip @JvmOverloads constructor(
             0,
         ) {
         override fun isLongPressDragEnabled(): Boolean = true
+
+        // The trailing + control is not a movable Home page.
+        override fun getMovementFlags(recyclerView: RecyclerView, viewHolder: ViewHolder): Int {
+            if (viewHolder.bindingAdapterPosition >= pageStripAdapter.itemCount - 1) return 0
+            return super.getMovementFlags(recyclerView, viewHolder)
+        }
 
         override fun onMove(
             recyclerView: RecyclerView,
@@ -295,12 +299,21 @@ class EditModePageStrip @JvmOverloads constructor(
 
         override fun onBindViewHolder(holder: PageStripViewHolder, position: Int) {
             if (position == items.size) {
+                holder.itemView.isSelected = false
+                holder.itemView.isFocusable = true
+                holder.itemView.contentDescription = "Add a Home screen"
                 holder.title.text = "＋"
                 holder.itemView.setOnClickListener { addHomePage() }
                 return
             }
             val item = items[position]
             holder.itemView.isSelected = item.isDefault
+            holder.itemView.isFocusable = true
+            holder.itemView.contentDescription = if (item.isDefault) {
+                "Default Home page ${position + 1}"
+            } else {
+                "Preview Home page ${position + 1}"
+            }
             holder.title.text = if (item.isDefault) {
                 "⌂"
             } else {
