@@ -284,12 +284,32 @@ public class PopupContainerWithArrow<T extends Context & ActivityContext>
         mOriginalIcon = originalIcon;
         mContainerWidth = getResources().getDimensionPixelSize(R.dimen.bg_popup_item_width);
 
+        final Launcher launcher = Launcher.getLauncher(originalIcon.getContext());
+        final java.util.List<SystemShortcut> otherActions = new java.util.ArrayList<>();
+        for (SystemShortcut action : systemShortcuts) {
+            if (!(action instanceof SystemShortcut.RemoveApp)
+                    && !(action instanceof SystemShortcut.AppInfo)
+                    && !(action instanceof app.lawnchair.ui.popup.LawnchairShortcut.Customize)) {
+                otherActions.add(action);
+            }
+        }
+        final View actionBar = GoreeCloudContextSurfaces.actionBar(
+                launcher, originalIcon, itemInfo, systemShortcuts);
+        addView(actionBar, 0, new LayoutParams(mContainerWidth,
+                Math.round(86 * getResources().getDisplayMetrics().density)));
+
         if (deepShortcutCount > 0) {
-            addAllShortcuts(deepShortcutCount, systemShortcuts);
-        } else if (!systemShortcuts.isEmpty()) {
-            addSystemShortcuts(systemShortcuts,
+            addAllShortcuts(deepShortcutCount, otherActions);
+        } else if (!otherActions.isEmpty()) {
+            addSystemShortcuts(otherActions,
                     R.layout.system_shortcut_rows_container,
                     R.layout.system_shortcut);
+        }
+        View currentNotification = GoreeCloudContextSurfaces.notificationCard(
+                launcher, originalIcon, itemInfo);
+        if (currentNotification != null) {
+            addView(currentNotification, new LayoutParams(mContainerWidth,
+                    LayoutParams.WRAP_CONTENT));
         }
         show();
         loadAppShortcuts(itemInfo);
