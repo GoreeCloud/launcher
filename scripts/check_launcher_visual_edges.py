@@ -12,6 +12,8 @@ for state in ("home", "edit"):
         xml = hierarchy.read_text(errors="replace").lower()
         if "pixel launcher" in xml and "responding" in xml:
             raise SystemExit(f"Stock Pixel Launcher ANR obscured {state} screenshot")
+        if state == "edit" and "drag pages to reorder" in xml:
+            raise SystemExit("Edit-mode tutorial obscures the live Home preview")
 measurements = {}
 for state in ("home", "edit"):
     image = Image.open(out / (state + ".png")).convert("RGB")
@@ -25,7 +27,8 @@ for state in ("home", "edit"):
                 for channel in range(3)]
     top = mean_at(int(h * 0.018))
     upper = mean_at(int(h * 0.061))
-    lower = mean_at(int(h * 0.935))
+    # Sample below the dock instead of inside its translucent background.
+    lower = mean_at(int(h * 0.967))
     navigation = mean_at(int(h * 0.986))
     distance = lambda a, b: round(sum((x - y)**2 for x, y in zip(a, b))**0.5, 2)
     measurements[state] = {
