@@ -370,11 +370,13 @@ class LawnchairLauncher : QuickstepLauncher() {
         val migration = getSharedPreferences("goreecloud_launcher_migrations", Context.MODE_PRIVATE)
         if (migration.getBoolean("drawer_search_hidden_v3", false)) return
         if (!migration.edit().putBoolean("drawer_search_hidden_v3", true).commit()) return
-        if (!preferenceManager2.hideAppDrawerSearchBar.firstCached()) {
-            preferenceManager2.hideAppDrawerSearchBar.set(true)
-        }
-        if (preferenceManager2.showSuggestedAppsInDrawer.firstCached()) {
-            preferenceManager2.showSuggestedAppsInDrawer.set(false)
+        lifecycleScope.launch {
+            if (!preferenceManager2.hideAppDrawerSearchBar.firstCached()) {
+                preferenceManager2.hideAppDrawerSearchBar.set(true)
+            }
+            if (preferenceManager2.showSuggestedAppsInDrawer.firstCached()) {
+                preferenceManager2.showSuggestedAppsInDrawer.set(false)
+            }
         }
     }
 

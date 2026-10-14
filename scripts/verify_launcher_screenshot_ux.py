@@ -39,7 +39,7 @@ assert "setMargins(dp(14), dp(74), dp(14), 0)" in search
 assert "profileBadgePosition.get()" not in search
 assert "R.drawable.goreecloud_ic_search" in search
 assert "dp(207)" in search
-assert "background = shape(Color.rgb(239, 243, 248), 30)" in search
+assert "this.background = shape(Color.rgb(239, 243, 248), 30)" in search
 assert "clearButton.visibility = if (query.isEmpty()) View.GONE" in search
 assert ET.parse(r / "lawnchair/res/drawable/goreecloud_ic_search.xml").getroot().tag == "vector"
 assert "migrateGoreeCloudDrawerDefaults()" in launcher

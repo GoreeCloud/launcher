@@ -134,7 +134,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(16), 0, dp(8), 0)
-            background = shape(Color.rgb(239, 243, 248), 30)
+            this.background = shape(Color.rgb(239, 243, 248), 30)
         }
         val searchIcon = ImageView(this).apply {
             setImageResource(R.drawable.goreecloud_ic_search)
