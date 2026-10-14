@@ -369,7 +369,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
             setPadding(dp(8), dp(4), dp(8), dp(4))
-            setBackgroundColor(0xEAF7FAFF.toInt())
+            setBackgroundColor(android.graphics.Color.TRANSPARENT)
             elevation = dp(8).toFloat()
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
