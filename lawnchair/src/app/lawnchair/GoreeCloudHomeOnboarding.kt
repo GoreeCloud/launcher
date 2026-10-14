@@ -138,11 +138,13 @@ object GoreeCloudHomeOnboarding {
         }
         val columns = PreferenceManager.getInstance(launcher).workspaceColumns.get().coerceIn(4, 6)
         val newIds = mutableSetOf<String>()
+        val reserved = mutableSetOf<Int>()
         for (activity in ranked) {
             if (activity.componentName.packageName in occupiedApps) continue
             val position = (0 until columns * MAX_ROWS).firstOrNull {
-                !screen.isOccupied(it % columns, it / columns)
+                it !in reserved && !screen.isOccupied(it % columns, it / columns)
             } ?: break
+            reserved.add(position)
             val info = AppInfo(launcher, activity, personal).makeWorkspaceItem(launcher)
             launcher.modelWriter.addItemToDatabase(info,
                 LauncherSettings.Favorites.CONTAINER_DESKTOP, 0,

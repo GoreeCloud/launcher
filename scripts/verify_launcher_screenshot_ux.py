@@ -23,6 +23,7 @@ assert "Recently Used" in setup and "Most Used" in setup and "No Apps" in setup
 
 home = read("lawnchair/src/app/lawnchair/GoreeCloudHomeOnboarding.kt")
 assert "MAX_ROWS = 2" in home and "managed_ids" in home
+assert "reserved.add(position)" in home
 assert "recordLaunch(" in home and "ranking_started" in setup
 assert "clearLegacyStarterPair" in home and 'info.cellX == 3' in home
 assert "deleteCollectionAndContentsFromDatabase" in home
