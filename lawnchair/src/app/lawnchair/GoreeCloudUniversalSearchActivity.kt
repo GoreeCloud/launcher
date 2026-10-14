@@ -155,7 +155,9 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                 override fun afterTextChanged(s: Editable?) = Unit
             })
             setOnEditorActionListener { _, _, _ ->
-                if (query.isNotBlank()) explicitWebSearch(query)
+                // IME Search is local: never submit device queries to the web implicitly.
+                (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                    .hideSoftInputFromWindow(windowToken, 0)
                 true
             }
         }
@@ -419,7 +421,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                     actionRow(shortcut.shortLabel?.toString() ?: shortcut.id) {
                         try {
                             apps.startShortcut(
-                                shortcut.package, shortcut.id, null, null, Process.myUserHandle()
+                                shortcut.`package`, shortcut.id, null, null, Process.myUserHandle()
                             )
                             finish()
                         } catch (_: Exception) {

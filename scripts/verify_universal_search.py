@@ -59,6 +59,8 @@ check(all(provider in overlay for provider in ("CalculatorSearchProvider", "Cont
       "Pull-down query must reuse on-device quick answer, contacts and file providers")
 check("LauncherApps.ShortcutQuery" in overlay and "startShortcut(" in overlay,
       "Pull-down query must support authorized app shortcuts")
+check("IME Search is local" in overlay and "hideSoftInputFromWindow" in overlay,
+      "IME submission must remain local; web search requires an explicit result action")
 check("prefs.hiddenApps.firstCached()" in overlay and "hiddenAppsInSearch.firstCached()" in overlay,
       "Overlay must enforce existing hidden-app search preferences")
 check('android:name="app.lawnchair.GoreeCloudUniversalSearchActivity"' in manifest and
