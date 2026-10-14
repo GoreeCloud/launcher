@@ -176,6 +176,7 @@ class LawnchairLauncher : QuickstepLauncher() {
         )
 
         installGoreeCloudHomeOverviewActions()
+        app.lawnchair.views.GoreeCloudOverviewToolbar.install(this)
 
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
 
