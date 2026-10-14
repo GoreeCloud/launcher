@@ -24,4 +24,7 @@ assert "NotificationListener.getInstanceIfConnected()" in menu
 assert "isKeyguardLocked()" in menu and "sbn.getUser()" in menu and "sbn.getPackageName()" in menu
 assert all(label in menu for label in ('"Select"','"Remove"','"Edit"','"App info"'))
 assert 'android:id="@+id/page_strip_title"' in xml
+assert not (root / "prebuilts/libs/libGoogleFeed.jar").exists()
+assert not (root / "lawnchair/aidl/com/google/android/libraries/launcherclient/ILauncherOverlay.aidl").exists()
+assert not (root / "lawnchair/aidl/com/google/android/libraries/launcherclient/ILauncherOverlayCallback.aidl").exists()
 print("PASS: Home edit navigation and real app context source contracts (device validation pending)")
