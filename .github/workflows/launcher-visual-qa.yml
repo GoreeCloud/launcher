@@ -6,6 +6,9 @@ on:
       - .github/workflows/launcher-visual-qa.yml
       - scripts/capture_launcher_visual_qa.sh
       - scripts/check_launcher_visual_edges.py
+      - 'lawnchair/src/app/lawnchair/**'
+      - 'lawnchair/res/layout/**'
+      - 'src/com/android/launcher3/**'
   workflow_dispatch:
 permissions:
   contents: read
