@@ -54,7 +54,7 @@ if edit_hierarchy.exists():
                 and n.get("clickable") == "true"]
 
     def bounds(node):
-        coords = [int(v) for v in re.findall(r"\\d+", node["bounds"])]
+        coords = [int(v) for v in re.findall(r"\d+", node["bounds"])]
         if len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1]:
             raise SystemExit(f"Invalid editor control bounds: {node.get('content-desc')}")
         return coords
