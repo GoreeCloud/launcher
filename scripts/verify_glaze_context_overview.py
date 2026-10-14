@@ -16,9 +16,9 @@ assert "getMovementFlags" in pager and "pageStripAdapter.itemCount - 1" in pager
 assert "Preview Home page" in pager and "Default Home page" in pager
 assert "dp(80)" in launcher and "GoreeCloudOverviewToolbar.install(this)" in launcher
 frames=get("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "WeakHashMap<View, Drawable?>" in frames
-assert "originals.clear()" in frames and "page.foreground = old" in frames
-assert "index == workspace.currentPage" in frames
+assert "WeakHashMap<LawnchairLauncher, View>" in frames
+assert "host.hotseat.getGlobalVisibleRect" in frames and "overlay.invalidate()" in frames
+assert "i == ws.currentPage" in frames
 assert "GoreeCloudOverviewFrames.apply(host, editing)" in toolbar
 assert "override fun onPageEndTransition()" in launcher and "GoreeCloudOverviewFrames.apply(this, true)" in launcher
 assert all(label in launcher for label in ("Wallpapers","Widgets","Settings"))

@@ -51,7 +51,14 @@ assert "Set current page as Home" in edit and "Remove current empty Home screen"
 assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "params.bottomMargin = dp(138)" in launcher
+assert "params.bottomMargin = dp(94)" in launcher
+assert "InsettableFrameLayout.LayoutParams" in launcher
+assert "ignoreInsets = true" in launcher
+assert "getEditModeWorkspaceScaleAndTranslation(launcher).scale" in read("src/com/android/launcher3/states/EditModeState.kt")
+assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "ignoreInsets = true" in edit
+
 assert all(("R.drawable.goreecloud_edit_" + n) in launcher for n in ("wallpaper", "widgets", "settings"))
 assert 'if (item.isDefault) "⌂" else "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "GoreeCloudOverviewToolbar.INSTANCE.refresh(host)" in read("src/com/android/launcher3/Workspace.java")

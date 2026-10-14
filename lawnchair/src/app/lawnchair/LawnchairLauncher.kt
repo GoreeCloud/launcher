@@ -409,7 +409,7 @@ class LawnchairLauncher : QuickstepLauncher() {
                 cornerRadius = dp(24).toFloat()
                 setStroke(0, android.graphics.Color.TRANSPARENT)
             }
-            elevation = dp(8).toFloat()
+            elevation = 0f
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
         }
@@ -443,12 +443,15 @@ class LawnchairLauncher : QuickstepLauncher() {
         option("Home screen settings", R.drawable.goreecloud_edit_settings) {
             startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
         }
-        rootView.addView(bar, android.widget.FrameLayout.LayoutParams(
+        // LauncherRootView is an InsettableFrameLayout: ordinary FrameLayout
+        // parameters are converted and can lose gravity, pinning actions to TOP.
+        rootView.addView(bar, com.android.launcher3.InsettableFrameLayout.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
-            android.view.Gravity.BOTTOM,
         ).apply {
-            bottomMargin = dp(40)
+            ignoreInsets = true
+            gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(66)
             leftMargin = dp(16)
             rightMargin = dp(16)
         })
@@ -458,7 +461,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { params ->
                 params.gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
                 params.height = dp(64)
-                params.bottomMargin = dp(138)
+                params.bottomMargin = dp(94)
                 strip.layoutParams = params
             }
         }
@@ -585,6 +588,7 @@ class LawnchairLauncher : QuickstepLauncher() {
         super.onPageEndTransition()
         if (stateManager.state == LauncherState.EDIT_MODE) {
             app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
+            app.lawnchair.views.GoreeCloudOverviewToolbar.refresh(this)
         }
     }
 

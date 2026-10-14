@@ -56,7 +56,10 @@ class EditModeState(id: Int) : LauncherState(id, StatsLogManager.LAUNCHER_STATE_
                 } else {
                     grid.getCellLayoutSpringLoadShrunkBottom(launcher) - stripHeightPx
                 }
-            return top to bottom
+            // Reserve clear space for the Home glyph above the selected page.
+            // Move the preview down without shrinking it into the top status bar.
+            val offset = 72f * launcher.resources.displayMetrics.density
+            return (top + offset) to (bottom + offset)
         }
 
         private fun getEditModeWorkspaceScale(
@@ -112,7 +115,9 @@ class EditModeState(id: Int) : LauncherState(id, StatsLogManager.LAUNCHER_STATE_
 
     override fun getHotseatScaleAndTranslation(launcher: Launcher): ScaleAndTranslation {
         val offset = getEditModePageStripHeightPx(launcher).toFloat()
-        return ScaleAndTranslation(1f, 0f, -offset)
+        // The dock belongs inside the scaled edit-page preview, not outside it.
+        val previewScale = getEditModeWorkspaceScaleAndTranslation(launcher).scale
+        return ScaleAndTranslation(previewScale, 0f, -offset)
     }
 
     override fun getWorkspaceBackgroundAlpha(launcher: Launcher): Float {

@@ -49,8 +49,16 @@ object GoreeCloudOverviewToolbar {
                 host.rootView.post { refresh(host) }
             }
         }
-        host.rootView.addView(home, FrameLayout.LayoutParams(dp(48), dp(48)))
-        host.rootView.addView(remove, FrameLayout.LayoutParams(dp(64), dp(52)))
+        host.rootView.addView(home,
+            com.android.launcher3.InsettableFrameLayout.LayoutParams(dp(36), dp(36)).apply {
+                ignoreInsets = true
+            },
+        )
+        host.rootView.addView(remove,
+            com.android.launcher3.InsettableFrameLayout.LayoutParams(dp(64), dp(52)).apply {
+                ignoreInsets = true
+            },
+        )
         home.visibility = View.GONE
         remove.visibility = View.GONE
         controls[host] = Controls(home, remove)
@@ -92,19 +100,25 @@ object GoreeCloudOverviewToolbar {
         val scale = ws.scaleX.coerceIn(.3f, 1f)
         val controlWidth = maxOf(dp(42), (dp(64) * scale).toInt())
         val controlHeight = maxOf(dp(35), (dp(52) * scale).toInt())
-        overlay.remove.layoutParams = FrameLayout.LayoutParams(
-            controlWidth, controlHeight, Gravity.TOP or Gravity.START,
+        overlay.remove.layoutParams = com.android.launcher3.InsettableFrameLayout.LayoutParams(
+            controlWidth, controlHeight,
         ).apply {
+            ignoreInsets = true
+            gravity = Gravity.TOP or Gravity.START
             leftMargin = bounds.right - origin[0] - controlWidth
             topMargin = bounds.top - origin[1]
         }
-        overlay.home.layoutParams = FrameLayout.LayoutParams(
-            dp(48), dp(48), Gravity.TOP or Gravity.START,
+        overlay.home.layoutParams = com.android.launcher3.InsettableFrameLayout.LayoutParams(
+            dp(36), dp(36),
         ).apply {
-            leftMargin = bounds.centerX() - origin[0] - dp(24)
-            topMargin = maxOf(dp(24), bounds.top - origin[1] - dp(58))
+            ignoreInsets = true
+            gravity = Gravity.TOP or Gravity.START
+            leftMargin = bounds.centerX() - origin[0] - dp(18)
+            topMargin = maxOf(dp(52), bounds.top - origin[1] - dp(55))
         }
         overlay.home.visibility = View.VISIBLE
         overlay.remove.visibility = View.VISIBLE
+        overlay.home.bringToFront()
+        overlay.remove.bringToFront()
     }
 }
