@@ -59,8 +59,14 @@ else:
 PY
 )"
 read -r add_x add_y <<< "$add_coords"
+adb shell logcat -c
 adb shell input tap "$add_x" "$add_y"
 sleep 4
+adb shell logcat -d -s GoreeEditQA:I > "$out/add-page-events.txt"
+if ! grep -q "add-click" "$out/add-page-events.txt"; then
+  echo "Add-page tap was not received by GoreeCloud Launcher"
+  exit 1
+fi
 adb shell screencap -p /sdcard/goreecloud-edit-added-qa.png
 adb pull /sdcard/goreecloud-edit-added-qa.png "$out/edit-added.png"
 adb shell uiautomator dump /sdcard/goreecloud-edit-added.xml >/dev/null

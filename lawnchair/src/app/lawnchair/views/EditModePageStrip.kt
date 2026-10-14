@@ -174,11 +174,19 @@ class EditModePageStrip @JvmOverloads constructor(
 
     private fun addHomePage() {
         val ws = workspace ?: return
-        if (ws.childCount >= 16) return
+        val before = ws.childCount
+        android.util.Log.i("GoreeEditQA", "add-click pages=$before")
+        if (before >= 16) return
         ws.addExtraEmptyScreens()
-        ws.commitExtraEmptyScreens()
+        val committed = ws.commitExtraEmptyScreens()
+        android.util.Log.i("GoreeEditQA", "add-result pages=${ws.childCount} committed=$committed")
+        if (ws.childCount <= before) {
+            Toast.makeText(context, "Unable to add Home screen", Toast.LENGTH_SHORT).show()
+            return
+        }
         ws.snapToPage(ws.childCount - 1)
         refreshItems()
+        post { refreshItems() }
     }
 
     private fun moveGroup(from: Int, to: Int): Boolean {
