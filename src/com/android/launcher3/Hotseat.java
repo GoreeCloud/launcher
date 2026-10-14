@@ -202,12 +202,22 @@ public class Hotseat extends FrameLayout implements Insettable {
     }
 
     private void setUpBackground() {
-        if(!preferenceManager.getHotseatBG().get()) return;
+        // Limit the Glaze dock surface to the icon band: drawing on Hotseat itself
+        // would also paint the empty QSB/navigation region on phones.
+        if (!preferenceManager.getHotseatBG().get()) {
+            mIconsContainer.setBackground(null);
+            return;
+        }
 
         var bgColor = PreferenceCacheExtensionsKt.firstCached(preferenceManager2.getHotseatBackgroundColor());
         var transparency = preferenceManager.getHotseatBGAlpha().get();
         var alphaValue = (transparency * 255) / 100;
         var baseColor = bgColor.getColorPreferenceEntry().getLightColor().invoke(getContext());
+        // Older installations can persist Lawnchair's transparent "default" sentinel.
+        // Keep a legible pale dock until the owner explicitly selects a custom color.
+        if (Color.alpha(baseColor) == 0) {
+            baseColor = 0xFFF1F7FF;
+        }
         var finalColor = Color.argb(alphaValue, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor));
         int insetHorizontalLeft = preferenceManager.getHotseatBGHorizontalInsetLeft().get();
         int insetHorizontalRight = preferenceManager.getHotseatBGHorizontalInsetRight().get();
@@ -222,9 +232,11 @@ public class Hotseat extends FrameLayout implements Insettable {
         GradientDrawable background = new GradientDrawable();
         background.setColor(finalColor);
         background.setCornerRadius(cornerRadius);
+        int strokeWidth = Math.max(1, Math.round(getResources().getDisplayMetrics().density));
+        background.setStroke(strokeWidth, Color.argb(96, 255, 255, 255));
         InsetDrawable bg = new InsetDrawable(background,
                 insetHorizontalLeft, insetVerticalTop, insetHorizontalRight, insetVerticalBottom);
-        setBackground(bg);
+        mIconsContainer.setBackground(bg);
     }
 
     /** Provides translation X for hotseat icons for the channel. */
@@ -424,6 +436,12 @@ public class Hotseat extends FrameLayout implements Insettable {
 
         Rect padding = grid.getHotseatLayoutPadding(getContext());
         setPadding(padding.left, padding.top, padding.right, padding.bottom);
+        // Retain a clean vertical dock in landscape/foldable side-bar mode.
+        if (grid.isVerticalBarLayout()) {
+            mIconsContainer.setBackground(null);
+        } else {
+            setUpBackground();
+        }
         setLayoutParams(lp);
         InsettableFrameLayout.dispatchInsets(this, insets);
     }

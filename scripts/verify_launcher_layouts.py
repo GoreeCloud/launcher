@@ -137,6 +137,28 @@ for folder in ("res/xml", "lawnchair/res/xml"):
         dock = [item for item in layout if item.get(WORKSPACE_ATTR + "container") == "-101"]
         check(len(dock) == 5, f"{folder}/{name} must seed five dock icons")
 
+# Glaze dock should be a light rounded capsule behind only the icon band,
+# rather than a full-screen-area hotseat background. Existing custom settings remain.
+config = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
+config_strings = {v.get("name"): v.text for v in config.findall("string")}
+check(config_strings.get("config_default_hotseat_bg_color") == "custom|#FFF1F7FF",
+      "GoreeCloud dock should default to a pale Glaze surface")
+check(config_strings.get("config_default_icon_shape") == "roundedSquare",
+      "GoreeCloud icons must default to rounded-square masks")
+prefs = (ROOT / "lawnchair/src/app/lawnchair/preferences/PreferenceManager.kt").read_text()
+check('val hotseatBG = BoolPref("pref_hotseatBG", true, recreate)' in prefs,
+      "New installs must show the Glaze dock capsule")
+check('val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 86, recreate)' in prefs,
+      "Dock surface must retain intended frost opacity")
+hotseat = (ROOT / "src/com/android/launcher3/Hotseat.java").read_text()
+check("mIconsContainer.setBackground(bg);" in hotseat,
+      "Dock surface must render behind icon band, not the QSB/navigation area")
+check("if (grid.isVerticalBarLayout())" in hotseat and
+      "mIconsContainer.setBackground(null);" in hotseat,
+      "Vertical hotseat must not inherit the phone dock capsule")
+check("background.setStroke(strokeWidth" in hotseat,
+      "Dock capsule must retain the subtle Glaze highlight edge")
+
 if failures:
     for failure in failures:
         print("FAIL:", failure)
