@@ -178,6 +178,7 @@ class LawnchairLauncher : QuickstepLauncher() {
 
         installGoreeCloudHomeOverviewActions()
         app.lawnchair.views.GoreeCloudOverviewToolbar.install(this)
+        dragLayer.post { migrateGoreeCloudDrawerDefaults() }
 
         prefs.launcherTheme.subscribeChanges(this, ::updateTheme)
 
@@ -364,6 +365,19 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
     }
 
+    /** Apply changed defaults once to older installs, then honor later user choices. */
+    private fun migrateGoreeCloudDrawerDefaults() {
+        val migration = getSharedPreferences("goreecloud_launcher_migrations", Context.MODE_PRIVATE)
+        if (migration.getBoolean("drawer_search_hidden_v3", false)) return
+        if (!migration.edit().putBoolean("drawer_search_hidden_v3", true).commit()) return
+        if (!preferenceManager2.hideAppDrawerSearchBar.firstCached()) {
+            preferenceManager2.hideAppDrawerSearchBar.set(true)
+        }
+        if (preferenceManager2.showSuggestedAppsInDrawer.firstCached()) {
+            preferenceManager2.showSuggestedAppsInDrawer.set(false)
+        }
+    }
+
     /** Draw the Home wallpaper continuously behind transparent system bars. */
     private fun applyGoreeCloudSystemBarWallpaper() {
         val targetWindow = window ?: return
@@ -388,44 +402,59 @@ class LawnchairLauncher : QuickstepLauncher() {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
             setPadding(dp(8), dp(4), dp(8), dp(4))
-            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0xFFF8FBFF.toInt())
+                cornerRadius = dp(24).toFloat()
+                setStroke(dp(1), 0xFFD7E6F2.toInt())
+            }
             elevation = dp(8).toFloat()
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
         }
-        fun option(label: String, glyph: String, onClick: () -> Unit) {
-            bar.addView(android.widget.TextView(this).apply {
-                text = android.text.SpannableString("$glyph\n$label").apply {
-                    setSpan(android.text.style.RelativeSizeSpan(1.65f), 0, glyph.length,
-                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
-                }
+        fun option(label: String, icon: Int, onClick: () -> Unit) {
+            val tile = android.widget.LinearLayout(this).apply {
+                orientation = android.widget.LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER
-                textSize = 15f
-                setTextColor(0xFFFFFFFF.toInt())
-                minHeight = dp(54)
+                contentDescription = label
                 isClickable = true
                 isFocusable = true
-                contentDescription = label
                 setOnClickListener { onClick() }
-            }, android.widget.LinearLayout.LayoutParams(0, dp(92), 1f))
+            }
+            tile.addView(android.widget.ImageView(this).apply {
+                setImageResource(icon)
+                imageTintList = android.content.res.ColorStateList.valueOf(0xFF245779.toInt())
+            }, android.widget.LinearLayout.LayoutParams(dp(22), dp(22)))
+            tile.addView(android.widget.TextView(this).apply {
+                text = label
+                textSize = 12f
+                gravity = android.view.Gravity.CENTER
+                setTextColor(0xFF24475E.toInt())
+            }, android.widget.LinearLayout.LayoutParams(-1, dp(26)))
+            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(60), 1f))
         }
-        option("Wallpapers & themes", "▤") { GoreeCloudWallpapers.showPicker(this) }
-        option("Widgets", "⊞") {
+        option("Wallpapers", android.R.drawable.ic_menu_gallery) { GoreeCloudWallpapers.showPicker(this) }
+        option("Widgets", android.R.drawable.ic_menu_add) {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Home screen settings", "⚙") {
+        option("Settings", android.R.drawable.ic_menu_preferences) {
             startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
         }
-        dragLayer.addView(bar, android.widget.FrameLayout.LayoutParams(
+        rootView.addView(bar, android.widget.FrameLayout.LayoutParams(
             android.view.ViewGroup.LayoutParams.MATCH_PARENT,
             android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
             android.view.Gravity.BOTTOM,
-        ).apply { bottomMargin = dp(18) })
+        ).apply {
+            bottomMargin = dp(40)
+            leftMargin = dp(16)
+            rightMargin = dp(16)
+        })
         findViewById<app.lawnchair.views.EditModePageStrip>(
             R.id.edit_mode_page_strip,
         )?.let { strip ->
             (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { params ->
-                params.bottomMargin = dp(136)
+                params.gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
+                params.height = dp(64)
+                params.bottomMargin = dp(248)
                 strip.layoutParams = params
             }
         }

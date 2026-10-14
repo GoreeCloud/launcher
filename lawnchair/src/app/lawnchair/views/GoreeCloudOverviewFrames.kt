@@ -28,14 +28,12 @@ object GoreeCloudOverviewFrames {
                 originals[page] = page.foreground
             }
             val selected = index == workspace.currentPage
+            // Selected page is indicated by the page-strip chip. Avoid the
+            // full-height white outline that overwhelmed the edit canvas.
             val border = GradientDrawable().apply {
                 shape = GradientDrawable.RECTANGLE
-                setColor(if (selected) 0x160C5CBE else 0x090C5CBE)
-                cornerRadius = 24f * density
-                setStroke(
-                    (if (selected) 2f else 1f).times(density).toInt().coerceAtLeast(1),
-                    if (selected) Color.WHITE else 0xA6FFFFFF.toInt(),
-                )
+                setColor(if (selected) 0x070C5CBE else Color.TRANSPARENT)
+                cornerRadius = 20f * density
             }
             page.foreground = border
         }

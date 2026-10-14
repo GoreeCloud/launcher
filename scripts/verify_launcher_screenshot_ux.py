@@ -35,8 +35,22 @@ for path in (r / "lawnchair/res/xml").glob("default_workspace*.xml"):
 
 search = read("lawnchair/src/app/lawnchair/GoreeCloudUniversalSearchActivity.kt")
 assert search.count(".take(columns * 2)") == 3
-assert "setMargins(dp(18), dp(50), dp(18), 0)" in search
+assert "setMargins(dp(14), dp(74), dp(14), 0)" in search
 assert "profileBadgePosition.get()" not in search
+assert "R.drawable.goreecloud_ic_search" in search
+assert "dp(207)" in search
+assert "background = shape(Color.rgb(239, 243, 248), 30)" in search
+assert "clearButton.visibility = if (query.isEmpty()) View.GONE" in search
+assert ET.parse(r / "lawnchair/res/drawable/goreecloud_ic_search.xml").getroot().tag == "vector"
+assert "migrateGoreeCloudDrawerDefaults()" in launcher
+assert "drawer_search_hidden_v3" in launcher
+assert "hideAppDrawerSearchBar.set(true)" in launcher
+assert "showSuggestedAppsInDrawer.set(false)" in launcher
+edit = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewToolbar.kt")
+assert 'text = "Edit Home"' in edit and 'action("Done"' in edit
+assert "host.rootView.addView" in edit
+assert "setStroke" not in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "params.bottomMargin = dp(248)" in launcher
 badge = read("src/com/android/launcher3/GoreeCloudProfileBadges.java")
 assert "icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE" in badge
 assert 'drawText(work ? "W" : "P"' not in badge
