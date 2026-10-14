@@ -59,7 +59,9 @@ assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "alignGoreeCloudEditNavigation()" in launcher
-assert "preferredTop = pageBounds.bottom + gap" in launcher
+assert "preferredTop = frameBottom + gap" in launcher
+assert "val stripHeight = dp(38)" in launcher
+assert "mEditModePageStrip.dismissEducationTip()" in read("src/com/android/launcher3/Launcher.java")
 assert "safeTop = actionBounds.top - stripHeight - gap" in launcher
 assert "minOf(preferredTop, safeTop)" in launcher
 assert "strip.refreshItems()" in launcher
