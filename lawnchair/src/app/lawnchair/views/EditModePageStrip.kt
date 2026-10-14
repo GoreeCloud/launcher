@@ -165,6 +165,15 @@ class EditModePageStrip @JvmOverloads constructor(
         pageStripAdapter.setItems(items)
     }
 
+    private fun addHomePage() {
+        val ws = workspace ?: return
+        if (ws.childCount >= 16) return
+        ws.addExtraEmptyScreens()
+        ws.commitExtraEmptyScreens()
+        ws.snapToPage(ws.childCount - 1)
+        refreshItems()
+    }
+
     private fun moveGroup(from: Int, to: Int): Boolean {
         val ws = workspace ?: return false
         if (!ws.moveReorderablePageGroup(from, to)) {
