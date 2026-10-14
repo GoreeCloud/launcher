@@ -16,17 +16,19 @@ assert "getMovementFlags" in pager and "ws.reorderablePageGroupStarts.indexOf(pa
 assert "pageGroupStarts(ws)" in pager and "ws.defaultPage" in pager
 assert "(0 until ws.childCount step ws.panelCount.coerceAtLeast(1))" in pager
 assert "Preview Home page" in pager and "Default Home page" in pager
-assert "dp(80)" in launcher and "GoreeCloudOverviewToolbar.install(this)" in launcher
+assert "GoreeCloudOverviewToolbar.install(this)" in launcher
+assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in toolbar
+assert "deleteItemFromDatabase" in toolbar and "getCurrentPageLayout" in toolbar
 assert "alignGoreeCloudEditNavigation()" in launcher
 assert "minOf(preferredTop, safeTop)" in launcher
 frames=get("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "WeakHashMap<LawnchairLauncher, View>" in frames
 assert "host.hotseat.getGlobalVisibleRect" in frames and "overlay.invalidate()" in frames
-assert "i == ws.currentPage" in frames
+assert "index == workspace.currentPage" in frames
 assert "GoreeCloudOverviewFrames.apply(host, editing)" in toolbar
 assert "override fun onPageEndTransition()" in launcher and "GoreeCloudOverviewFrames.apply(this, true)" in launcher
 assert all(label in launcher for label in ("Wallpapers","Widgets","Settings"))
-assert "removeEmptyWorkspacePageByIndex" in toolbar and "workspace.setDefaultPage(page)" in toolbar
+assert "removeEmptyWorkspacePageByIndex" in toolbar and "ws.setDefaultPage(start)" in toolbar
 assert "GoreeCloudContextSurfaces.actionBar" in popup
 assert "addAllShortcuts(deepShortcutCount, otherActions)" in popup
 assert "APP SHORTCUTS" in popup and "notificationCard" in popup

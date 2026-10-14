@@ -175,7 +175,7 @@ class PreferenceManager @Inject constructor(
     val hotseatBGHorizontalInsetRight = IntPref("pref_hotseatBGHRinsetRight", 0, recreate)
     val hotseatBGVerticalInsetBottom = IntPref("pref_hotseatBGVRinsetBottom", 0, recreate)
 
-    val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 86, recreate)
+    val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 68, recreate)
 
     val enableWallpaperBlur = BoolPref("pref_enableWallpaperBlur", false, recreate)
     val wallpaperBlur = IntPref("pref_wallpaperBlur", 25, recreate)

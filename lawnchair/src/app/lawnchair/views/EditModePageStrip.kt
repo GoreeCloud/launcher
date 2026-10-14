@@ -166,7 +166,7 @@ class EditModePageStrip @JvmOverloads constructor(
         val items = starts.map { start ->
             PageItem(isDefault = start == defaultPage)
         }
-        val cellPx = (38 * resources.displayMetrics.density).toInt()
+        val cellPx = (30 * resources.displayMetrics.density).toInt()
         val sidePx = ((resources.displayMetrics.widthPixels - (items.size + 1) * cellPx) / 2).coerceAtLeast(12)
         setPadding(sidePx, paddingTop, sidePx, paddingBottom)
         pageStripAdapter.setItems(items)
@@ -331,8 +331,8 @@ class EditModePageStrip @JvmOverloads constructor(
                 holder.itemView.isSelected = false
                 holder.itemView.isFocusable = true
                 holder.itemView.contentDescription = "Add a Home screen"
-                holder.title.text = "+"
-                holder.title.textSize = 18f
+                holder.title.text = "●" // The trailing subdued dot adds a new page
+                holder.title.textSize = 11f
                 holder.title.setTextColor(0xFFFFFFFF.toInt())
                 holder.title.background = null
                 holder.itemView.setOnClickListener { addHomePage() }
@@ -350,10 +350,10 @@ class EditModePageStrip @JvmOverloads constructor(
             } else {
                 "Preview Home page ${position + 1}"
             }
-            holder.title.text = if (item.isDefault) "⌂" else "●"
-            holder.title.textSize = if (item.isDefault) 23f else 17f
-            holder.title.setTextColor(if (item.isDefault || isCurrent) 0xFFFFFFFF.toInt()
-                else 0xB3FFFFFF.toInt())
+            holder.title.text = "●"
+            holder.title.textSize = 11f
+            holder.title.setTextColor(if (isCurrent) 0xFFFFFFFF.toInt()
+                else 0x68FFFFFF)
             holder.title.background = null
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {

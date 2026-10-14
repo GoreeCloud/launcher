@@ -215,9 +215,9 @@ public class Hotseat extends FrameLayout implements Insettable {
         var alphaValue = (transparency * 255) / 100;
         var baseColor = bgColor.getColorPreferenceEntry().getLightColor().invoke(getContext());
         // Older installations can persist Lawnchair's transparent "default" sentinel.
-        // Keep a legible pale dock until the owner explicitly selects a custom color.
+        // Keep an accessible blue Glaze dock until the owner selects a custom color.
         if (bgColor instanceof ColorOption.Default) {
-            baseColor = 0xFFF1F7FF;
+            baseColor = 0xFF2B7091;
         }
         var finalColor = Color.argb(alphaValue, Color.red(baseColor), Color.green(baseColor), Color.blue(baseColor));
         int insetHorizontalLeft = preferenceManager.getHotseatBGHorizontalInsetLeft().get();

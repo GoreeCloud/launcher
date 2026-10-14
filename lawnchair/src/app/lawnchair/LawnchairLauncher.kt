@@ -409,53 +409,80 @@ class LawnchairLauncher : QuickstepLauncher() {
         val scale = resources.displayMetrics.density
         fun dp(value: Int) = (value * scale + .5f).toInt()
         val bar = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
+            orientation = android.widget.LinearLayout.VERTICAL
             gravity = android.view.Gravity.CENTER
-            setPadding(dp(6), dp(2), dp(6), dp(2))
+            setPadding(dp(9), dp(6), dp(9), dp(9))
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(android.graphics.Color.TRANSPARENT)
-                cornerRadius = dp(24).toFloat()
-                setStroke(0, android.graphics.Color.TRANSPARENT)
+                setColor(0xA0154864.toInt())
+                cornerRadius = dp(27).toFloat()
+                setStroke(dp(1), 0x5573B4D8)
             }
-            elevation = 0f
+            elevation = dp(3).toFloat()
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
         }
-        fun option(label: String, icon: Int, onClick: () -> Unit) {
+        // The subtle drag handle belongs to the frosted tray, not the wallpaper.
+        bar.addView(View(this).apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0x85D9EBF7.toInt())
+                cornerRadius = dp(3).toFloat()
+            }
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, android.widget.LinearLayout.LayoutParams(dp(34), dp(4)).apply {
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(7)
+        })
+        val tiles = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER
+        }
+        fun option(label: String, icon: Int, tint: Int, onClick: () -> Unit) {
             val tile = android.widget.LinearLayout(this).apply {
                 orientation = android.widget.LinearLayout.VERTICAL
                 gravity = android.view.Gravity.CENTER
                 contentDescription = label
                 isClickable = true
                 isFocusable = true
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    setColor(0x84456E88.toInt())
+                    cornerRadius = dp(18).toFloat()
+                    setStroke(dp(1), 0x2868BCD8)
+                }
                 setOnClickListener { onClick() }
             }
             tile.addView(android.widget.ImageView(this).apply {
                 setImageResource(icon)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                imageTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+                imageTintList = android.content.res.ColorStateList.valueOf(tint)
             }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
             tile.addView(android.widget.TextView(this).apply {
-                text = when (label) {
-                    "Wallpapers & themes" -> "Wallpapers &\nthemes"
-                    "Home screen settings" -> "Home screen\nsettings"
-                    else -> label
-                }
+                text = if (label == "Home screen settings") "Home screen\nsettings" else label
                 textSize = 11f
                 gravity = android.view.Gravity.CENTER
                 maxLines = 2
                 includeFontPadding = false
                 setTextColor(0xFFFFFFFF.toInt())
-            }, android.widget.LinearLayout.LayoutParams(-1, dp(43)))
-            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(80), 1f))
+            }, android.widget.LinearLayout.LayoutParams(-1, dp(34)))
+            tiles.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(78), 1f).apply {
+                leftMargin = dp(3)
+                rightMargin = dp(3)
+            })
         }
-        option("Wallpapers & themes", R.drawable.goreecloud_edit_wallpaper) { GoreeCloudWallpapers.showPicker(this) }
-        option("Widgets", R.drawable.goreecloud_edit_widgets) {
+        option("Wallpapers", R.drawable.goreecloud_edit_wallpaper, 0xFF39A6FF.toInt()) {
+            GoreeCloudWallpapers.showPicker(this)
+        }
+        option("Themes", R.drawable.goreecloud_edit_themes, 0xFFD88AF3.toInt()) {
+            startActivity(app.lawnchair.ui.preferences.PreferenceActivity.createIntent(
+                this, app.lawnchair.ui.preferences.navigation.General))
+        }
+        option("Widgets", R.drawable.goreecloud_edit_widgets, 0xFF2CEBA8.toInt()) {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Home screen settings", R.drawable.goreecloud_edit_settings) {
-            startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
+        option("Home screen settings", R.drawable.goreecloud_edit_settings, 0xFF57B3FF.toInt()) {
+            startActivity(app.lawnchair.ui.preferences.PreferenceActivity.createIntent(
+                this, app.lawnchair.ui.preferences.navigation.HomeScreen))
         }
+        bar.addView(tiles, android.widget.LinearLayout.LayoutParams(-1, dp(78)))
         // LauncherRootView is an InsettableFrameLayout: ordinary FrameLayout
         // parameters are converted and can lose gravity, pinning actions to TOP.
         rootView.addView(bar, com.android.launcher3.InsettableFrameLayout.LayoutParams(

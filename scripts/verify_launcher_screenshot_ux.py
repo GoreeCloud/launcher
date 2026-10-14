@@ -55,10 +55,10 @@ assert "drawer_search_hidden_v3" in launcher
 assert "hideAppDrawerSearchBar.set(true)" in launcher
 assert "showSuggestedAppsInDrawer.set(false)" in launcher
 edit = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewToolbar.kt")
-assert "Set current page as Home" in edit and "Remove current empty Home screen" in edit
+assert "Edit Home Screen" in edit and "Add apps" in edit
 assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "selected" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "alignGoreeCloudEditNavigation()" in launcher
 assert "strip.parent !== rootView" in launcher
 assert "rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(" in launcher
@@ -85,7 +85,7 @@ assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawncha
 assert "ignoreInsets = true" in edit
 
 assert all(("R.drawable.goreecloud_edit_" + n) in launcher for n in ("wallpaper", "widgets", "settings"))
-assert 'if (item.isDefault) "⌂" else "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
+assert 'holder.title.text = "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "GoreeCloudOverviewToolbar.INSTANCE.refresh(host)" in read("src/com/android/launcher3/Workspace.java")
 badge = read("src/com/android/launcher3/GoreeCloudProfileBadges.java")
 assert "icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE" in badge
