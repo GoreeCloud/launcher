@@ -296,8 +296,9 @@ public class PopupContainerWithArrow<T extends Context & ActivityContext>
         }
         final View actionBar = GoreeCloudContextSurfaces.actionBar(
                 launcher, originalIcon, itemInfo, systemShortcuts);
-        addView(actionBar, 0, new LayoutParams(mContainerWidth,
-                Math.round(86 * getResources().getDisplayMetrics().density)));
+        if (((android.widget.LinearLayout) actionBar).getChildCount() > 0) {
+            addView(actionBar, 0, new LayoutParams(mContainerWidth, LayoutParams.WRAP_CONTENT));
+        }
 
         if (deepShortcutCount > 0 || !otherActions.isEmpty()) {
             TextView heading = new TextView(getContext());
