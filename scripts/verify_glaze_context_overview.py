@@ -15,6 +15,8 @@ assert "position == items.size" in pager and "addHomePage()" in pager
 assert "getMovementFlags" in pager and "pageStripAdapter.itemCount - 1" in pager
 assert "Preview Home page" in pager and "Default Home page" in pager
 assert "dp(80)" in launcher and "GoreeCloudOverviewToolbar.install(this)" in launcher
+assert "alignGoreeCloudEditNavigation()" in launcher
+assert "minOf(preferredTop, safeTop)" in launcher
 frames=get("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "WeakHashMap<LawnchairLauncher, View>" in frames
 assert "host.hotseat.getGlobalVisibleRect" in frames and "overlay.invalidate()" in frames

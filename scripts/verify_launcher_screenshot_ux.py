@@ -16,6 +16,13 @@ assert "rootView.addView(\n            GoreeCloudWallpaperView" in launcher
 assert "targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT" in launcher
 assert "targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT" in launcher
 assert "targetWindow.isNavigationBarContrastEnforced = false" in launcher
+assert "WindowCompat.setDecorFitsSystemWindows(targetWindow, false)" in launcher
+wallpaper_section = launcher.split("GoreeCloudWallpaperView(this).apply", 1)[1].split("installGoreeCloudHomeOverviewActions()", 1)[0]
+assert "InsettableFrameLayout.LayoutParams" in wallpaper_section
+assert "ignoreInsets = true" in wallpaper_section
+assert "Gravity.FILL" in wallpaper_section
+assert "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN" in launcher
+assert "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION" in launcher
 
 setup = read("lawnchair/src/app/lawnchair/GoreeCloudSetupActivity.kt")
 assert "WindowInsetsCompat.Type.systemBars()" in setup
@@ -51,10 +58,17 @@ assert "Set current page as Home" in edit and "Remove current empty Home screen"
 assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "params.bottomMargin = dp(94)" in launcher
+assert "alignGoreeCloudEditNavigation()" in launcher
+assert "preferredTop = pageBounds.bottom + gap" in launcher
+assert "safeTop = actionBounds.top - stripHeight - gap" in launcher
+assert "minOf(preferredTop, safeTop)" in launcher
+assert "strip.refreshItems()" in launcher
+assert "bottomMargin = dp(38)" in launcher
 assert "InsettableFrameLayout.LayoutParams" in launcher
 assert "ignoreInsets = true" in launcher
 assert "getEditModeWorkspaceScaleAndTranslation(launcher).scale" in read("src/com/android/launcher3/states/EditModeState.kt")
+assert "-offset * 0.55f" in read("src/com/android/launcher3/states/EditModeState.kt")
+assert "holder.itemView.isSelected = isCurrent" in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "ignoreInsets = true" in edit

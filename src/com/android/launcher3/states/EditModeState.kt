@@ -117,7 +117,7 @@ class EditModeState(id: Int) : LauncherState(id, StatsLogManager.LAUNCHER_STATE_
         val offset = getEditModePageStripHeightPx(launcher).toFloat()
         // The dock belongs inside the scaled edit-page preview, not outside it.
         val previewScale = getEditModeWorkspaceScaleAndTranslation(launcher).scale
-        return ScaleAndTranslation(previewScale, 0f, -offset)
+        return ScaleAndTranslation(previewScale, 0f, -offset * 0.55f)
     }
 
     override fun getWorkspaceBackgroundAlpha(launcher: Launcher): Float {

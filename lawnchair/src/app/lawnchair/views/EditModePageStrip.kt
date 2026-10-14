@@ -310,7 +310,11 @@ class EditModePageStrip @JvmOverloads constructor(
                 return
             }
             val item = items[position]
-            holder.itemView.isSelected = item.isDefault
+            val ws = workspace
+            val starts = ws?.reorderablePageGroupStarts
+            val isCurrent = ws != null && starts != null && position < starts.size() &&
+                starts[position] == ws.currentPage
+            holder.itemView.isSelected = isCurrent
             holder.itemView.isFocusable = true
             holder.itemView.contentDescription = if (item.isDefault) {
                 "Default Home page ${position + 1}"
@@ -319,10 +323,9 @@ class EditModePageStrip @JvmOverloads constructor(
             }
             holder.title.text = if (item.isDefault) "⌂" else "●"
             holder.title.textSize = if (item.isDefault) 23f else 17f
-            holder.title.setTextColor(if (item.isDefault) 0xFFFFFFFF.toInt()
+            holder.title.setTextColor(if (item.isDefault || isCurrent) 0xFFFFFFFF.toInt()
                 else 0xB3FFFFFF.toInt())
             holder.title.background = null
-            val ws = workspace
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {
                 resources.getString(R.string.edit_mode_page_strip_home_selected)
