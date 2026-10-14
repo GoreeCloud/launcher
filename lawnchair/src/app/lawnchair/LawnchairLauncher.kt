@@ -378,8 +378,8 @@ class LawnchairLauncher : QuickstepLauncher() {
             bar.addView(android.widget.TextView(this).apply {
                 text = "$glyph\n$label"
                 gravity = android.view.Gravity.CENTER
-                textSize = 11f
-                setTextColor(0xFF1B3652.toInt())
+                textSize = 15f
+                setTextColor(0xFFFFFFFF.toInt())
                 minHeight = dp(54)
                 isClickable = true
                 isFocusable = true
