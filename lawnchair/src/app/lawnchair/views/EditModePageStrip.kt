@@ -282,6 +282,11 @@ class EditModePageStrip @JvmOverloads constructor(
         }
 
         override fun onBindViewHolder(holder: PageStripViewHolder, position: Int) {
+            if (position == items.size) {
+                holder.title.text = "＋"
+                holder.itemView.setOnClickListener { addHomePage() }
+                return
+            }
             val item = items[position]
             holder.itemView.isSelected = item.isDefault
             holder.title.text = if (item.isDefault) {
