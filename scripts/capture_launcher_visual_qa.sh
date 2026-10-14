@@ -115,3 +115,51 @@ if "Add apps to Home" not in visible:
     raise SystemExit("Add apps picker did not open in the emulator")
 PY
 adb shell input keyevent KEYCODE_BACK
+
+# The owner's reference shows neighboring previews on both sides. Confirm
+# that three real pages can be created and page two can be centered.
+third_add="$(python3 - "$out/edit-added-hierarchy.xml" <<'PY'
+import re, sys
+import xml.etree.ElementTree as ET
+for n in ET.parse(sys.argv[1]).getroot().iter("node"):
+    if n.get("content-desc") == "Add a Home screen" and n.get("clickable") == "true":
+        a, b, c, d = map(int, re.findall(r"\d+", n["bounds"]))
+        print((a+c)//2, (b+d)//2)
+        break
+else:
+    raise SystemExit("Add-page control missing after first page creation")
+PY
+)"
+read -r third_x third_y <<< "$third_add"
+adb shell input tap "$third_x" "$third_y"
+sleep 3
+adb shell uiautomator dump /sdcard/goreecloud-edit-three.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-three.xml "$out/edit-three-hierarchy.xml"
+middle_page="$(python3 - "$out/edit-three-hierarchy.xml" <<'PY'
+import re, sys
+import xml.etree.ElementTree as ET
+nodes = {n.get("content-desc", ""): n for n in ET.parse(sys.argv[1]).getroot().iter("node")}
+if "Preview Home page 3" not in nodes:
+    raise SystemExit("Third Home page was not created")
+node = nodes.get("Preview Home page 2")
+if node is None or node.get("clickable") != "true":
+    raise SystemExit("Page two is not navigable")
+a,b,c,d = map(int, re.findall(r"\d+", node["bounds"]))
+print((a+c)//2, (b+d)//2)
+PY
+)"
+read -r middle_x middle_y <<< "$middle_page"
+adb shell input tap "$middle_x" "$middle_y"
+sleep 3
+adb shell screencap -p /sdcard/goreecloud-edit-three-center.png
+adb pull /sdcard/goreecloud-edit-three-center.png "$out/edit-three-center.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-three-center.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-three-center.xml "$out/edit-three-center-hierarchy.xml"
+python3 - "$out/edit-three-center-hierarchy.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+if not any(n.get("content-desc") == "Preview Home page 2" and
+           n.get("selected") == "true" for n in nodes):
+    raise SystemExit("Page two failed to center as the selected preview")
+PY
