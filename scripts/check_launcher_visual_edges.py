@@ -6,6 +6,12 @@ from pathlib import Path
 from PIL import Image, ImageChops
 
 out = Path(sys.argv[1])
+for state in ("home", "edit"):
+    hierarchy = out / f"{state}-hierarchy.xml"
+    if hierarchy.exists():
+        xml = hierarchy.read_text(errors="replace").lower()
+        if "pixel launcher" in xml and "responding" in xml:
+            raise SystemExit(f"Stock Pixel Launcher ANR obscured {state} screenshot")
 measurements = {}
 for state in ("home", "edit"):
     image = Image.open(out / (state + ".png")).convert("RGB")

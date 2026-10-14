@@ -20,6 +20,13 @@ adb push "$out/goreecloud_home_onboarding.xml" /data/local/tmp/goreecloud_home_o
 adb shell chmod 644 /data/local/tmp/goreecloud_home_onboarding.xml
 adb shell run-as "$pkg" mkdir -p shared_prefs
 adb shell run-as "$pkg" cp /data/local/tmp/goreecloud_home_onboarding.xml shared_prefs/goreecloud_home_onboarding.xml
+# The stock Pixel Launcher can show an ANR dialog over the app under test.
+# Select GoreeCloud as HOME on this disposable emulator before capture.
+adb shell cmd role add-role-holder android.app.role.HOME "$pkg" 0
+adb shell cmd role get-role-holders android.app.role.HOME > "$out/home-role.txt"
+grep -F "$pkg" "$out/home-role.txt"
+adb shell am force-stop com.google.android.apps.nexuslauncher || true
+adb shell input keyevent KEYCODE_BACK || true
 adb shell am force-stop "$pkg" || true
 adb shell am start -W -n "$pkg/app.lawnchair.LawnchairLauncher" > "$out/home-launch.txt"
 sleep 12
@@ -27,6 +34,8 @@ sleep 12
 adb shell pidof "$pkg" > "$out/launcher-pid-home.txt"
 adb shell screencap -p /sdcard/goreecloud-home-qa.png
 adb pull /sdcard/goreecloud-home-qa.png "$out/home.png"
+adb shell uiautomator dump /sdcard/goreecloud-home.xml >/dev/null || true
+adb pull /sdcard/goreecloud-home.xml "$out/home-hierarchy.xml" || true
 # Long-press intentionally targets the empty center of the synthetic Home page.
 adb shell input swipe 540 1090 540 1090 1450
 sleep 5
