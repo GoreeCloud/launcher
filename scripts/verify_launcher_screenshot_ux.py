@@ -47,10 +47,14 @@ assert "drawer_search_hidden_v3" in launcher
 assert "hideAppDrawerSearchBar.set(true)" in launcher
 assert "showSuggestedAppsInDrawer.set(false)" in launcher
 edit = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewToolbar.kt")
-assert 'text = "Edit Home"' in edit and 'action("Done"' in edit
+assert "Set current page as Home" in edit and "Remove current empty Home screen" in edit
 assert "host.rootView.addView" in edit
-assert "setStroke" not in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "params.bottomMargin = dp(248)" in launcher
+assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "params.bottomMargin = dp(138)" in launcher
+assert all(("R.drawable.goreecloud_edit_" + n) in launcher for n in ("wallpaper", "widgets", "settings"))
+assert 'if (item.isDefault) "⌂" else "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
+assert "GoreeCloudOverviewToolbar.INSTANCE.refresh(host)" in read("src/com/android/launcher3/Workspace.java")
 badge = read("src/com/android/launcher3/GoreeCloudProfileBadges.java")
 assert "icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE" in badge
 assert 'drawText(work ? "W" : "P"' not in badge

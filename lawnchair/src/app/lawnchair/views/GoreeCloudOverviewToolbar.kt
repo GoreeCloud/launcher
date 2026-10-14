@@ -1,95 +1,110 @@
 package app.lawnchair.views
 
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Rect
 import android.view.Gravity
 import android.view.View
 import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.widget.ImageView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
 import com.android.launcher3.statemanager.StateManager
+import java.util.WeakHashMap
 
-/** Compact editor header, with page controls contained inside a Glaze surface. */
+/** Functional controls over the real scaled Home-page preview. */
 object GoreeCloudOverviewToolbar {
+    private data class Controls(val home: View, val remove: View)
+    private val controls = WeakHashMap<LawnchairLauncher, Controls>()
+
     fun install(host: LawnchairLauncher) {
         fun dp(n: Int) = (n * host.resources.displayMetrics.density + .5f).toInt()
-        fun surface(color: Int, radius: Int) = GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = dp(radius).toFloat()
-        }
-        val row = LinearLayout(host).apply {
-            gravity = Gravity.CENTER_VERTICAL
-            orientation = LinearLayout.HORIZONTAL
-            background = surface(0xFFF8FBFF.toInt(), 22).apply {
-                setStroke(dp(1), 0xFFD7E6F2.toInt())
-            }
-            setPadding(dp(15), dp(6), dp(7), dp(6))
-            elevation = dp(6).toFloat()
-            visibility = View.GONE
-            tag = "goreecloud_edit_toolbar"
-        }
-        row.addView(TextView(host).apply {
-            text = "Edit Home"
-            textSize = 14f
-            setTextColor(0xFF233F58.toInt())
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            gravity = Gravity.CENTER_VERTICAL
-        }, LinearLayout.LayoutParams(0, -1, 1f))
-        fun action(label: String, prominent: Boolean = false, run: () -> Unit) {
-            val width = if (label == "Remove") 72 else 59
-            row.addView(TextView(host).apply {
-                text = label
-                textSize = 12f
-                setTextColor(if (prominent) 0xFFFFFFFF.toInt() else 0xFF24506E.toInt())
-                gravity = Gravity.CENTER
-                background = surface(if (prominent) 0xFF006DAF.toInt()
-                    else 0xFFE8F2FA.toInt(), 16)
-                isFocusable = true
-                isClickable = true
-                contentDescription = label + " Home edit action"
-                setOnClickListener { run() }
-            }, LinearLayout.LayoutParams(dp(width), dp(37)).apply { marginStart = dp(5) })
-        }
-        action("Home") {
-            val ws = host.workspace
-            val groups = ws.reorderablePageGroupStarts
-            for (i in 0 until groups.size()) {
-                if (groups[i] == ws.currentPage) {
-                    ws.setDefaultPageForReorderableGroup(i)
-                    break
+        val home = ImageView(host).apply {
+            setImageResource(R.drawable.goreecloud_edit_home)
+            contentDescription = "Set current page as Home"
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                val workspace = host.workspace
+                val groups = workspace.reorderablePageGroupStarts
+                for (i in 0 until groups.size()) {
+                    if (groups[i] == workspace.currentPage) {
+                        workspace.setDefaultPageForReorderableGroup(i)
+                        host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
+                        break
+                    }
                 }
             }
-            host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
         }
-        action("Remove") {
-            val ws = host.workspace
-            if (!ws.removeEmptyWorkspacePageByIndex(ws.currentPage)) {
-                Toast.makeText(host, "This page has apps or widgets", Toast.LENGTH_SHORT).show()
+        val remove = View(host).apply {
+            contentDescription = "Remove current empty Home screen"
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                val removed = host.workspace.removeEmptyWorkspacePageByIndex(host.workspace.currentPage)
+                if (!removed) {
+                    Toast.makeText(host, "Move icons and widgets before removing this page", Toast.LENGTH_SHORT).show()
+                }
+                host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
+                host.rootView.post { refresh(host) }
             }
-            host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
         }
-        action("Done", prominent = true) {
-            host.stateManager.goToState(LauncherState.NORMAL)
-        }
-        host.rootView.addView(row, FrameLayout.LayoutParams(
-            -1, dp(54), Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        ).apply {
-            leftMargin = dp(16)
-            rightMargin = dp(16)
-            topMargin = dp(54)
-        })
+        host.rootView.addView(home, FrameLayout.LayoutParams(dp(48), dp(48)))
+        host.rootView.addView(remove, FrameLayout.LayoutParams(dp(64), dp(52)))
+        home.visibility = View.GONE
+        remove.visibility = View.GONE
+        controls[host] = Controls(home, remove)
         host.stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
-                row.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
-                GoreeCloudOverviewFrames.apply(host, toState == LauncherState.EDIT_MODE)
+                val editing = toState == LauncherState.EDIT_MODE
+                GoreeCloudOverviewFrames.apply(host, editing)
+                if (!editing) hide(host)
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
-                row.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
-                GoreeCloudOverviewFrames.apply(host, finalState == LauncherState.EDIT_MODE)
+                val editing = finalState == LauncherState.EDIT_MODE
+                GoreeCloudOverviewFrames.apply(host, editing)
+                refresh(host)
+                if (editing) host.rootView.post { refresh(host) }
             }
         })
+    }
+    private fun hide(host: LawnchairLauncher) {
+        controls[host]?.let {
+            it.home.visibility = View.GONE
+            it.remove.visibility = View.GONE
+        }
+    }
+
+    fun refresh(host: LawnchairLauncher) {
+        val overlay = controls[host] ?: return
+        if (!host.isInState(LauncherState.EDIT_MODE)) {
+            hide(host)
+            return
+        }
+        val ws = host.workspace
+        val page = ws.getPageAt(ws.currentPage) ?: return
+        val bounds = Rect()
+        if (!page.getGlobalVisibleRect(bounds) || bounds.isEmpty) return
+        val origin = IntArray(2)
+        host.rootView.getLocationOnScreen(origin)
+        val density = host.resources.displayMetrics.density
+        fun dp(n: Int) = (n * density + .5f).toInt()
+        val scale = ws.scaleX.coerceIn(.3f, 1f)
+        val controlWidth = maxOf(dp(42), (dp(64) * scale).toInt())
+        val controlHeight = maxOf(dp(35), (dp(52) * scale).toInt())
+        overlay.remove.layoutParams = FrameLayout.LayoutParams(
+            controlWidth, controlHeight, Gravity.TOP or Gravity.START,
+        ).apply {
+            leftMargin = bounds.right - origin[0] - controlWidth
+            topMargin = bounds.top - origin[1]
+        }
+        overlay.home.layoutParams = FrameLayout.LayoutParams(
+            dp(48), dp(48), Gravity.TOP or Gravity.START,
+        ).apply {
+            leftMargin = bounds.centerX() - origin[0] - dp(24)
+            topMargin = maxOf(dp(24), bounds.top - origin[1] - dp(58))
+        }
+        overlay.home.visibility = View.VISIBLE
+        overlay.remove.visibility = View.VISIBLE
     }
 }

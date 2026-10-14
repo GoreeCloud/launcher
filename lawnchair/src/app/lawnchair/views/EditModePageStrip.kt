@@ -304,11 +304,8 @@ class EditModePageStrip @JvmOverloads constructor(
                 holder.itemView.contentDescription = "Add a Home screen"
                 holder.title.text = "+"
                 holder.title.textSize = 18f
-                holder.title.setTextColor(0xFF245779.toInt())
-                holder.title.background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0xFFEAF4FB.toInt())
-                    cornerRadius = 24f * resources.displayMetrics.density
-                }
+                holder.title.setTextColor(0xFFFFFFFF.toInt())
+                holder.title.background = null
                 holder.itemView.setOnClickListener { addHomePage() }
                 return
             }
@@ -320,14 +317,11 @@ class EditModePageStrip @JvmOverloads constructor(
             } else {
                 "Preview Home page ${position + 1}"
             }
-            holder.title.text = (position + 1).toString()
-            holder.title.textSize = 17f
+            holder.title.text = if (item.isDefault) "⌂" else "●"
+            holder.title.textSize = if (item.isDefault) 23f else 17f
             holder.title.setTextColor(if (item.isDefault) 0xFFFFFFFF.toInt()
-                else 0xFF245779.toInt())
-            holder.title.background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(if (item.isDefault) 0xFF006DAF.toInt() else 0xFFEAF4FB.toInt())
-                cornerRadius = 24f * resources.displayMetrics.density
-            }
+                else 0xB3FFFFFF.toInt())
+            holder.title.background = null
             val ws = workspace
             holder.homeButton.isSelected = item.isDefault
             holder.homeButton.contentDescription = if (item.isDefault) {

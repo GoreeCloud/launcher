@@ -1575,6 +1575,16 @@ public class Workspace<T extends View & PageIndicator> extends PagedView<T>
                     .log(event);
             updateStatusbarClock();
         }
+        // Keep the live GoreeCloud edit preview's frame and controls attached
+        // to the newly selected page after horizontal swipes and dot navigation.
+        if (mLauncher instanceof app.lawnchair.LawnchairLauncher
+                && mLauncher.isInState(LauncherState.EDIT_MODE)) {
+            app.lawnchair.LawnchairLauncher host = (app.lawnchair.LawnchairLauncher) mLauncher;
+            post(() -> {
+                app.lawnchair.views.GoreeCloudOverviewFrames.INSTANCE.apply(host, true);
+                app.lawnchair.views.GoreeCloudOverviewToolbar.INSTANCE.refresh(host);
+            });
+        }
     }
 
     protected void setWallpaperDimension() {

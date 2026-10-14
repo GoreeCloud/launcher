@@ -403,11 +403,11 @@ class LawnchairLauncher : QuickstepLauncher() {
         val bar = android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
-            setPadding(dp(8), dp(4), dp(8), dp(4))
+            setPadding(dp(6), dp(2), dp(6), dp(2))
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(0xFFF8FBFF.toInt())
+                setColor(android.graphics.Color.TRANSPARENT)
                 cornerRadius = dp(24).toFloat()
-                setStroke(dp(1), 0xFFD7E6F2.toInt())
+                setStroke(0, android.graphics.Color.TRANSPARENT)
             }
             elevation = dp(8).toFloat()
             visibility = View.GONE
@@ -424,21 +424,23 @@ class LawnchairLauncher : QuickstepLauncher() {
             }
             tile.addView(android.widget.ImageView(this).apply {
                 setImageResource(icon)
-                imageTintList = android.content.res.ColorStateList.valueOf(0xFF245779.toInt())
-            }, android.widget.LinearLayout.LayoutParams(dp(22), dp(22)))
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+                imageTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
+            }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
             tile.addView(android.widget.TextView(this).apply {
                 text = label
                 textSize = 12f
-                gravity = android.view.Gravity.CENTER
-                setTextColor(0xFF24475E.toInt())
-            }, android.widget.LinearLayout.LayoutParams(-1, dp(26)))
-            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(60), 1f))
+                gravity = android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL
+                maxLines = 2
+                setTextColor(0xFFFFFFFF.toInt())
+            }, android.widget.LinearLayout.LayoutParams(-1, dp(43)))
+            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(80), 1f))
         }
-        option("Wallpapers", android.R.drawable.ic_menu_gallery) { GoreeCloudWallpapers.showPicker(this) }
-        option("Widgets", android.R.drawable.ic_menu_add) {
+        option("Wallpapers & themes", R.drawable.goreecloud_edit_wallpaper) { GoreeCloudWallpapers.showPicker(this) }
+        option("Widgets", R.drawable.goreecloud_edit_widgets) {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Settings", android.R.drawable.ic_menu_preferences) {
+        option("Home screen settings", R.drawable.goreecloud_edit_settings) {
             startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
         }
         rootView.addView(bar, android.widget.FrameLayout.LayoutParams(
@@ -456,7 +458,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             (strip.layoutParams as? android.widget.FrameLayout.LayoutParams)?.let { params ->
                 params.gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL
                 params.height = dp(64)
-                params.bottomMargin = dp(248)
+                params.bottomMargin = dp(138)
                 strip.layoutParams = params
             }
         }
