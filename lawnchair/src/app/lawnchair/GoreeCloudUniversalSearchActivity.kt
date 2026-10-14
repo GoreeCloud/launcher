@@ -1,5 +1,6 @@
 package app.lawnchair
 
+import app.lawnchair.preferences.PreferenceManager as GoreeCloudPreferenceManager
 import android.app.Activity
 import android.app.AppOpsManager
 import android.app.SearchManager
@@ -313,7 +314,7 @@ class GoreeCloudUniversalSearchActivity : androidx.activity.ComponentActivity() 
                     }
                     val frame = FrameLayout(this)
                     frame.addView(icon, FrameLayout.LayoutParams(dp(43), dp(43)))
-                    val badgePosition = app.lawnchair.preferences.PreferenceManager.getInstance(this@GoreeCloudUniversalSearchActivity)
+                    val badgePosition = GoreeCloudPreferenceManager.getInstance(this@GoreeCloudUniversalSearchActivity)
                         .profileBadgePosition.get()
                     val badgeGravity = when (badgePosition) {
                         "bottom_left" -> Gravity.BOTTOM or Gravity.START
