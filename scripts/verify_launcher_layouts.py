@@ -182,6 +182,47 @@ check("managed_ids" in setup and "deleteItemFromDatabase" in setup,
 dashboard = (ROOT / "lawnchair/src/app/lawnchair/ui/preferences/destinations/PreferencesDashboard.kt").read_text()
 check("        AnnouncementPreference()" not in dashboard, "Dashboard must not show inherited announcements")
 
+
+# Verify the actual default XML for every device-profile grid, not just the
+# common phone preset. Small/landscape fallback defaults must not create Home
+# shortcuts or place dock entries beyond the declared hotseat capacity.
+for grid in grids:
+    name = grid.get(ATTR + "name")
+    capacity = int(grid.get(ATTR + "numHotseatIcons") or 0)
+    layout_id = grid.get(ATTR + "defaultLayoutId") or ""
+    if not layout_id.startswith("@xml/"):
+        continue
+    layout_name = layout_id.partition("/")[2] + ".xml"
+    for directory in ("res/xml", "lawnchair/res/xml"):
+        path = ROOT / directory / layout_name
+        if not path.exists():
+            continue  # Overlays may inherit the root layout.
+        layout = ET.parse(path).getroot()
+        docks = [item for item in layout if item.get(WORKSPACE_ATTR + "container") == "-101"]
+        positions = [item.get(WORKSPACE_ATTR + "screen") for item in docks]
+        check(len(docks) == capacity,
+              f"{name} {directory}: expected {capacity} dock slots, got {len(docks)}")
+        check(set(positions) == {str(i) for i in range(capacity)},
+              f"{name} {directory}: missing, duplicate, or out-of-range dock slot")
+        check(all(item.get(WORKSPACE_ATTR + "container") == "-101" for item in layout),
+              f"{name} {directory}: factory default must not seed Home shortcuts")
+
+# The alternative 7x3 layout also enters through GridSizeSpecs, so do not
+# reintroduce vendor-specific storefronts when that special grid is chosen.
+for relative in (
+    "res/xml/default_workspace_3x3.xml",
+    "lawnchair/res/xml/default_workspace_3x3.xml",
+    "res/xml/default_workspace_4x4.xml",
+    "res/xml/default_workspace_7x3.xml",
+    "res/xml/default_workspace_8x3.xml",
+):
+    layout = ET.parse(ROOT / relative).getroot()
+    check(not any(item.get(WORKSPACE_ATTR + "packageName")
+                  for item in layout.iter("favorite")),
+          f"{relative}: role-based dock must not hard-code app vendors")
+    check(all(item.get(WORKSPACE_ATTR + "container") == "-101" for item in layout),
+          f"{relative}: default Home must be empty")
+
 if failures:
     for failure in failures:
         print("FAIL:", failure)
