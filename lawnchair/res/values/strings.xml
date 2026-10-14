@@ -779,6 +779,11 @@
     <string name="enable_dock_to_access_qsb_settings">Search bar settings are available when the dock is visible. Tap to show the dock</string>
 
     <string name="search_bar_label">Search bar</string>
+    <string name="universal_search_label">Universal Search</string>
+    <string name="universal_search_description">Search apps, contacts, files and quick answers</string>
+    <string name="universal_search_enabled_label">Enable Universal Search</string>
+    <string name="universal_search_enabled_description">On-device search with independently controlled sources</string>
+    <string name="universal_search_keyboard_label">Open keyboard when search starts</string>
     <string name="search_bar_settings">Search bar settings</string>
     <string name="hotseat_mode_label">Search bar widget</string>
     <string name="hotseat_mode_disabled">Disabled</string>

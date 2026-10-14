@@ -61,7 +61,7 @@ data object AppDrawer : PreferenceRootRoute, PreferenceDeepLink {
 
 // technically the search screen, selectedId selects the default tab inside this
 @Serializable
-data class Search(val selectedId: SearchRoute = SearchRoute.DOCK_SEARCH) :
+data class Search(val selectedId: SearchRoute = SearchRoute.DRAWER_SEARCH) :
     PreferenceRootRoute,
     PreferenceDeepLink {
     override val deepLink = "$URI/search"

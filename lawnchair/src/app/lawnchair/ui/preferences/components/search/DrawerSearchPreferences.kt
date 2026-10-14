@@ -40,6 +40,18 @@ fun DrawerSearchPreference(
     val showDrawerSearchBar = !prefs2.hideAppDrawerSearchBar.getAdapter()
     val hiddenApps = prefs2.hiddenApps.getAdapter().state.value
 
+    PreferenceGroup(heading = stringResource(id = R.string.universal_search_label)) {
+        SwitchPreference(
+            adapter = prefs2.universalSearchEnabled.getAdapter(),
+            label = stringResource(R.string.universal_search_enabled_label),
+            description = stringResource(R.string.universal_search_enabled_description),
+        )
+        SwitchPreference(
+            adapter = prefs2.universalSearchKeyboardOnOpen.getAdapter(),
+            label = stringResource(R.string.universal_search_keyboard_label),
+        )
+    }
+
     MainSwitchPreference(
         adapter = showDrawerSearchBar,
         label = stringResource(id = R.string.show_app_search_bar),

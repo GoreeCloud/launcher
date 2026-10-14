@@ -18,6 +18,7 @@ jobs:
           python3 scripts/verify_goreecloud.py
           python3 scripts/verify_launcher_layouts.py
           python3 scripts/verify_search_privacy.py
+          python3 scripts/verify_universal_search.py
           python3 scripts/verify_contact_search.py
           python3 scripts/verify_calculator_features.py
           python3 scripts/verify_merged_permissions.py --self-test

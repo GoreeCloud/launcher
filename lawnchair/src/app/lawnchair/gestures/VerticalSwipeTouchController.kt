@@ -12,6 +12,7 @@ import com.android.launcher3.Utilities
 import com.android.launcher3.touch.BothAxesSwipeDetector
 import com.android.launcher3.util.TouchController
 import kotlin.math.absoluteValue
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -44,7 +45,11 @@ class VerticalSwipeTouchController(
                 .onEach { overrideSwipeUp = it != prefs.swipeUpGestureHandler.defaultValue }
                 .launchIn(this)
             prefs.swipeDownGestureHandler.get()
-                .onEach { overrideSwipeDown = it != prefs.swipeDownGestureHandler.defaultValue }
+                .combine(prefs.universalSearchEnabled.get()) { action, enabled ->
+                    action != GestureHandlerConfig.OpenNotifications &&
+                        (enabled || action != GestureHandlerConfig.OpenAppSearch)
+                }
+                .onEach { overrideSwipeDown = it }
                 .launchIn(this)
             // Override when a custom gesture handler is configured, as launcher does not handle these by default
             prefs.twoFingerSwipeUpGestureHandler.get()

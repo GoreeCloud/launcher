@@ -170,8 +170,8 @@ fun PreferencesDashboard(
             }
 
             PreferenceCategory(
-                label = stringResource(R.string.search_bar_label),
-                description = stringResource(R.string.drawer_search_description),
+                label = stringResource(R.string.universal_search_label),
+                description = stringResource(R.string.universal_search_description),
                 iconResource = R.drawable.ic_search,
                 onNavigate = { onNavigate(Search()) },
                 isSelected = currentRoute is Search,
