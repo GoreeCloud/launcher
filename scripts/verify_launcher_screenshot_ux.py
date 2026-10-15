@@ -106,4 +106,7 @@ assert "canvas.drawRoundRect" in badge
 surface = ET.parse(r / "res/drawable/popup_background.xml").getroot()
 assert surface.find("stroke") is not None
 assert ET.parse(r / "res/drawable/goreecloud_launcher_foreground.xml").getroot().find("group") is not None
+visual_qa = read("scripts/capture_launcher_visual_qa.sh")
+assert "Selecting Calendar did not create a visible Home shortcut" in visual_qa
+assert "edit-three-center-hierarchy.xml" in visual_qa
 print("PASS: screenshot UX source contracts; real-device validation still required")

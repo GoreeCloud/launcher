@@ -114,7 +114,39 @@ visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n i
 if "Add apps to Home" not in visible:
     raise SystemExit("Add apps picker did not open in the emulator")
 PY
-adb shell input keyevent KEYCODE_BACK
+
+# Verify that choosing an installed app actually inserts a Home shortcut.
+# This is synthetic emulator workspace data, never a real user's Home.
+app_choice="$(python3 - "$out/edit-app-picker-hierarchy.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+for node in ET.parse(sys.argv[1]).getroot().iter("node"):
+    if node.get("text") == "Calendar":
+        coords = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
+        if len(coords) == 4:
+            a, b, c, d = coords
+            print((a + c) // 2, (b + d) // 2)
+            break
+else:
+    raise SystemExit("Disposable emulator lacks the expected Calendar app")
+PY
+)"
+read -r calendar_x calendar_y <<< "$app_choice"
+adb shell input tap "$calendar_x" "$calendar_y"
+sleep 4
+adb shell uiautomator dump /sdcard/goreecloud-edit-app-added.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-app-added.xml "$out/edit-app-added-hierarchy.xml"
+python3 - "$out/edit-app-added-hierarchy.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+nodes = list(ET.parse(sys.argv[1]).getroot().iter("node"))
+if any(n.get("text") == "Add apps to Home" for n in nodes):
+    raise SystemExit("Add apps dialog did not close after selecting an app")
+if not any("Calendar" in (n.get("content-desc", "") + " " + n.get("text", ""))
+           for n in nodes):
+    raise SystemExit("Selecting Calendar did not create a visible Home shortcut")
+PY
 
 # The owner's reference shows neighboring previews on both sides. Confirm
 # that three real pages can be created and page two can be centered.
