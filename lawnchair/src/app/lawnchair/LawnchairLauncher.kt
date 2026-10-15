@@ -437,36 +437,33 @@ class LawnchairLauncher : QuickstepLauncher() {
             orientation = android.widget.LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER
         }
+        // The footer is glyph-only by design; accessibility labels remain on
+        // each full-size button and do not consume visual space.
         fun option(label: String, icon: Int, tint: Int, onClick: () -> Unit) {
-            val tile = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                gravity = android.view.Gravity.CENTER
+            val tile = android.widget.FrameLayout(this).apply {
                 contentDescription = label
                 isClickable = true
                 isFocusable = true
-                background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0x84456E88.toInt())
-                    cornerRadius = dp(18).toFloat()
-                    setStroke(dp(1), 0x2868BCD8)
+                background = android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(0xB1397898.toInt(), 0xC01A5578.toInt()),
+                ).apply {
+                    cornerRadius = dp(21).toFloat()
+                    setStroke(dp(1), 0x817ECAE5.toInt())
                 }
+                elevation = dp(2).toFloat()
                 setOnClickListener { onClick() }
             }
             tile.addView(android.widget.ImageView(this).apply {
                 setImageResource(icon)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
                 imageTintList = android.content.res.ColorStateList.valueOf(tint)
-            }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
-            tile.addView(android.widget.TextView(this).apply {
-                text = if (label == "Home screen settings") "Home screen\nsettings" else label
-                textSize = 11f
-                gravity = android.view.Gravity.CENTER
-                maxLines = 2
-                includeFontPadding = false
-                setTextColor(0xFFFFFFFF.toInt())
-            }, android.widget.LinearLayout.LayoutParams(-1, dp(34)))
-            tiles.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(78), 1f).apply {
-                leftMargin = dp(3)
-                rightMargin = dp(3)
+            }, android.widget.FrameLayout.LayoutParams(
+                dp(32), dp(32), android.view.Gravity.CENTER,
+            ))
+            tiles.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(62), 1f).apply {
+                leftMargin = dp(5)
+                rightMargin = dp(5)
             })
         }
         option("Wallpapers", R.drawable.goreecloud_edit_wallpaper, 0xFF39A6FF.toInt()) {
@@ -483,7 +480,7 @@ class LawnchairLauncher : QuickstepLauncher() {
             startActivity(app.lawnchair.ui.preferences.PreferenceActivity.createIntent(
                 this, app.lawnchair.ui.preferences.navigation.HomeScreen))
         }
-        bar.addView(tiles, android.widget.LinearLayout.LayoutParams(-1, dp(78)))
+        bar.addView(tiles, android.widget.LinearLayout.LayoutParams(-1, dp(62)))
         // LauncherRootView is an InsettableFrameLayout: ordinary FrameLayout
         // parameters are converted and can lose gravity, pinning actions to TOP.
         rootView.addView(bar, com.android.launcher3.InsettableFrameLayout.LayoutParams(
