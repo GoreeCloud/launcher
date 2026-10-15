@@ -706,6 +706,8 @@ class LawnchairLauncher : QuickstepLauncher() {
         super.onPageEndTransition()
         if (stateManager.state == LauncherState.EDIT_MODE) {
             showOnlyEditPageDots(true)
+            findViewById<app.lawnchair.views.EditModePageStrip>(R.id.edit_mode_page_strip)
+                ?.refreshItems()
             app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
             app.lawnchair.views.GoreeCloudOverviewToolbar.refresh(this)
             rootView.post { alignGoreeCloudEditNavigation() }

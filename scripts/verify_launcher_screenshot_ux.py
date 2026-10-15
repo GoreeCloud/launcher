@@ -68,6 +68,8 @@ assert "showOnlyEditPageDots(editing)" in launcher
 assert "savedNormalPageIndicatorVisibility" in launcher
 assert "indicator.visibility = View.INVISIBLE" in launcher
 assert "showOnlyEditPageDots(true)" in launcher
+page_end = launcher.split("override fun onPageEndTransition()", 1)[1].split("override fun startActivitySafely", 1)[0]
+assert "?.refreshItems()" in page_end, "Page dots must update when Workspace navigation completes"
 assert "strip.parent !== rootView" in launcher
 assert "rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(" in launcher
 assert "strip.bringToFront()" in launcher
