@@ -241,9 +241,9 @@ public class Hotseat extends FrameLayout implements Insettable {
             background = new GradientDrawable(
                     GradientDrawable.Orientation.TL_BR,
                     new int[] {
-                            Color.argb(glassAlpha, 58, 133, 170),
-                            Color.argb(glassAlpha, 34, 105, 146),
-                            Color.argb(glassAlpha, 26, 93, 134)
+                            Color.argb(glassAlpha, 93, 173, 203),
+                            Color.argb(glassAlpha, 72, 151, 188),
+                            Color.argb(glassAlpha, 53, 131, 176)
                     });
         } else {
             background = new GradientDrawable();

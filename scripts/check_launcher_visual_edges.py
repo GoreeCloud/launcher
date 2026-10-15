@@ -177,6 +177,31 @@ if not .58 <= preview_fraction <= .73:
         "(expected 58%-73% of available width)"
     )
 
+# The owner requires neighboring page silhouettes on both sides, even with
+# only one real Home page. Verify the actual rendered first-page screenshot,
+# not just the source declaration or the selected page outline.
+single_page = Image.open(out / "edit.png").convert("RGB")
+side_y = int(preview_height * .42)
+side_contrast = {}
+for side, lo, hi in (
+    ("left", int(left_edge - preview_width * .06),
+             int(left_edge - preview_width * .02)),
+    ("right", int(right_edge + preview_width * .02),
+              int(right_edge + preview_width * .06)),
+):
+    lo, hi = max(0, lo), min(preview_width, hi)
+    brightest = max(
+        (min(single_page.getpixel((x, side_y))) for x in range(lo, hi)),
+        default=0
+    )
+    side_contrast[side] = brightest
+    if brightest < 100:
+        raise SystemExit(
+            f"Edit Home missing the {side} adjacent preview border: "
+            f"brightest component={brightest}"
+        )
+measurements["editor_side_previews"] = side_contrast
+
 home_img = Image.open(out / "home.png").convert("RGB")
 edit_img = Image.open(out / "edit.png").convert("RGB")
 if home_img.size != edit_img.size:
