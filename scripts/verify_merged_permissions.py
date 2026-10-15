@@ -42,21 +42,21 @@ def self_test() -> None:
     print("PASS: merged-manifest permission rejection regression fixtures")
 
 
-def verify_build() -> None:
+def verify_build(variant: str = 'debug') -> None:
     intermediates = ROOT / "build/intermediates"
     manifest_paths = sorted({
         path for pattern in ("merged_manifest*/**/AndroidManifest.xml",
                              "packaged_manifests/**/AndroidManifest.xml")
         for path in intermediates.glob(pattern)
-        if "lawnwithquickstepgithubdebug" in str(path).lower()
+        if f"lawnwithquickstepgithub{variant}" in str(path).lower()
     })
     if not manifest_paths:
-        raise RuntimeError("No exact launcher Debug merged/packaged manifest found; cannot verify permissions")
+        raise RuntimeError(f"No exact launcher {variant} merged/packaged manifest found; cannot verify permissions")
     for manifest in manifest_paths:
         violations = rejected_permissions(manifest)
         if violations:
             raise RuntimeError(f"{manifest.relative_to(ROOT)} declares prohibited legacy permissions: {sorted(violations)}")
-    print(f"PASS: {len(manifest_paths)} built Launcher Debug manifest(s) omit legacy SMS, call-log and location permissions")
+    print(f"PASS: {len(manifest_paths)} built Launcher {variant} manifest(s) omit legacy SMS, call-log and location permissions")
     print("This checks only CI build manifests; signing, user-granted permissions and device runtime remain separate gates")
 
 
@@ -64,6 +64,8 @@ if __name__ == "__main__":
     try:
         if sys.argv[1:] == ["--self-test"]:
             self_test()
+        elif sys.argv[1:] == ['--qa']:
+            verify_build('qa')
         elif not sys.argv[1:]:
             verify_build()
         else:

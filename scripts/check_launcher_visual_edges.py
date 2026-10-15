@@ -18,6 +18,15 @@ for state in ("home", "edit"):
             raise SystemExit("The primary Home page indicator is missing from edit navigation")
         if state == "edit" and "add a home screen" not in xml:
             raise SystemExit("The add-page control is missing from edit navigation")
+        if state == "edit":
+            # Functional control accessibility doubles as a screenshot acceptance gate.
+            # These must all be present in the visible UI, not just static source.
+            controls = ("edit home screen", "done editing home screen",
+                        "add apps", "remove", "wallpapers", "themes",
+                        "widgets", "home screen settings")
+            for label in controls:
+                if label not in xml:
+                    raise SystemExit(f"Mockup editor control missing from UI hierarchy: {label}")
 added_hierarchy = out / "edit-added-hierarchy.xml"
 if added_hierarchy.exists():
     added_xml = added_hierarchy.read_text(errors="replace").lower()
@@ -31,6 +40,69 @@ if added_hierarchy.exists():
     )
     if not first_home_selected:
         raise SystemExit("Adding a page shifted the selected preview off-screen")
+# Ensure this is a usable editor, not only a set of labels in a screenshot.
+# Compare relative screen positions so taller phones do not require hard-coded
+# reference pixels from the owner's differently proportioned mockup.
+edit_hierarchy = out / "edit-hierarchy.xml"
+if edit_hierarchy.exists():
+    import re
+    from xml.etree import ElementTree
+
+    nodes = [n.attrib for n in ElementTree.parse(edit_hierarchy).getroot().iter("node")]
+    def controls_named(name):
+        return [n for n in nodes if n.get("content-desc") == name
+                and n.get("clickable") == "true"]
+
+    def bounds(node):
+        coords = [int(v) for v in re.findall(r"\d+", node["bounds"])]
+        if len(coords) != 4 or coords[2] <= coords[0] or coords[3] <= coords[1]:
+            raise SystemExit(f"Invalid editor control bounds: {node.get('content-desc')}")
+        return coords
+
+    required = ("Edit Home Screen. Tap to set this page as Home",
+                "Done editing Home Screen", "Add apps", "Remove",
+                "Wallpapers", "Themes", "Widgets", "Home screen settings",
+                "Default Home page 1", "Add a Home screen")
+    selected = {}
+    for label in required:
+        found = controls_named(label)
+        if len(found) != 1:
+            raise SystemExit(f"Editor requires exactly one accessible {label}: {len(found)}")
+        selected[label] = bounds(found[0])
+
+    w, h = Image.open(out / "edit.png").size
+    title = selected[required[0]]
+    done = selected[required[1]]
+    add = selected[required[2]]
+    remove = selected[required[3]]
+    title_center = (title[0] + title[2]) / 2
+    if abs(title_center - w / 2) > w * .12 or not (title[1] < add[1]):
+        raise SystemExit("Edit Home heading is not centered above page actions")
+    if not (done[0] > w * .60 and done[2] <= w and done[1] < add[1]):
+        raise SystemExit("Done button is not in the editor's top-right")
+    if not (add[0] < remove[0] and add[3] < h * .38):
+        raise SystemExit("Page actions are not side by side in the top part of the preview")
+
+    dock_badges = [bounds(n) for n in nodes
+                   if n.get("content-desc", "").startswith("Remove ")
+                   and n.get("content-desc", "").endswith(" from dock")
+                   and n.get("clickable") == "true"]
+    if len(dock_badges) != 5:
+        raise SystemExit(f"Expected exactly five removable starter dock icons, found {len(dock_badges)}")
+    dock_centers = sorted((r[0] + r[2]) / 2 for r in dock_badges)
+    if min(b - a for a, b in zip(dock_centers, dock_centers[1:])) < w * .055:
+        raise SystemExit("Dock badges overlap or are not arranged in five columns")
+
+    nav = selected["Default Home page 1"]
+    footer = [selected[x] for x in ("Wallpapers", "Themes", "Widgets",
+                                  "Home screen settings")]
+    if not (max(r[3] for r in dock_badges) < nav[1] < nav[3] < min(r[1] for r in footer)):
+        raise SystemExit("Page dots must sit between the dock and bottom action tray")
+    if max(r[1] for r in footer) - min(r[1] for r in footer) > h * .02:
+        raise SystemExit("Bottom action tiles must share a common row")
+    if any(a[2] > b[0] for a, b in zip(footer, footer[1:])):
+        raise SystemExit("Bottom action tiles overlap")
+
 measurements = {}
 for state in ("home", "edit", "edit-added"):
     image = Image.open(out / (state + ".png")).convert("RGB")
@@ -69,6 +141,67 @@ for state in ("home", "edit", "edit-added"):
         icon_span = max(ink_rows) - min(ink_rows) + 1 if ink_rows else 0
         measurements[state]["status_glyph_span_px"] = icon_span
         measurements[state]["status_possible_clipping"] = icon_span < h * .009
+# A rendered phone preview should occupy roughly two thirds of the width,
+# leaving room for neighboring page previews as in the owner's mockup.
+# Sample a content-free middle row and find bright vertical Glaze frame edges.
+preview_img = Image.open(out / "edit-added.png").convert("RGB")
+preview_width, preview_height = preview_img.size
+midline = int(preview_height * .42)
+glow_pixels = [
+    x for x in range(int(preview_width * .05), int(preview_width * .96))
+    if all(v > limit for v, limit in
+           zip(preview_img.getpixel((x, midline)), (155, 178, 188)))
+]
+groups = []
+for x in glow_pixels:
+    if groups and x == groups[-1][-1] + 1:
+        groups[-1].append(x)
+    else:
+        groups.append([x])
+edges = [sum(group) / len(group) for group in groups if len(group) >= 2]
+left_edges = [x for x in edges if x < preview_width / 2]
+right_edges = [x for x in edges if x > preview_width / 2]
+if not left_edges or not right_edges:
+    raise SystemExit("Cannot locate live Edit Home page's glowing frame edges")
+left_edge = max(left_edges)
+right_edge = min(right_edges)
+preview_fraction = (right_edge - left_edge) / preview_width
+measurements["editor_preview"] = {
+    "left_px": round(left_edge, 1),
+    "right_px": round(right_edge, 1),
+    "screen_fraction": round(preview_fraction, 4),
+}
+if not .58 <= preview_fraction <= .73:
+    raise SystemExit(
+        f"Edit Home page preview is not mockup-sized: {preview_fraction:.3f} "
+        "(expected 58%-73% of available width)"
+    )
+
+# The owner requires neighboring page silhouettes on both sides, even with
+# only one real Home page. Verify the actual rendered first-page screenshot,
+# not just the source declaration or the selected page outline.
+single_page = Image.open(out / "edit.png").convert("RGB")
+side_y = int(preview_height * .42)
+side_contrast = {}
+for side, lo, hi in (
+    ("left", int(left_edge - preview_width * .06),
+             int(left_edge - preview_width * .02)),
+    ("right", int(right_edge + preview_width * .02),
+              int(right_edge + preview_width * .06)),
+):
+    lo, hi = max(0, lo), min(preview_width, hi)
+    brightest = max(
+        (min(single_page.getpixel((x, side_y))) for x in range(lo, hi)),
+        default=0
+    )
+    side_contrast[side] = brightest
+    if brightest < 100:
+        raise SystemExit(
+            f"Edit Home missing the {side} adjacent preview border: "
+            f"brightest component={brightest}"
+        )
+measurements["editor_side_previews"] = side_contrast
+
 home_img = Image.open(out / "home.png").convert("RGB")
 edit_img = Image.open(out / "edit.png").convert("RGB")
 if home_img.size != edit_img.size:

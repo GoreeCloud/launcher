@@ -12,6 +12,10 @@ assert settings["config_default_show_suggested_apps_at_drawer_top"] == "false"
 
 launcher = read("lawnchair/src/app/lawnchair/LawnchairLauncher.kt")
 assert "applyGoreeCloudSystemBarWallpaper()" in launcher
+assert "val upperFold = android.graphics.Path()" in launcher
+assert "val aquaRibbon = android.graphics.Path()" in launcher
+assert "val deepRibbon = android.graphics.Path()" in launcher
+assert "canvas.drawPath(aquaRibbon, paint)" in launcher
 assert "rootView.addView(\n            GoreeCloudWallpaperView" in launcher
 assert "targetWindow.statusBarColor = android.graphics.Color.TRANSPARENT" in launcher
 assert "targetWindow.navigationBarColor = android.graphics.Color.TRANSPARENT" in launcher
@@ -55,11 +59,17 @@ assert "drawer_search_hidden_v3" in launcher
 assert "hideAppDrawerSearchBar.set(true)" in launcher
 assert "showSuggestedAppsInDrawer.set(false)" in launcher
 edit = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewToolbar.kt")
-assert "Set current page as Home" in edit and "Remove current empty Home screen" in edit
+assert "Edit Home Screen" in edit and "Add apps" in edit
 assert "host.rootView.addView" in edit
 assert "canvas.drawRoundRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
-assert "trashLeft" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "selected" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "alignGoreeCloudEditNavigation()" in launcher
+assert "showOnlyEditPageDots(editing)" in launcher
+assert "savedNormalPageIndicatorVisibility" in launcher
+assert "indicator.visibility = View.INVISIBLE" in launcher
+assert "showOnlyEditPageDots(true)" in launcher
+page_end = launcher.split("override fun onPageEndTransition()", 1)[1].split("override fun startActivitySafely", 1)[0]
+assert "?.refreshItems()" in page_end, "Page dots must update when Workspace navigation completes"
 assert "strip.parent !== rootView" in launcher
 assert "rootView.addView(strip, com.android.launcher3.InsettableFrameLayout.LayoutParams(" in launcher
 assert "strip.bringToFront()" in launcher
@@ -74,6 +84,7 @@ assert "InsettableFrameLayout.LayoutParams" in launcher
 assert "ignoreInsets = true" in launcher
 assert "getEditModeWorkspaceScaleAndTranslation(launcher).scale" in read("src/com/android/launcher3/states/EditModeState.kt")
 assert "-offset * 0.55f" in read("src/com/android/launcher3/states/EditModeState.kt")
+assert "if (widthDp < 600f) scale = min(scale, 0.68f)" in read("src/com/android/launcher3/states/EditModeState.kt")
 page_strip = read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "holder.itemView.isSelected = isCurrent" in page_strip
 assert "if (ws.childCount <= before)" in page_strip
@@ -81,11 +92,18 @@ assert "committed = ws.commitExtraEmptyScreens()" in page_strip
 assert page_strip.count("ws.addExtraEmptyScreens()") == 2
 assert "ws.snapToPage(ws.childCount - 1)" not in page_strip
 assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+frames = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "emptyNeighbor(-1f)" in frames and "emptyNeighbor(1f)" in frames
+footer_section = launcher.split("fun option(label: String, icon: Int, tint: Int, onClick: () -> Unit)", 1)[1].split('option("Wallpapers"', 1)[0]
+assert "contentDescription = label" in footer_section
+assert "tile.addView(android.widget.TextView" not in footer_section
+assert "dp(32), dp(32)" in footer_section
+
 assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "ignoreInsets = true" in edit
 
 assert all(("R.drawable.goreecloud_edit_" + n) in launcher for n in ("wallpaper", "widgets", "settings"))
-assert 'if (item.isDefault) "⌂" else "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
+assert 'holder.title.text = "●"' in read("lawnchair/src/app/lawnchair/views/EditModePageStrip.kt")
 assert "GoreeCloudOverviewToolbar.INSTANCE.refresh(host)" in read("src/com/android/launcher3/Workspace.java")
 badge = read("src/com/android/launcher3/GoreeCloudProfileBadges.java")
 assert "icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE" in badge
@@ -95,4 +113,8 @@ assert "canvas.drawRoundRect" in badge
 surface = ET.parse(r / "res/drawable/popup_background.xml").getroot()
 assert surface.find("stroke") is not None
 assert ET.parse(r / "res/drawable/goreecloud_launcher_foreground.xml").getroot().find("group") is not None
+visual_qa = read("scripts/capture_launcher_visual_qa.sh")
+assert 'python3 scripts/verify_launcher_app_picker_visual.py "$out"' in visual_qa
+assert "New Home shortcut rendered as a blank" in read("scripts/verify_launcher_app_picker_visual.py")
+assert "edit-three-center-hierarchy.xml" in visual_qa
 print("PASS: screenshot UX source contracts; real-device validation still required")

@@ -97,6 +97,7 @@ import kotlinx.coroutines.launch
 class LawnchairLauncher : QuickstepLauncher() {
     private var goreecloudSetupLaunching = false
     private var goreecloudEditActions: View? = null
+    private var savedNormalPageIndicatorVisibility: Int? = null
     private val prefs by unsafeLazy { PreferenceManager.getInstance(this) }
     private val preferenceManager2 by unsafeLazy { PreferenceManager2.getInstance(this) }
     private val insetsController: WindowInsetsControllerCompat by lazy {
@@ -409,53 +410,77 @@ class LawnchairLauncher : QuickstepLauncher() {
         val scale = resources.displayMetrics.density
         fun dp(value: Int) = (value * scale + .5f).toInt()
         val bar = android.widget.LinearLayout(this).apply {
-            orientation = android.widget.LinearLayout.HORIZONTAL
+            orientation = android.widget.LinearLayout.VERTICAL
             gravity = android.view.Gravity.CENTER
-            setPadding(dp(6), dp(2), dp(6), dp(2))
+            setPadding(dp(9), dp(6), dp(9), dp(9))
             background = android.graphics.drawable.GradientDrawable().apply {
-                setColor(android.graphics.Color.TRANSPARENT)
-                cornerRadius = dp(24).toFloat()
-                setStroke(0, android.graphics.Color.TRANSPARENT)
+                setColor(0xA0154864.toInt())
+                cornerRadius = dp(27).toFloat()
+                setStroke(dp(1), 0x5573B4D8)
             }
-            elevation = 0f
+            elevation = dp(3).toFloat()
             visibility = View.GONE
             tag = "goreecloud_home_overview_actions"
         }
-        fun option(label: String, icon: Int, onClick: () -> Unit) {
-            val tile = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                gravity = android.view.Gravity.CENTER
+        // The subtle drag handle belongs to the frosted tray, not the wallpaper.
+        bar.addView(View(this).apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(0x85D9EBF7.toInt())
+                cornerRadius = dp(3).toFloat()
+            }
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        }, android.widget.LinearLayout.LayoutParams(dp(34), dp(4)).apply {
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+            bottomMargin = dp(7)
+        })
+        val tiles = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER
+        }
+        // The footer is glyph-only by design; accessibility labels remain on
+        // each full-size button and do not consume visual space.
+        fun option(label: String, icon: Int, tint: Int, onClick: () -> Unit) {
+            val tile = android.widget.FrameLayout(this).apply {
                 contentDescription = label
                 isClickable = true
                 isFocusable = true
+                background = android.graphics.drawable.GradientDrawable(
+                    android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                    intArrayOf(0xB1397898.toInt(), 0xC01A5578.toInt()),
+                ).apply {
+                    cornerRadius = dp(21).toFloat()
+                    setStroke(dp(1), 0x817ECAE5.toInt())
+                }
+                elevation = dp(2).toFloat()
                 setOnClickListener { onClick() }
             }
             tile.addView(android.widget.ImageView(this).apply {
                 setImageResource(icon)
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
-                imageTintList = android.content.res.ColorStateList.valueOf(0xFFFFFFFF.toInt())
-            }, android.widget.LinearLayout.LayoutParams(dp(28), dp(28)))
-            tile.addView(android.widget.TextView(this).apply {
-                text = when (label) {
-                    "Wallpapers & themes" -> "Wallpapers &\nthemes"
-                    "Home screen settings" -> "Home screen\nsettings"
-                    else -> label
-                }
-                textSize = 11f
-                gravity = android.view.Gravity.CENTER
-                maxLines = 2
-                includeFontPadding = false
-                setTextColor(0xFFFFFFFF.toInt())
-            }, android.widget.LinearLayout.LayoutParams(-1, dp(43)))
-            bar.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(80), 1f))
+                imageTintList = android.content.res.ColorStateList.valueOf(tint)
+            }, android.widget.FrameLayout.LayoutParams(
+                dp(32), dp(32), android.view.Gravity.CENTER,
+            ))
+            tiles.addView(tile, android.widget.LinearLayout.LayoutParams(0, dp(62), 1f).apply {
+                leftMargin = dp(5)
+                rightMargin = dp(5)
+            })
         }
-        option("Wallpapers & themes", R.drawable.goreecloud_edit_wallpaper) { GoreeCloudWallpapers.showPicker(this) }
-        option("Widgets", R.drawable.goreecloud_edit_widgets) {
+        option("Wallpapers", R.drawable.goreecloud_edit_wallpaper, 0xFF39A6FF.toInt()) {
+            GoreeCloudWallpapers.showPicker(this)
+        }
+        option("Themes", R.drawable.goreecloud_edit_themes, 0xFFD88AF3.toInt()) {
+            startActivity(app.lawnchair.ui.preferences.PreferenceActivity.createIntent(
+                this, app.lawnchair.ui.preferences.navigation.General))
+        }
+        option("Widgets", R.drawable.goreecloud_edit_widgets, 0xFF2CEBA8.toInt()) {
             com.android.launcher3.widget.picker.WidgetsFullSheet.show(this, true)
         }
-        option("Home screen settings", R.drawable.goreecloud_edit_settings) {
-            startActivity(Intent(this, app.lawnchair.ui.preferences.PreferenceActivity::class.java))
+        option("Home screen settings", R.drawable.goreecloud_edit_settings, 0xFF57B3FF.toInt()) {
+            startActivity(app.lawnchair.ui.preferences.PreferenceActivity.createIntent(
+                this, app.lawnchair.ui.preferences.navigation.HomeScreen))
         }
+        bar.addView(tiles, android.widget.LinearLayout.LayoutParams(-1, dp(62)))
         // LauncherRootView is an InsettableFrameLayout: ordinary FrameLayout
         // parameters are converted and can lose gravity, pinning actions to TOP.
         rootView.addView(bar, com.android.launcher3.InsettableFrameLayout.LayoutParams(
@@ -489,15 +514,38 @@ class LawnchairLauncher : QuickstepLauncher() {
         }
         stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
-                bar.visibility = if (toState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
+                val editing = toState == LauncherState.EDIT_MODE
+                bar.visibility = if (editing) View.VISIBLE else View.GONE
+                showOnlyEditPageDots(editing)
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
-                bar.visibility = if (finalState == LauncherState.EDIT_MODE) View.VISIBLE else View.GONE
-                if (finalState == LauncherState.EDIT_MODE) {
+                val editing = finalState == LauncherState.EDIT_MODE
+                bar.visibility = if (editing) View.VISIBLE else View.GONE
+                showOnlyEditPageDots(editing)
+                if (editing) {
                     rootView.post { alignGoreeCloudEditNavigation() }
                 }
             }
         })
+    }
+
+    /**
+     * The native Workspace indicator floats inside the scaled page preview.
+     * Edit mode has its own accessible navigation below that preview; showing
+     * both duplicates the dots. Restore the native indicator when editing ends.
+     */
+    private fun showOnlyEditPageDots(editing: Boolean) {
+        val indicator = findViewById<View>(R.id.page_indicator) ?: return
+        if (editing) {
+            if (savedNormalPageIndicatorVisibility == null) {
+                savedNormalPageIndicatorVisibility = indicator.visibility
+            }
+            indicator.visibility = View.INVISIBLE
+        } else {
+            val previous = savedNormalPageIndicatorVisibility
+            if (previous != null) indicator.visibility = previous
+            savedNormalPageIndicatorVisibility = null
+        }
     }
 
     /**
@@ -654,6 +702,9 @@ class LawnchairLauncher : QuickstepLauncher() {
     override fun onPageEndTransition() {
         super.onPageEndTransition()
         if (stateManager.state == LauncherState.EDIT_MODE) {
+            showOnlyEditPageDots(true)
+            findViewById<app.lawnchair.views.EditModePageStrip>(R.id.edit_mode_page_strip)
+                ?.refreshItems()
             app.lawnchair.views.GoreeCloudOverviewFrames.apply(this, true)
             app.lawnchair.views.GoreeCloudOverviewToolbar.refresh(this)
             rootView.post { alignGoreeCloudEditNavigation() }
@@ -832,8 +883,55 @@ object GoreeCloudWallpapers {
         )
         canvas.drawCircle(w * .8f, h * .38f, w * .9f, paint)
         paint.shader = null
-        paint.color = android.graphics.Color.argb(18, 255, 255, 255)
-        canvas.drawCircle(w * .12f, h * .82f, w * .7f, paint)
+
+        // Three broad curved Glaze ribbons add depth without bitmap assets,
+        // network calls or changing a user's selected GoreeCloud theme.
+        // Coordinates are normalized so the shape survives phone aspect ratios.
+        val upperFold = android.graphics.Path().apply {
+            moveTo(-w * .18f, h * .08f)
+            cubicTo(w * .36f, -h * .03f, w * .51f, h * .11f, w * .35f, h * .27f)
+            cubicTo(w * .20f, h * .43f, -w * .08f, h * .39f, -w * .18f, h * .42f)
+            close()
+        }
+        paint.color = android.graphics.Color.argb(23, 176, 228, 249)
+        canvas.drawPath(upperFold, paint)
+
+        val aquaRibbon = android.graphics.Path().apply {
+            moveTo(-w * .26f, h * .74f)
+            cubicTo(w * .04f, h * .50f, w * .38f, h * .38f, w * .66f, h * .28f)
+            cubicTo(w * .88f, h * .21f, w * 1.06f, h * .14f, w * 1.18f, h * .04f)
+            lineTo(w * 1.2f, h * .58f)
+            cubicTo(w * .94f, h * .72f, w * .53f, h * .71f, w * .29f, h * .86f)
+            lineTo(-w * .26f, h * 1.05f)
+            close()
+        }
+        paint.shader = android.graphics.LinearGradient(
+            0f, h * .8f, w, h * .15f,
+            intArrayOf(
+                android.graphics.Color.argb(18, 31, 127, 186),
+                android.graphics.Color.argb(94, android.graphics.Color.red(glow),
+                    android.graphics.Color.green(glow), android.graphics.Color.blue(glow)),
+                android.graphics.Color.argb(20, 154, 231, 244),
+            ), floatArrayOf(0f, .6f, 1f), android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawPath(aquaRibbon, paint)
+        paint.shader = null
+
+        val deepRibbon = android.graphics.Path().apply {
+            moveTo(-w * .18f, h * .98f)
+            cubicTo(w * .02f, h * .73f, w * .35f, h * .66f, w * .59f, h * .56f)
+            cubicTo(w * .79f, h * .47f, w * .96f, h * .37f, w * 1.16f, h * .26f)
+            lineTo(w * 1.16f, h * .74f)
+            cubicTo(w * .82f, h * .95f, w * .44f, h * .87f, w * .21f, h * 1.07f)
+            close()
+        }
+        paint.shader = android.graphics.LinearGradient(
+            0f, h * .4f, w * .7f, h,
+            intArrayOf(0x74102752, 0xAB083B68.toInt(), 0x3A00658F),
+            null, android.graphics.Shader.TileMode.CLAMP,
+        )
+        canvas.drawPath(deepRibbon, paint)
+        paint.shader = null
     }
 
     /** Picker is strictly the three bundled GoreeCloud themes. */

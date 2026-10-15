@@ -78,6 +78,12 @@ class EditModeState(id: Int) : LauncherState(id, StatsLogManager.LAUNCHER_STATE_
             if (scaledWorkspaceWidth > maxAvailableWidth) {
                 scale *= maxAvailableWidth / scaledWorkspaceWidth
             }
+            // GoreeCloud Edit Home shows adjacent page previews on both sides
+            // like the owner's reference, rather than an almost full-width page.
+            // Keep the phone preview at about 68% of the viewport width; tablets
+            // retain their original adaptive scale and two-panel behavior.
+            val widthDp = workspaceWidth / launcher.resources.displayMetrics.density
+            if (widthDp < 600f) scale = min(scale, 0.68f)
             return scale
         }
 

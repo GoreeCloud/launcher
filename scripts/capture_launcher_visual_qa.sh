@@ -2,9 +2,9 @@
 set -euo pipefail
 out="${GITHUB_WORKSPACE:-$(pwd)}/visual-qa"
 mkdir -p "$out"
-apk="$(find build/outputs/apk -name '*.apk' -type f | head -n 1)"
+apk="$(find build/outputs/apk -type f -iname '*qa*.apk' -print -quit)"
 test -n "$apk"
-pkg='com.goreecloud.launcher.debug'
+pkg='com.goreecloud.launcher.qa'
 adb wait-for-device
 adb shell wm size 1080x2400
 adb shell wm density 420
@@ -82,3 +82,114 @@ adb pull /sdcard/goreecloud-edit-added.xml "$out/edit-added-hierarchy.xml"
 adb logcat -d -t 1500 > "$out/logcat.txt"
 adb shell wm size > "$out/device-size.txt"
 python3 scripts/check_launcher_visual_edges.py "$out"
+
+# Exercise the new functional Add apps picker only on the disposable emulator,
+# after preserving the Home/edit/add-page evidence above.
+picker_coords="$(python3 - "$out/edit-added-hierarchy.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+for node in nodes:
+    if node.get("content-desc") == "Add apps" and node.get("clickable") == "true":
+        x1, y1, x2, y2 = map(int, re.findall(r"\d+", node.get("bounds", "")))
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+else:
+    raise SystemExit("Edit Home Add apps button is not actionable")
+PY
+)"
+read -r picker_x picker_y <<< "$picker_coords"
+adb shell input tap "$picker_x" "$picker_y"
+sleep 2
+adb shell screencap -p /sdcard/goreecloud-edit-picker-qa.png
+adb pull /sdcard/goreecloud-edit-picker-qa.png "$out/edit-app-picker.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-picker.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-picker.xml "$out/edit-app-picker-hierarchy.xml"
+python3 - "$out/edit-app-picker-hierarchy.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+visible = " ".join((n.get("text", "") + " " + n.get("content-desc", "")) for n in nodes)
+if "Add apps to Home" not in visible:
+    raise SystemExit("Add apps picker did not open in the emulator")
+PY
+
+# Verify that choosing an installed app actually inserts a Home shortcut.
+# This is synthetic emulator workspace data, never a real user's Home.
+app_choice="$(python3 - "$out/edit-app-picker-hierarchy.xml" <<'PY'
+import re
+import sys
+import xml.etree.ElementTree as ET
+for node in ET.parse(sys.argv[1]).getroot().iter("node"):
+    if node.get("text") == "Calendar":
+        coords = list(map(int, re.findall(r"\d+", node.get("bounds", ""))))
+        if len(coords) == 4:
+            a, b, c, d = coords
+            print((a + c) // 2, (b + d) // 2)
+            break
+else:
+    raise SystemExit("Disposable emulator lacks the expected Calendar app")
+PY
+)"
+read -r calendar_x calendar_y <<< "$app_choice"
+adb shell logcat -c
+adb shell input tap "$calendar_x" "$calendar_y"
+sleep 4
+adb shell logcat -d -s GoreeEditQA:I > "$out/add-app-events.txt"
+# The standalone QA variant may omit debug-only component diagnostics.
+# Verify actual persisted UI behavior using the before/after screenshots,
+# not a diagnostic event that is intentionally absent outside Debug.
+adb shell screencap -p /sdcard/goreecloud-edit-app-added.png
+adb pull /sdcard/goreecloud-edit-app-added.png "$out/edit-app-added.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-app-added.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-app-added.xml "$out/edit-app-added-hierarchy.xml"
+python3 scripts/verify_launcher_app_picker_visual.py "$out"
+
+# The owner's reference shows neighboring previews on both sides. Confirm
+# that three real pages can be created and page two can be centered.
+third_add="$(python3 - "$out/edit-added-hierarchy.xml" <<'PY'
+import re, sys
+import xml.etree.ElementTree as ET
+for n in ET.parse(sys.argv[1]).getroot().iter("node"):
+    if n.get("content-desc") == "Add a Home screen" and n.get("clickable") == "true":
+        a, b, c, d = map(int, re.findall(r"\d+", n.get("bounds", "")))
+        print((a+c)//2, (b+d)//2)
+        break
+else:
+    raise SystemExit("Add-page control missing after first page creation")
+PY
+)"
+read -r third_x third_y <<< "$third_add"
+adb shell input tap "$third_x" "$third_y"
+sleep 3
+adb shell uiautomator dump /sdcard/goreecloud-edit-three.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-three.xml "$out/edit-three-hierarchy.xml"
+middle_page="$(python3 - "$out/edit-three-hierarchy.xml" <<'PY'
+import re, sys
+import xml.etree.ElementTree as ET
+nodes = {n.get("content-desc", ""): n for n in ET.parse(sys.argv[1]).getroot().iter("node")}
+if "Preview Home page 3" not in nodes:
+    raise SystemExit("Third Home page was not created")
+node = nodes.get("Preview Home page 2")
+if node is None or node.get("clickable") != "true":
+    raise SystemExit("Page two is not navigable")
+a,b,c,d = map(int, re.findall(r"\d+", node.get("bounds", "")))
+print((a+c)//2, (b+d)//2)
+PY
+)"
+read -r middle_x middle_y <<< "$middle_page"
+adb shell input tap "$middle_x" "$middle_y"
+sleep 3
+adb shell screencap -p /sdcard/goreecloud-edit-three-center.png
+adb pull /sdcard/goreecloud-edit-three-center.png "$out/edit-three-center.png"
+adb shell uiautomator dump /sdcard/goreecloud-edit-three-center.xml >/dev/null
+adb pull /sdcard/goreecloud-edit-three-center.xml "$out/edit-three-center-hierarchy.xml"
+python3 - "$out/edit-three-center-hierarchy.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+nodes = ET.parse(sys.argv[1]).getroot().iter("node")
+if not any(n.get("content-desc") == "Preview Home page 2" and
+           n.get("selected") == "true" for n in nodes):
+    raise SystemExit("Page two failed to center as the selected preview")
+PY

@@ -1,7 +1,7 @@
 name: Launcher Visual QA
 on:
   push:
-    branches: [feat/launcher-fullscreen-search-onboarding-20261014]
+    branches: [feat/launcher-fullscreen-search-onboarding-20261014, feat/launcher-edit-home-mockup-20261014]
     paths:
       - .github/workflows/launcher-visual-qa.yml
       - scripts/capture_launcher_visual_qa.sh
@@ -26,8 +26,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build QA variant
-        run: ./gradlew --no-daemon --console=plain assembleLawnWithQuickstepGithubDebug
+      - name: Build standalone QA variant
+        run: ./gradlew --no-daemon --console=plain assembleLawnWithQuickstepGithubQa
       - name: Screenshot analysis tools
         run: python3 -m pip install --break-system-packages Pillow
       - name: Allow accelerated emulator access

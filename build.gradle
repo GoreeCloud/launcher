@@ -237,6 +237,13 @@ android {
             buildConfigField "int", "QUICKSTEP_MAX_SDK", "100000"
         }
 
+        qa {
+            initWith debug
+            matchingFallbacks = ['debug']
+            applicationIdSuffix '.qa'
+            resValue('string', 'derived_app_name', 'GoreeCloud Launcher (QA)')
+        }
+
         release {
             // Without an owner-provisioned keystore, release output stays unsigned.
             signingConfig releaseSigning

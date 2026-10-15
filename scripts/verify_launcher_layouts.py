@@ -141,16 +141,22 @@ for folder in ("res/xml", "lawnchair/res/xml"):
 # rather than a full-screen-area hotseat background. Existing custom settings remain.
 config = ET.parse(ROOT / "lawnchair/res/values/config.xml").getroot()
 config_strings = {v.get("name"): v.text for v in config.findall("string")}
-check(config_strings.get("config_default_hotseat_bg_color") == "custom|#FFF1F7FF",
+check(config_strings.get("config_default_hotseat_bg_color") == "custom|#FF2B7091",
       "GoreeCloud dock should default to a pale Glaze surface")
 check(config_strings.get("config_default_icon_shape") == "roundedSquare",
       "GoreeCloud icons must default to rounded-square masks")
 prefs = (ROOT / "lawnchair/src/app/lawnchair/preferences/PreferenceManager.kt").read_text()
 check('val hotseatBG = BoolPref("pref_hotseatBG", true, recreate)' in prefs,
       "New installs must show the Glaze dock capsule")
-check('val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 86, recreate)' in prefs,
+check('val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 68, recreate)' in prefs,
       "Dock surface must retain intended frost opacity")
 hotseat = (ROOT / "src/com/android/launcher3/Hotseat.java").read_text()
+check('val addIconToHome = BoolPref("pref_add_icon_to_home", false)' in drawer_pref,
+      "New installs must keep automatic app placement on Home off")
+check('GradientDrawable.Orientation.TL_BR' in hotseat and
+      'int glassAlpha = Math.max(215, alphaValue)' in hotseat and
+      'Color.argb(glassAlpha, 93, 173, 203)' in hotseat,
+      "Bundled dock capsule must be visibly filled, not outline-only")
 check("mIconsContainer.setBackground(bg);" in hotseat,
       "Dock surface must render behind icon band, not the QSB/navigation area")
 check("if (grid.isVerticalBarLayout())" in hotseat and
