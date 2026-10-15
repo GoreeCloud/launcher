@@ -151,6 +151,11 @@ check('val hotseatBG = BoolPref("pref_hotseatBG", true, recreate)' in prefs,
 check('val hotseatBGAlpha = IntPref("pref_hotseatBGTransparency", 68, recreate)' in prefs,
       "Dock surface must retain intended frost opacity")
 hotseat = (ROOT / "src/com/android/launcher3/Hotseat.java").read_text()
+check('val addIconToHome = BoolPref("pref_add_icon_to_home", false)' in drawer_pref,
+      "New installs must keep automatic app placement on Home off")
+check('GradientDrawable.Orientation.TL_BR' in hotseat and
+      'int glassAlpha = Math.max(215, alphaValue)' in hotseat,
+      "Bundled dock capsule must be visibly filled, not outline-only")
 check("mIconsContainer.setBackground(bg);" in hotseat,
       "Dock surface must render behind icon band, not the QSB/navigation area")
 check("if (grid.isVerticalBarLayout())" in hotseat and
