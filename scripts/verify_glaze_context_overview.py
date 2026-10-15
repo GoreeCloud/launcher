@@ -16,6 +16,8 @@ assert "getMovementFlags" in pager and "ws.reorderablePageGroupStarts.indexOf(pa
 assert "pageGroupStarts(ws)" in pager and "ws.defaultPage" in pager
 assert "(0 until ws.childCount step ws.panelCount.coerceAtLeast(1))" in pager
 assert "Preview Home page" in pager and "Default Home page" in pager
+assert '// Add-page is an affordance, not the selected Home page.' in pager
+assert 'holder.title.setTextColor(0x68FFFFFF)' in pager
 assert "GoreeCloudOverviewToolbar.install(this)" in launcher
 assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in toolbar
 assert "deleteItemFromDatabase" in toolbar and "getCurrentPageLayout" in toolbar

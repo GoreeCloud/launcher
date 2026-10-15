@@ -333,7 +333,8 @@ class EditModePageStrip @JvmOverloads constructor(
                 holder.itemView.contentDescription = "Add a Home screen"
                 holder.title.text = "●" // The trailing subdued dot adds a new page
                 holder.title.textSize = 11f
-                holder.title.setTextColor(0xFFFFFFFF.toInt())
+                // Add-page is an affordance, not the selected Home page.
+                holder.title.setTextColor(0x68FFFFFF)
                 holder.title.background = null
                 holder.itemView.setOnClickListener { addHomePage() }
                 return
