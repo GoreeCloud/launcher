@@ -230,8 +230,25 @@ public class Hotseat extends FrameLayout implements Insettable {
                 TypedValue.COMPLEX_UNIT_DIP,
                 cornerRadiusDp,
                 getResources().getDisplayMetrics());
-        GradientDrawable background = new GradientDrawable();
-        background.setColor(finalColor);
+        // A nearly transparent, flat fill disappears against the teal wallpaper.
+        // Use an unmistakably filled glass capsule for the bundled GoreeCloud
+        // blue default. Preserve explicitly selected custom/transparent colors.
+        boolean goreecloudDefault = bgColor instanceof ColorOption.Default
+                || baseColor == 0xFF2B7091;
+        GradientDrawable background;
+        if (goreecloudDefault) {
+            int glassAlpha = Math.max(215, alphaValue);
+            background = new GradientDrawable(
+                    GradientDrawable.Orientation.TL_BR,
+                    new int[] {
+                            Color.argb(glassAlpha, 58, 133, 170),
+                            Color.argb(glassAlpha, 34, 105, 146),
+                            Color.argb(glassAlpha, 26, 93, 134)
+                    });
+        } else {
+            background = new GradientDrawable();
+            background.setColor(finalColor);
+        }
         background.setCornerRadius(cornerRadius);
         int strokeWidth = Math.max(1, Math.round(getResources().getDisplayMetrics().density));
         background.setStroke(strokeWidth, Color.argb(96, 255, 255, 255));
