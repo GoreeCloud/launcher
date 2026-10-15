@@ -1,6 +1,7 @@
 package app.lawnchair.views
 
 import android.app.AlertDialog
+import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.os.Process
 import android.content.res.ColorStateList
@@ -9,9 +10,12 @@ import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
+import android.view.WindowManager
+import android.widget.ArrayAdapter
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.SearchView
 import android.widget.TextView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
@@ -32,6 +36,10 @@ import java.util.WeakHashMap
  * No activity is launched or workspace data changed merely by entering edit mode.
  */
 object GoreeCloudOverviewToolbar {
+    private data class AppChoice(val label: String, val activity: LauncherActivityInfo) {
+        override fun toString(): String = label
+    }
+
     private data class Controls(
         val heading: View,
         val done: View,
@@ -77,40 +85,86 @@ object GoreeCloudOverviewToolbar {
             Toast.makeText(host, "No apps available to add", Toast.LENGTH_SHORT).show()
             return
         }
-        val labels = apps.map { it.label.toString() }.toTypedArray()
-        AlertDialog.Builder(host)
+        val choices = apps.map { AppChoice(it.label.toString(), it) }
+        val adapter = ArrayAdapter(host, android.R.layout.simple_list_item_1, choices)
+        // Large app libraries remain easy to navigate without leaving Edit Home.
+        val search = SearchView(host).apply {
+            queryHint = "Search installed apps"
+            isIconifiedByDefault = true
+            setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+                override fun onQueryTextSubmit(query: String?): Boolean {
+                    adapter.filter.filter(query.orEmpty())
+                    clearFocus()
+                    return true
+                }
+                override fun onQueryTextChange(text: String?): Boolean {
+                    adapter.filter.filter(text.orEmpty())
+                    return true
+                }
+            })
+        }
+        // A configuration or page change must never redirect the shortcut.
+        val targetScreenId = host.workspace.getScreenIdForPageIndex(host.workspace.currentPage)
+        val picker = AlertDialog.Builder(host)
             .setTitle("Add apps to Home")
-            .setItems(labels) { _, which ->
-                if (which !in apps.indices || !host.isInState(LauncherState.EDIT_MODE)) {
-                    return@setItems
+            .setView(search)
+            .setAdapter(adapter) { _, which ->
+                val chosen = adapter.getItem(which)?.activity ?: return@setAdapter
+                if (!host.isInState(LauncherState.EDIT_MODE)) {
+                    return@setAdapter
                 }
                 val ws = host.workspace
                 val index = ws.currentPage
-                val page = ws.getPageAt(index) as? CellLayout ?: return@setItems
+                val page = ws.getPageAt(index) as? CellLayout ?: return@setAdapter
                 val screenId = ws.getScreenIdForPageIndex(index)
+                // Never add to a different page while a modal dialog is open.
+                if (screenId != targetScreenId) {
+                    Toast.makeText(host, "Home page changed. Open Add apps again",
+                        Toast.LENGTH_SHORT).show()
+                    return@setAdapter
+                }
                 // The extra-empty placeholder has no persistent screen ID.
                 if (screenId < 0) {
                     Toast.makeText(host, "Add this Home page first", Toast.LENGTH_SHORT).show()
-                    return@setItems
+                    return@setAdapter
+                }
+                val alreadyHere = page.shortcutsAndWidgets.let { container ->
+                    (0 until container.childCount).any { i ->
+                        val existing = container.getChildAt(i).tag as? ItemInfo
+                        existing?.targetComponent == chosen.componentName &&
+                            existing.user == profile
+                    }
+                }
+                if (alreadyHere) {
+                    Toast.makeText(host, "App is already on this Home page",
+                        Toast.LENGTH_SHORT).show()
+                    return@setAdapter
                 }
                 val slot = (0 until page.countY).asSequence()
                     .flatMap { y -> (0 until page.countX).asSequence().map { x -> x to y } }
                     .firstOrNull { (x, y) -> !page.isOccupied(x, y) }
                 if (slot == null) {
                     Toast.makeText(host, "This Home page is full", Toast.LENGTH_SHORT).show()
-                    return@setItems
+                    return@setAdapter
                 }
-                val info = AppInfo(host, apps[which], profile).makeWorkspaceItem(host)
+                val info = AppInfo(host, chosen, profile).makeWorkspaceItem(host)
                 host.modelWriter.addItemToDatabase(
                     info, LauncherSettings.Favorites.CONTAINER_DESKTOP, screenId,
                     slot.first, slot.second,
                 )
-                page.postDelayed({
-                    if (!host.isDestroyed) host.model.forceReload()
-                }, 350L)
+                // ModelWriter intentionally excludes its originating callbacks.
+                // Bind the new shortcut immediately; forcing a full reload here
+                // resets the active page and can make the addition look missing.
+                host.inflateAndBindItemWithAnimation(info)
+                android.util.Log.i("GoreeEditQA",
+                    "add-app component=${chosen.componentName.flattenToShortString()} " +
+                        "screen=$screenId cell=${slot.first},${slot.second} id=${info.id}")
+                host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
             }
             .setNegativeButton("Cancel", null)
             .show()
+        // Keep the app list readable until the user explicitly opens Search.
+        picker.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
     }
 
     private fun updateDockProfileBadgeVisibility(host: LawnchairLauncher, editing: Boolean) {
@@ -321,19 +375,26 @@ object GoreeCloudOverviewToolbar {
                             Toast.LENGTH_LONG).show()
                         return@setOnClickListener
                     }
-                    // Removes only this dock placement, never the installed app.
-                    host.modelWriter.deleteItemFromDatabase(item, "Remove icon from dock in Edit Home")
-                    host.rootView.postDelayed({
-                        if (!host.isDestroyed) host.model.forceReload()
-                    }, 250L)
-                    host.rootView.postDelayed({ refresh(host) }, 420L)
+                    // Require explicit confirmation before a shortcut disappears;
+                    // this never uninstalls the underlying Android application.
+                    AlertDialog.Builder(host)
+                        .setTitle("Remove from dock?")
+                        .setMessage("Remove ${item.title ?: "this shortcut"} from the dock? The app stays installed.")
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Remove") { _, _ ->
+                            if (!host.isDestroyed && host.isInState(LauncherState.EDIT_MODE)) {
+                                host.removeItem(icon, item, true, "Removed from dock in Edit Home")
+                                host.rootView.post { refresh(host) }
+                            }
+                        }
+                        .show()
                 }
             }
-            addOverlay(host, badge, dp(host, 42), dp(host, 42))
+            addOverlay(host, badge, dp(host, 48), dp(host, 48))
             setPosition(host, badge,
                 bounds.left - origin[0] - dp(host, 5),
                 bounds.top - origin[1] - dp(host, 5),
-                dp(host, 42), dp(host, 42))
+                dp(host, 48), dp(host, 48))
             c.dockBadges.add(badge)
         }
     }

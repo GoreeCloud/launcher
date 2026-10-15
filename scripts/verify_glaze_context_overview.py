@@ -20,7 +20,12 @@ assert '// Add-page is an affordance, not the selected Home page.' in pager
 assert 'holder.title.setTextColor(0x68FFFFFF)' in pager
 assert "GoreeCloudOverviewToolbar.install(this)" in launcher
 assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in toolbar
-assert "deleteItemFromDatabase" in toolbar and "getCurrentPageLayout" in toolbar
+assert "host.removeItem(icon, item, true" in toolbar and "getCurrentPageLayout" in toolbar
+assert 'setTitle("Remove from dock?")' in toolbar and 'setPositiveButton("Remove")' in toolbar
+assert 'addOverlay(host, badge, dp(host, 48), dp(host, 48))' in toolbar
+assert 'host.inflateAndBindItemWithAnimation(info)' in toolbar
+assert "targetScreenId" in toolbar and "alreadyHere" in toolbar
+assert 'SearchView(host)' in toolbar and "adapter.filter.filter" in toolbar
 assert "showAddApps(host)" in toolbar and "AlertDialog.Builder(host)" in toolbar
 assert "getScreenIdForPageIndex(index)" in toolbar and "page.isOccupied(x, y)" in toolbar
 assert "ws.getPageAt(index) as? CellLayout" in toolbar
