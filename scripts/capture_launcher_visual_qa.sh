@@ -123,7 +123,7 @@ import re, sys
 import xml.etree.ElementTree as ET
 for n in ET.parse(sys.argv[1]).getroot().iter("node"):
     if n.get("content-desc") == "Add a Home screen" and n.get("clickable") == "true":
-        a, b, c, d = map(int, re.findall(r"\d+", n["bounds"]))
+        a, b, c, d = map(int, re.findall(r"\d+", n.get("bounds", "")))
         print((a+c)//2, (b+d)//2)
         break
 else:
@@ -144,7 +144,7 @@ if "Preview Home page 3" not in nodes:
 node = nodes.get("Preview Home page 2")
 if node is None or node.get("clickable") != "true":
     raise SystemExit("Page two is not navigable")
-a,b,c,d = map(int, re.findall(r"\d+", node["bounds"]))
+a,b,c,d = map(int, re.findall(r"\d+", node.get("bounds", "")))
 print((a+c)//2, (b+d)//2)
 PY
 )"
