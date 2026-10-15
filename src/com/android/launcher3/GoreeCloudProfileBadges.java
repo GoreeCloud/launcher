@@ -32,9 +32,11 @@ public final class GoreeCloudProfileBadges {
         if (icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE) return;
         // Edit Home paints its own minus badges over dock icons. Hide profile
         // decorations only for that editor, preserving badges on normal Home.
-        Launcher launcher = Launcher.getLauncher(icon.getContext());
-        if (Boolean.TRUE.equals(EDITOR_VISIBLE.get(launcher))
-                || launcher.isInState(LauncherState.EDIT_MODE)) return;
+        var activity = com.android.launcher3.views.ActivityContext.lookupContext(
+                icon.getContext());
+        if (activity instanceof Launcher launcher
+                && (Boolean.TRUE.equals(EDITOR_VISIBLE.get(launcher))
+                    || launcher.isInState(LauncherState.EDIT_MODE))) return;
         Object item = icon.getTag();
         if (!(item instanceof com.android.launcher3.model.data.ItemInfoWithIcon info)) return;
         UserHandle user = info.user;
