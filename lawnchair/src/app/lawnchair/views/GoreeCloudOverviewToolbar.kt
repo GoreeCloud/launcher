@@ -16,6 +16,7 @@ import android.widget.TextView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
 import com.android.launcher3.CellLayout
+import com.android.launcher3.GoreeCloudProfileBadges
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
@@ -110,6 +111,15 @@ object GoreeCloudOverviewToolbar {
             }
             .setNegativeButton("Cancel", null)
             .show()
+    }
+
+    private fun updateDockProfileBadgeVisibility(host: LawnchairLauncher, editing: Boolean) {
+        GoreeCloudProfileBadges.setEditorVisible(host, editing)
+        // Badge painting belongs to BubbleTextView. Trigger a fresh draw when
+        // entering and leaving editing instead of relying on workspace animations.
+        val dock = host.hotseat.getCurrentPageLayout() ?: return
+        val children = dock.shortcutsAndWidgets
+        for (index in 0 until children.childCount) children.getChildAt(index).invalidate()
     }
 
     fun install(host: LawnchairLauncher) {
@@ -210,11 +220,13 @@ object GoreeCloudOverviewToolbar {
         host.stateManager.addStateListener(object : StateManager.StateListener<LauncherState> {
             override fun onStateTransitionStart(toState: LauncherState) {
                 val editing = toState == LauncherState.EDIT_MODE
+                updateDockProfileBadgeVisibility(host, editing)
                 GoreeCloudOverviewFrames.apply(host, editing)
                 if (!editing) hide(host)
             }
             override fun onStateTransitionComplete(finalState: LauncherState) {
                 val editing = finalState == LauncherState.EDIT_MODE
+                updateDockProfileBadgeVisibility(host, editing)
                 GoreeCloudOverviewFrames.apply(host, editing)
                 if (editing) {
                     refresh(host)

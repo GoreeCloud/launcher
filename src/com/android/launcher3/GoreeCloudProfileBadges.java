@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.os.Process;
 import android.os.UserHandle;
+import java.util.WeakHashMap;
 import androidx.annotation.NonNull;
 import app.lawnchair.preferences.PreferenceManager;
 
@@ -14,17 +15,26 @@ import app.lawnchair.preferences.PreferenceManager;
 public final class GoreeCloudProfileBadges {
     private static final Paint FILL = new Paint(Paint.ANTI_ALIAS_FLAG);
     private static final Paint GLYPH = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final WeakHashMap<Launcher, Boolean> EDITOR_VISIBLE = new WeakHashMap<>();
     private GoreeCloudProfileBadges() { }
+
+    /** Editor removal affordances supersede profile glyphs until editing ends. */
+    public static void setEditorVisible(@NonNull Launcher launcher, boolean visible) {
+        if (visible) {
+            EDITOR_VISIBLE.put(launcher, true);
+        } else {
+            EDITOR_VISIBLE.remove(launcher);
+        }
+    }
 
     public static void draw(@NonNull Canvas canvas, @NonNull BubbleTextView icon) {
         // App drawer and search use separate profile pages: never overlay icon badges there.
         if (icon.mDisplay != BubbleTextView.DISPLAY_WORKSPACE) return;
         // Edit Home paints its own minus badges over dock icons. Hide profile
         // decorations only for that editor, preserving badges on normal Home.
-        var activity = com.android.launcher3.views.ActivityContext.lookupContext(
-                icon.getContext());
-        if (activity instanceof Launcher launcher
-                && launcher.isInState(LauncherState.EDIT_MODE)) return;
+        Launcher launcher = Launcher.getLauncher(icon.getContext());
+        if (Boolean.TRUE.equals(EDITOR_VISIBLE.get(launcher))
+                || launcher.isInState(LauncherState.EDIT_MODE)) return;
         Object item = icon.getTag();
         if (!(item instanceof com.android.launcher3.model.data.ItemInfoWithIcon info)) return;
         UserHandle user = info.user;

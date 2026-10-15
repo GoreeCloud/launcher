@@ -36,6 +36,9 @@ assert "removeEmptyWorkspacePageByIndex" in toolbar and "ws.setDefaultPage(start
 assert "GoreeCloudContextSurfaces.actionBar" in popup
 badges=get("src/com/android/launcher3/GoreeCloudProfileBadges.java")
 assert "launcher.isInState(LauncherState.EDIT_MODE)" in badges
+assert "setEditorVisible(@NonNull Launcher launcher, boolean visible)" in badges
+assert "updateDockProfileBadgeVisibility(host, editing)" in toolbar
+assert "children.getChildAt(index).invalidate()" in toolbar
 assert "addAllShortcuts(deepShortcutCount, otherActions)" in popup
 assert "APP SHORTCUTS" in popup and "notificationCard" in popup
 assert "NotificationListener.getInstanceIfConnected()" in menu
