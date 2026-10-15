@@ -260,13 +260,35 @@ object GoreeCloudOverviewToolbar {
             showAddApps(host)
         }
         action("Remove", R.drawable.goreecloud_edit_remove) {
-            val removed = host.workspace.removeEmptyWorkspacePageByIndex(host.workspace.currentPage)
-            if (!removed) {
-                Toast.makeText(host, "Move icons and widgets before removing this page",
+            val ws = host.workspace
+            val index = ws.currentPage
+            val selected = ws.getPageAt(index) as? CellLayout
+            if (index <= 0 || ws.childCount <= ws.panelCount ||
+                selected == null || selected.shortcutsAndWidgets.childCount != 0) {
+                Toast.makeText(host, "Only empty secondary Home pages can be removed",
                     Toast.LENGTH_SHORT).show()
+            } else {
+                val screenId = ws.getScreenIdForPageIndex(index)
+                AlertDialog.Builder(host)
+                    .setTitle("Remove this Home page?")
+                    .setMessage("Only this empty page will be removed. Apps and widgets stay installed.")
+                    .setNegativeButton("Cancel", null)
+                    .setPositiveButton("Remove") { _, _ ->
+                        // Recheck the same page on confirmation: no stale deletion
+                        // if a page was changed, populated or reordered meanwhile.
+                        if (!host.isDestroyed && host.isInState(LauncherState.EDIT_MODE) &&
+                            ws.getScreenIdForPageIndex(ws.currentPage) == screenId) {
+                            if (!ws.removeEmptyWorkspacePageByIndex(ws.currentPage)) {
+                                Toast.makeText(host, "This page cannot be removed",
+                                    Toast.LENGTH_SHORT).show()
+                            }
+                            host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)
+                                ?.refreshItems()
+                            host.rootView.post { refresh(host) }
+                        }
+                    }
+                    .show()
             }
-            host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
-            host.rootView.post { refresh(host) }
         }
         addOverlay(host, actions, dp(host, 146), dp(host, 82))
 

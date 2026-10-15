@@ -22,6 +22,9 @@ assert "GoreeCloudOverviewToolbar.install(this)" in launcher
 assert "Edit Home Screen" in toolbar and "Add apps" in toolbar and "Done" in toolbar
 assert "host.removeItem(icon, item, true" in toolbar and "getCurrentPageLayout" in toolbar
 assert 'setTitle("Remove from dock?")' in toolbar and 'setPositiveButton("Remove")' in toolbar
+assert 'setTitle("Remove this Home page?")' in toolbar
+assert 'Only empty secondary Home pages can be removed' in toolbar
+assert 'ws.getScreenIdForPageIndex(ws.currentPage) == screenId' in toolbar
 assert 'addOverlay(host, badge, dp(host, 48), dp(host, 48))' in toolbar
 assert 'host.inflateAndBindItemWithAnimation(info)' in toolbar
 assert "targetScreenId" in toolbar and "alreadyHere" in toolbar
