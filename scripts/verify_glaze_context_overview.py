@@ -27,6 +27,9 @@ assert 'Only empty secondary Home pages can be removed' in toolbar
 assert 'ws.getScreenIdForPageIndex(ws.currentPage) == screenId' in toolbar
 assert 'addOverlay(host, badge, dp(host, 48), dp(host, 48))' in toolbar
 assert 'host.inflateAndBindItemWithAnimation(info)' in toolbar
+assert 'LauncherAppState.getInstance(host).iconCache.getTitleAndIcon(' in toolbar
+assert 'appInfo, chosen, DEFAULT_LOOKUP_FLAG)' in toolbar
+assert toolbar.index('getTitleAndIcon(') < toolbar.index('appInfo.makeWorkspaceItem(host)')
 assert "targetScreenId" in toolbar and "alreadyHere" in toolbar
 assert 'SearchView(host)' in toolbar and "adapter.filter.filter" in toolbar
 assert "showAddApps(host)" in toolbar and "AlertDialog.Builder(host)" in toolbar

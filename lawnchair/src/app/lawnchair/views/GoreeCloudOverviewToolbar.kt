@@ -21,9 +21,11 @@ import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
 import com.android.launcher3.CellLayout
 import com.android.launcher3.GoreeCloudProfileBadges
+import com.android.launcher3.LauncherAppState
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.LauncherState
 import com.android.launcher3.R
+import com.android.launcher3.icons.cache.CacheLookupFlag.Companion.DEFAULT_LOOKUP_FLAG
 import com.android.launcher3.model.data.AppInfo
 import com.android.launcher3.model.data.FolderInfo
 import com.android.launcher3.model.data.ItemInfo
@@ -147,7 +149,13 @@ object GoreeCloudOverviewToolbar {
                     Toast.makeText(host, "This Home page is full", Toast.LENGTH_SHORT).show()
                     return@setAdapter
                 }
-                val info = AppInfo(host, chosen, profile).makeWorkspaceItem(host)
+                // Newly constructed AppInfo starts without a resolved icon. Load
+                // it before converting into a WorkspaceItemInfo; otherwise the
+                // initial edit-mode shortcut paints as an unlabelled blank disk.
+                val appInfo = AppInfo(host, chosen, profile)
+                LauncherAppState.getInstance(host).iconCache.getTitleAndIcon(
+                    appInfo, chosen, DEFAULT_LOOKUP_FLAG)
+                val info = appInfo.makeWorkspaceItem(host)
                 host.modelWriter.addItemToDatabase(
                     info, LauncherSettings.Favorites.CONTAINER_DESKTOP, screenId,
                     slot.first, slot.second,
