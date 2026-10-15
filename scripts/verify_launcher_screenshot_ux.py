@@ -92,6 +92,13 @@ assert "committed = ws.commitExtraEmptyScreens()" in page_strip
 assert page_strip.count("ws.addExtraEmptyScreens()") == 2
 assert "ws.snapToPage(ws.childCount - 1)" not in page_strip
 assert "host.hotseat.getGlobalVisibleRect" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+frames = read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
+assert "emptyNeighbor(-1f)" in frames and "emptyNeighbor(1f)" in frames
+footer_section = launcher.split("fun option(label: String, icon: Int, tint: Int, onClick: () -> Unit)", 1)[1].split('option("Wallpapers"', 1)[0]
+assert "contentDescription = label" in footer_section
+assert "tile.addView(android.widget.TextView" not in footer_section
+assert "dp(32), dp(32)" in footer_section
+
 assert "WeakHashMap<LawnchairLauncher, View>" in read("lawnchair/src/app/lawnchair/views/GoreeCloudOverviewFrames.kt")
 assert "ignoreInsets = true" in edit
 
