@@ -19,6 +19,7 @@ import android.widget.SearchView
 import android.widget.TextView
 import android.widget.Toast
 import app.lawnchair.LawnchairLauncher
+import com.android.launcher3.BuildConfig
 import com.android.launcher3.CellLayout
 import com.android.launcher3.GoreeCloudProfileBadges
 import com.android.launcher3.LauncherAppState
@@ -164,9 +165,12 @@ object GoreeCloudOverviewToolbar {
                 // Bind the new shortcut immediately; forcing a full reload here
                 // resets the active page and can make the addition look missing.
                 host.inflateAndBindItemWithAnimation(info)
-                android.util.Log.i("GoreeEditQA",
-                    "add-app component=${chosen.componentName.flattenToShortString()} " +
-                        "screen=$screenId cell=${slot.first},${slot.second} id=${info.id}")
+                // Component selections are private; diagnostics stay in QA builds.
+                if (BuildConfig.DEBUG) {
+                    android.util.Log.i("GoreeEditQA",
+                        "add-app component=${chosen.componentName.flattenToShortString()} " +
+                            "screen=$screenId cell=${slot.first},${slot.second} id=${info.id}")
+                }
                 host.findViewById<EditModePageStrip>(R.id.edit_mode_page_strip)?.refreshItems()
             }
             .setNegativeButton("Cancel", null)

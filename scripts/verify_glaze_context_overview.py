@@ -29,6 +29,8 @@ assert 'addOverlay(host, badge, dp(host, 48), dp(host, 48))' in toolbar
 assert 'host.inflateAndBindItemWithAnimation(info)' in toolbar
 assert 'LauncherAppState.getInstance(host).iconCache.getTitleAndIcon(' in toolbar
 assert 'appInfo, chosen, DEFAULT_LOOKUP_FLAG)' in toolbar
+assert 'if (BuildConfig.DEBUG)' in toolbar
+assert toolbar.index('if (BuildConfig.DEBUG)') < toolbar.index('android.util.Log.i("GoreeEditQA"')
 assert toolbar.index('getTitleAndIcon(') < toolbar.index('appInfo.makeWorkspaceItem(host)')
 assert "targetScreenId" in toolbar and "alreadyHere" in toolbar
 assert 'SearchView(host)' in toolbar and "adapter.filter.filter" in toolbar
