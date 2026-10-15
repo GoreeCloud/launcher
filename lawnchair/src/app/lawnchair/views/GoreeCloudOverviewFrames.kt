@@ -29,6 +29,7 @@ object GoreeCloudOverviewFrames {
                     host.rootView.getLocationOnScreen(origin)
                     val workspace = host.workspace
                     val density = resources.displayMetrics.density
+                    var selectedFrame: RectF? = null
                     for (index in 0 until workspace.childCount) {
                         val child = workspace.getPageAt(index) ?: continue
                         if (!child.getGlobalVisibleRect(page) || page.isEmpty) continue
@@ -42,6 +43,7 @@ object GoreeCloudOverviewFrames {
                         if (selected && host.hotseat.getGlobalVisibleRect(dock)) {
                             rect.bottom = maxOf(rect.bottom, dock.bottom - origin[1] + 9f * density)
                         }
+                        if (selected) selectedFrame = RectF(rect)
                         val radius = 24f * density
                         // Transparent cool-blue glass follows the selected wallpaper.
                         paint.style = Paint.Style.FILL
@@ -58,6 +60,31 @@ object GoreeCloudOverviewFrames {
                         paint.color = if (selected) Color.WHITE else 0x9DDAE8F5.toInt()
                         canvas.drawRoundRect(rect, radius, radius, paint)
                         paint.style = Paint.Style.FILL
+                    }
+
+                    // The selected first/last page has no real neighbor on one
+                    // side. Draw a clearly subdued empty-page slot there, so the
+                    // edit carousel never looks cut off. This is decoration only:
+                    // do not create or reorder real Home pages on entering Edit.
+                    val selected = selectedFrame
+                    if (selected != null) {
+                        fun emptyNeighbor(direction: Float) {
+                            val ghost = RectF(selected)
+                            ghost.offset(direction * (selected.width() + 14f * density), 0f)
+                            val radius = 24f * density
+                            paint.style = Paint.Style.FILL
+                            paint.color = 0x263B83A5
+                            canvas.drawRoundRect(ghost, radius, radius, paint)
+                            paint.style = Paint.Style.STROKE
+                            paint.strokeWidth = 1.3f * density
+                            paint.color = 0xA7DDEAF5.toInt()
+                            canvas.drawRoundRect(ghost, radius, radius, paint)
+                            paint.style = Paint.Style.FILL
+                        }
+                        if (workspace.currentPage == 0) emptyNeighbor(-1f)
+                        if (workspace.currentPage == workspace.childCount - 1) {
+                            emptyNeighbor(1f)
+                        }
                     }
                 }
             }.apply {
