@@ -154,7 +154,7 @@ public final class LauncherActivity extends Activity {
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
-        empty.setText(shown.isEmpty() ? (catalog.isEmpty() ? R.string.empty : R.string.no_match) : "");
+        empty.setText(shown.isEmpty() ? getString(catalog.isEmpty() ? R.string.empty : R.string.no_match) : "");
         empty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
