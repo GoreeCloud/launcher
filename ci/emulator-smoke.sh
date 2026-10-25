@@ -42,7 +42,7 @@ for n in matching:
     cmd += (["swipe",str(x),str(y),str(x),str(y),"1000"] if mode=="long"
             else ["tap",str(x),str(y)])
     subprocess.run(cmd,check=True)
-    print("PASS",mode,target,"at",x,y,"bounds",a.get("bounds"))
+    print("PASS",mode,target,"at",x,y,"bounds",n.attrib.get("bounds"))
     sys.exit(0)
 raise SystemExit("UI element not found: "+target)
 PY
