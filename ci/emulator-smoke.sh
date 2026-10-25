@@ -70,8 +70,25 @@ dump_screen home-role
 assert_text home-role "Home workspace"
 assert_text home-role "Page 1 / 1"
 
-tap_label home-role "Add home page"
-sleep 1
+# Android may apply status-bar/window insets after the initial hierarchy capture.
+# Always re-read the current control bounds and confirm the resulting state.
+page_ready=0
+for attempt in 1 2 3; do
+  dump_screen "before-add-$attempt"
+  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/before-add-$attempt.xml"; then
+    page_ready=1
+    break
+  fi
+  tap_label "before-add-$attempt" "Add home page"
+  sleep 2
+  dump_screen page-two
+  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/page-two.xml"; then
+    page_ready=1
+    break
+  fi
+  echo "Page-add tap did not take effect; refreshing UI coordinates (attempt $attempt)" >&2
+done
+test "$page_ready" = 1
 dump_screen page-two
 assert_text page-two "Page 2 / 2"
 tap_label page-two "All apps"
