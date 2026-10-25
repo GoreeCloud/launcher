@@ -80,8 +80,35 @@ dump_screen drawer
 assert_text drawer "All applications"
 assert_text drawer "Launcher QA Fixture"
 
+# Exercise the actual search field before using filtered results for placement.
+python3 - "$EVIDENCE/drawer.xml" <<'PY'
+import re, subprocess, sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+for node in root.iter():
+    a=node.attrib
+    if a.get("class") != "android.widget.EditText": continue
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",a.get("bounds",""))
+    if not m: continue
+    x1,y1,x2,y2=map(int,m.groups())
+    subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
+    sys.exit(0)
+raise SystemExit("Search input missing")
+PY
+adb shell input text Fixture
+adb shell input keyevent 4
+sleep 1
+dump_screen searched
+assert_text searched "Launcher QA Fixture"
+python3 - "$EVIDENCE/searched.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+values=[n.attrib.get("text","") for n in root.iter()]
+if "Calendar" in values: raise SystemExit("Unfiltered Calendar app remains in search results")
+print("PASS local fixture search filters unrelated apps")
+PY
+
 # Exercise contextual placement using an actual independently installed package.
-longpress_label drawer "Launcher QA Fixture"
+longpress_label searched "Launcher QA Fixture"
 sleep 1
 dump_screen place-menu
 assert_text place-menu "Add to current home page"
@@ -113,11 +140,44 @@ dump_screen home-after-launch
 assert_text home-after-launch "Page 2 / 2"
 assert_shortcut_count home-after-launch 2
 
+# Verify the native setting changes on device and persists after activity recreation.
+tap_label home-after-launch "Settings"
+sleep 1
+dump_screen settings-before
+assert_text settings-before "Home settings"
+assert_text settings-before "Show application labels"
+tap_label settings-before "Show application labels"
+sleep 1
+dump_screen settings-after
+python3 - "$EVIDENCE/settings-after.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+matching=[n for n in root.iter() if n.attrib.get("text")=="Show application labels"]
+if not matching or matching[0].attrib.get("checked")!="false":
+    raise SystemExit("Application label switch was not disabled")
+print("PASS labels setting disabled")
+PY
+adb shell input keyevent 4
+sleep 1
+dump_screen home-hidden-labels
+assert_shortcut_count home-hidden-labels 2
+
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen after-restart
 assert_text after-restart "Page 2 / 2"
 assert_shortcut_count after-restart 2
+tap_label after-restart "Settings"
+sleep 1
+dump_screen settings-restored
+python3 - "$EVIDENCE/settings-restored.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+matching=[n for n in root.iter() if n.attrib.get("text")=="Show application labels"]
+if not matching or matching[0].attrib.get("checked")!="false":
+    raise SystemExit("Labels preference did not survive app force-stop/relaunch")
+print("PASS saved label preference persisted")
+PY
 adb shell dumpsys package com.goreecloud.launcher > "$EVIDENCE/package.txt"
-echo "PASS: HOME role, discovery, launcher fixture, shortcut placement, dock pin, persistence"
+echo "PASS: HOME role, discovery/search, cross-app launch, shortcut/dock and settings persistence"

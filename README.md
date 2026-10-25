@@ -24,7 +24,7 @@ Requires JDK 17, Android SDK platform 36, SDK Build Tools 36.0.0 and Gradle 9.6.
 
 Run Gradle tasks: app:assembleDebug and app:testDebugUnitTest.
 
-The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. The manual emulator workflow uses a separate test-only QA fixture app to exercise HOME role resolution, app discovery/launch, shortcut placement, dock pinning and local persistence. This fixture is not distributed as part of the Launcher APK. Even passing emulator smoke tests cannot establish broad physical-device acceptance.
+The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. The manual emulator workflow uses a separate test-only QA fixture app to exercise HOME role resolution, app discovery and search, cross-app launching, shortcut placement, dock pinning, settings and local persistence. This fixture is not distributed as part of the Launcher APK. Even passing emulator smoke tests cannot establish broad physical-device acceptance.
 
 ## GoreeCloud UI
 
