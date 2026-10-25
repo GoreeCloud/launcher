@@ -12,12 +12,15 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
+import android.view.WindowInsets;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -32,7 +35,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Native, single-page HOME foundation. Not a finished launcher workspace. */
+/** Native HOME source with a bounded local workspace; full Launcher acceptance remains pending. */
 public final class LauncherActivity extends Activity {
     private final List<Entry> catalog = new ArrayList<>();
     private final Set<String> pins = new HashSet<>();
@@ -48,6 +51,12 @@ public final class LauncherActivity extends Activity {
     private LinearLayout dock;
     private EditText query;
     private TextView empty;
+    private TextView emptyTitle;
+    private TextView emptyAction;
+    private LinearLayout emptyPanel;
+    private TextView previousPage;
+    private TextView nextPage;
+    private TextView removePageAction;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -67,17 +76,37 @@ public final class LauncherActivity extends Activity {
     private void createScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(20), dp(16), dp(12));
+        root.setPadding(dp(20), dp(16), dp(20), dp(12));
         root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
-        root.setFitsSystemWindows(true);
+        // Preserve GC UI gutters while also respecting status/navigation bars on API 26+.
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            int top, bottom, left, right;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
+                top = bars.top; bottom = bars.bottom; left = bars.left; right = bars.right;
+            } else {
+                top = insets.getSystemWindowInsetTop();
+                bottom = insets.getSystemWindowInsetBottom();
+                left = insets.getSystemWindowInsetLeft();
+                right = insets.getSystemWindowInsetRight();
+            }
+            view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right, dp(12) + bottom);
+            return insets;
+        });
         setContentView(root);
 
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1, dp(60)));
 
-        TextView title = label("GoreeCloud", 26, true);
-        heading.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout brand = new LinearLayout(this);
+        brand.setOrientation(LinearLayout.VERTICAL);
+        TextView title = label("GoreeCloud", 25, true);
+        brand.addView(title);
+        TextView subtitle = label("Your Android workspace", 12, false);
+        subtitle.setTextColor(0xFF5C596B);
+        brand.addView(subtitle);
+        heading.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView settings = label("⚙", 26, false);
         settings.setContentDescription(getString(R.string.settings));
         settings.setGravity(Gravity.CENTER);
@@ -121,29 +150,53 @@ public final class LauncherActivity extends Activity {
         pageControls = new LinearLayout(this);
         pageControls.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(pageControls, new LinearLayout.LayoutParams(-1, dp(52)));
-        pageControls.addView(action("‹", () -> switchPage(-1)),
-            new LinearLayout.LayoutParams(dp(48), dp(48)));
+        previousPage = action("‹", () -> switchPage(-1));
+        previousPage.setContentDescription("Previous home page");
+        pageControls.addView(previousPage, new LinearLayout.LayoutParams(dp(48), dp(48)));
         pageLabel = label("", 15, true);
         pageLabel.setGravity(Gravity.CENTER);
         pageControls.addView(pageLabel, new LinearLayout.LayoutParams(0, dp(48), 1));
-        pageControls.addView(action("›", () -> switchPage(1)),
-            new LinearLayout.LayoutParams(dp(48), dp(48)));
+        nextPage = action("›", () -> switchPage(1));
+        nextPage.setContentDescription("Next home page");
+        pageControls.addView(nextPage, new LinearLayout.LayoutParams(dp(48), dp(48)));
         TextView addPage = action("+", this::addPage);
         addPage.setContentDescription("Add home page");
         pageControls.addView(addPage, new LinearLayout.LayoutParams(dp(48), dp(48)));
-        TextView removePage = action("−", this::removeEmptyPage);
-        removePage.setContentDescription("Remove empty home page");
-        pageControls.addView(removePage, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        removePageAction = action("−", this::removeEmptyPage);
+        removePageAction.setContentDescription("Remove empty home page");
+        pageControls.addView(removePageAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
+        FrameLayout viewport = new FrameLayout(this);
+        root.addView(viewport, new LinearLayout.LayoutParams(-1, 0, 1));
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         grid = new GridLayout(this);
         scroll.addView(grid);
 
-        empty = label("", 14, false);
+        emptyPanel = new LinearLayout(this);
+        emptyPanel.setOrientation(LinearLayout.VERTICAL);
+        emptyPanel.setGravity(Gravity.CENTER);
+        emptyPanel.setPadding(dp(20), dp(28), dp(20), dp(28));
+        emptyPanel.setBackground(background(0xFFE8E6FF, 26));
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(230), Gravity.CENTER);
+        viewport.addView(emptyPanel, placeholder);
+        emptyTitle = label("", 22, true);
+        emptyTitle.setGravity(Gravity.CENTER);
+        emptyTitle.setTextColor(0xFF2C227C);
+        emptyPanel.addView(emptyTitle);
+        empty = label("", 15, false);
         empty.setGravity(Gravity.CENTER);
-        root.addView(empty, new LinearLayout.LayoutParams(-1, -2));
+        empty.setTextColor(0xFF514A76);
+        LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(-1, -2);
+        note.topMargin = dp(12);
+        emptyPanel.addView(empty, note);
+        emptyAction = action("Browse all apps", () -> setMode(true));
+        emptyAction.setTextColor(0xFFFFFFFF);
+        emptyAction.setBackground(background(0xFF5145D9, 18));
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
+        actionParams.topMargin = dp(20);
+        emptyPanel.addView(emptyAction, actionParams);
 
         TextView dockTitle = label("Pinned apps", 16, true);
         root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(36)));
@@ -237,6 +290,15 @@ public final class LauncherActivity extends Activity {
         homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
         appsTab.setTextColor(allApps ? 0xFFFFFFFF : 0xFF2C227C);
         pageLabel.setText("Page " + (workspace.currentPage() + 1) + " / " + workspace.pageCount());
+        boolean canPrevious = workspace.currentPage() > 0;
+        boolean canNext = workspace.currentPage() + 1 < workspace.pageCount();
+        boolean canRemove = workspace.pageCount() > 1 && workspace.currentItems().isEmpty();
+        previousPage.setEnabled(canPrevious);
+        nextPage.setEnabled(canNext);
+        removePageAction.setEnabled(canRemove);
+        previousPage.setAlpha(canPrevious ? 1f : 0.38f);
+        nextPage.setAlpha(canNext ? 1f : 0.38f);
+        removePageAction.setAlpha(canRemove ? 1f : 0.38f);
 
         List<Entry> shown = new ArrayList<>();
         if (allApps) {
@@ -258,13 +320,17 @@ public final class LauncherActivity extends Activity {
         }
         if (shown.isEmpty()) {
             if (!allApps) {
-                empty.setText("This page is empty. Open All apps, then long-press an app to add it.");
+                emptyTitle.setText("Make this space yours");
+                empty.setText("Find an app in All apps, then long-press it to add a shortcut to this page.");
             } else {
-                empty.setText(catalog.isEmpty() ? R.string.empty : R.string.no_match);
+                emptyTitle.setText(catalog.isEmpty() ? "No apps yet" : "Nothing matches");
+                empty.setText(catalog.isEmpty() ? getString(R.string.empty)
+                    : "Try another application name.");
             }
-            empty.setVisibility(View.VISIBLE);
+            emptyAction.setVisibility(allApps ? View.GONE : View.VISIBLE);
+            emptyPanel.setVisibility(View.VISIBLE);
         } else {
-            empty.setVisibility(View.GONE);
+            emptyPanel.setVisibility(View.GONE);
         }
     }
 
@@ -280,7 +346,7 @@ public final class LauncherActivity extends Activity {
         image.setImageDrawable(app.icon);
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
-            TextView text = label(app.name, 11, false);
+            TextView text = label(app.name, 12, false);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
