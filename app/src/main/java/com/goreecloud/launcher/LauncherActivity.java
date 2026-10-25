@@ -234,9 +234,8 @@ public final class LauncherActivity extends Activity {
             catalog.add(new Entry(component, String.valueOf(item.loadLabel(pm)), item.loadIcon(pm)));
         }
         catalog.sort(Comparator.comparing(a -> a.name.toLowerCase(java.util.Locale.ROOT)));
-        // Remove pins for activities no longer present.
-        pins.removeIf(key -> find(key) == null);
-        savePins();
+        // Preserve unavailable apps in user preferences, so reinstalling or re-enabling
+        // a package does not silently destroy the person's dock configuration.
         showApps();
         showDock();
     }
@@ -404,6 +403,49 @@ public final class LauncherActivity extends Activity {
             showApps();
             return true;
         });
+        // Menu actions are keyboard and accessibility-friendly alternatives to drag/drop.
+        // Only offer page operations for a shortcut actually on the visible Home page.
+        if (!drawerOpen && existing == workspace.currentPage()) {
+            int slot = workspace.currentItems().indexOf(id);
+            if (slot > 0) {
+                menu.getMenu().add("Move earlier").setOnMenuItemClickListener(item -> {
+                    if (workspace.moveWithinCurrentPage(id, -1)) {
+                        saveWorkspace();
+                        showApps();
+                    }
+                    return true;
+                });
+            }
+            if (slot >= 0 && slot < workspace.currentItems().size() - 1) {
+                menu.getMenu().add("Move later").setOnMenuItemClickListener(item -> {
+                    if (workspace.moveWithinCurrentPage(id, 1)) {
+                        saveWorkspace();
+                        showApps();
+                    }
+                    return true;
+                });
+            }
+            if (workspace.currentPage() > 0) {
+                menu.getMenu().add("Move to previous page").setOnMenuItemClickListener(item -> {
+                    if (workspace.moveToAdjacentPage(id, -1)) {
+                        saveWorkspace();
+                        showApps();
+                    }
+                    return true;
+                });
+            }
+            if (workspace.currentPage() + 1 < workspace.pageCount()) {
+                menu.getMenu().add("Move to next page").setOnMenuItemClickListener(item -> {
+                    if (!workspace.moveToAdjacentPage(id, 1)) {
+                        Toast.makeText(this, "Destination page is full", Toast.LENGTH_SHORT).show();
+                    } else {
+                        saveWorkspace();
+                        showApps();
+                    }
+                    return true;
+                });
+            }
+        }
         menu.getMenu().add(pins.contains(id) ? R.string.unpin : R.string.pin)
             .setOnMenuItemClickListener(item -> {
                 if (!pins.remove(id)) {

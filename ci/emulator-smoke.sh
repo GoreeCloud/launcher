@@ -132,10 +132,37 @@ assert_text place-menu "Add to current home page"
 tap_label place-menu "Add to current home page"
 sleep 1
 dump_screen drawer-after-place
-tap_label drawer-after-place "Home"
+# A second activity provides a stable two-item layout for ordering checks.
+longpress_label drawer-after-place "Launcher Fixture Notes"
+sleep 1
+dump_screen notes-menu
+assert_text notes-menu "Add to current home page"
+tap_label notes-menu "Add to current home page"
+sleep 1
+dump_screen drawer-after-notes
+tap_label drawer-after-notes "Home"
 sleep 1
 dump_screen home-shortcut
 assert_text home-shortcut "Launcher QA Fixture"
+assert_text home-shortcut "Launcher Fixture Notes"
+
+# Verify an accessible menu alternative to drag/drop for ordering shortcuts.
+longpress_label home-shortcut "Launcher Fixture Notes"
+sleep 1
+dump_screen order-menu
+assert_text order-menu "Move earlier"
+tap_label order-menu "Move earlier"
+sleep 1
+dump_screen reordered
+assert_text reordered "Launcher Fixture Notes"
+longpress_label reordered "Launcher Fixture Notes"
+sleep 1
+dump_screen order-reverse-menu
+assert_text order-reverse-menu "Move later"
+tap_label order-reverse-menu "Move later"
+sleep 1
+dump_screen order-restored
+assert_text order-restored "Launcher Fixture Notes"
 
 longpress_label home-shortcut "Launcher QA Fixture"
 sleep 1
@@ -145,6 +172,26 @@ tap_label pin-menu "Pin to dock"
 sleep 1
 dump_screen pinned
 assert_shortcut_count pinned 2
+
+# Move a populated shortcut between pre-existing pages, in both directions.
+longpress_label pinned "Launcher QA Fixture"
+sleep 1
+dump_screen cross-page-menu
+assert_text cross-page-menu "Move to previous page"
+tap_label cross-page-menu "Move to previous page"
+sleep 1
+dump_screen moved-page-one
+assert_text moved-page-one "Page 1 / 2"
+assert_shortcut_count moved-page-one 2
+longpress_label moved-page-one "Launcher QA Fixture"
+sleep 1
+dump_screen return-menu
+assert_text return-menu "Move to next page"
+tap_label return-menu "Move to next page"
+sleep 1
+dump_screen moved-page-two
+assert_text moved-page-two "Page 2 / 2"
+assert_shortcut_count moved-page-two 2
 
 # Verify the launcher opens the fixture, then Android HOME returns to our selected Home.
 tap_label pinned "Launcher QA Fixture"

@@ -59,6 +59,28 @@ public final class WorkspaceState {
         for (List<String> page : pages) removed |= page.remove(id);
         return removed;
     }
+    /** Moves a shortcut by one grid slot; false means no state change. */
+    public boolean moveWithinCurrentPage(String id, int direction) {
+        if (direction != -1 && direction != 1) return false;
+        List<String> entries = pages.get(selected);
+        int from = entries.indexOf(id);
+        int to = from + direction;
+        if (from < 0 || to < 0 || to >= entries.size()) return false;
+        Collections.swap(entries, from, to);
+        return true;
+    }
+    /** Moves the shortcut to an existing neighboring page without dropping any saved data. */
+    public boolean moveToAdjacentPage(String id, int direction) {
+        if (direction != -1 && direction != 1) return false;
+        int target = selected + direction;
+        if (target < 0 || target >= pages.size()) return false;
+        List<String> source = pages.get(selected), destination = pages.get(target);
+        if (!source.contains(id) || destination.size() >= MAX_ITEMS_PER_PAGE) return false;
+        source.remove(id);
+        destination.add(id);
+        selected = target;
+        return true;
+    }
     /** Base64url tokens separated by dots; pages by pipes. Both separators are outside the alphabet. */
     public String encode() {
         StringBuilder result = new StringBuilder();
