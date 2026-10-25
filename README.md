@@ -10,12 +10,13 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 ## Foundation in source
 
 - Android Activity declaring the standard Home intent; user may select it as default home.
+- Separate app drawer and local home workspace with up to seven pages and 24 application shortcuts per page. App shortcuts can be added or moved by long-pressing an application in the drawer; pages are saved on device.
 - App grid based on launchable activities visible through Android package query APIs.
 - Local application search and direct launching.
 - Long-press to pin/unpin a limited number of dock apps or open Android application information.
 - Basic preferences for grid columns and icon labels, using on-device private preferences.
 
-This is not the full planned launcher. Advanced workspace pages, folders, widget hosting, arbitrary icon packs, backup/restore, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented.
+This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, backup/restore, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. Workspace page actions have not been runtime-tested on a device.
 
 ## Build
 
@@ -31,4 +32,4 @@ The visual foundation uses GC UI [native design principles](https://github.com/G
 
 ## Privacy and acceptance
 
-No network, usage-statistics, contacts, notification-listener, accessibility-service, device-admin, or broad QUERY_ALL_PACKAGES permission is requested. Initial testing must include Home selection, application visibility, launching, app changes, pin persistence, accessibility, orientation, different screen sizes and OEM-specific restrictions. Do not label capabilities verified without evidence from build and device execution.
+No network, usage-statistics, contacts, notification-listener, accessibility-service, device-admin, or broad QUERY_ALL_PACKAGES permission is requested. Initial testing must include Home selection, application visibility, launching, app changes, home-page persistence and navigation, pin persistence, accessibility, orientation, different screen sizes and OEM-specific restrictions. Do not label capabilities verified without evidence from build and device execution.

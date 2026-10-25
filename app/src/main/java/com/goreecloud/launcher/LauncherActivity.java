@@ -37,7 +37,14 @@ public final class LauncherActivity extends Activity {
     private final List<Entry> catalog = new ArrayList<>();
     private final Set<String> pins = new HashSet<>();
     private SharedPreferences prefs;
+    private WorkspaceState workspace;
+    private boolean drawerOpen;
     private GridLayout grid;
+    private LinearLayout pageControls;
+    private TextView pageLabel;
+    private TextView sectionLabel;
+    private TextView homeTab;
+    private TextView appsTab;
     private LinearLayout dock;
     private EditText query;
     private TextView empty;
@@ -46,6 +53,8 @@ public final class LauncherActivity extends Activity {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
         pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
+        workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
+        workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
         createScreen();
         refresh();
     }
@@ -77,6 +86,18 @@ public final class LauncherActivity extends Activity {
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         heading.addView(settings, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
+        LinearLayout modes = new LinearLayout(this);
+        modes.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(52));
+        modesParams.topMargin = dp(8);
+        root.addView(modes, modesParams);
+        homeTab = action("Home", () -> setMode(false));
+        appsTab = action("All apps", () -> setMode(true));
+        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(48), 1));
+        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        appsTabParams.leftMargin = dp(8);
+        modes.addView(appsTab, appsTabParams);
+
         query = new EditText(this);
         query.setSingleLine(true);
         query.setHint(R.string.search_hint);
@@ -92,10 +113,27 @@ public final class LauncherActivity extends Activity {
             public void afterTextChanged(Editable e) {}
         });
 
-        TextView appsTitle = label("Applications", 17, true);
-        LinearLayout.LayoutParams section = new LinearLayout.LayoutParams(-1, dp(45));
+        sectionLabel = label("Home workspace", 17, true);
+        LinearLayout.LayoutParams section = new LinearLayout.LayoutParams(-1, dp(32));
         section.topMargin = dp(12);
-        root.addView(appsTitle, section);
+        root.addView(sectionLabel, section);
+
+        pageControls = new LinearLayout(this);
+        pageControls.setGravity(Gravity.CENTER_VERTICAL);
+        root.addView(pageControls, new LinearLayout.LayoutParams(-1, dp(52)));
+        pageControls.addView(action("‹", () -> switchPage(-1)),
+            new LinearLayout.LayoutParams(dp(48), dp(48)));
+        pageLabel = label("", 15, true);
+        pageLabel.setGravity(Gravity.CENTER);
+        pageControls.addView(pageLabel, new LinearLayout.LayoutParams(0, dp(48), 1));
+        pageControls.addView(action("›", () -> switchPage(1)),
+            new LinearLayout.LayoutParams(dp(48), dp(48)));
+        TextView addPage = action("+", this::addPage);
+        addPage.setContentDescription("Add home page");
+        pageControls.addView(addPage, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        TextView removePage = action("−", this::removeEmptyPage);
+        removePage.setContentDescription("Remove empty home page");
+        pageControls.addView(removePage, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
@@ -138,13 +176,77 @@ public final class LauncherActivity extends Activity {
         showDock();
     }
 
+    /** Home pages are locally persisted; the drawer always shows available apps. */
+    private void setMode(boolean showDrawer) {
+        drawerOpen = showDrawer;
+        if (!showDrawer) query.setText("");
+        showApps();
+    }
+
+    private void switchPage(int offset) {
+        if (workspace.selectPage(workspace.currentPage() + offset)) {
+            saveWorkspace();
+            showApps();
+        }
+    }
+
+    private void addPage() {
+        if (workspace.addPage()) {
+            saveWorkspace();
+            setMode(false);
+        } else {
+            Toast.makeText(this, "Maximum of seven home pages", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void removeEmptyPage() {
+        if (workspace.removeCurrentEmptyPage()) {
+            saveWorkspace();
+            setMode(false);
+        } else {
+            Toast.makeText(this, "Only an empty extra page can be removed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void saveWorkspace() {
+        prefs.edit().putString("workspace_pages_v1", workspace.encode())
+            .putInt("workspace_current_v1", workspace.currentPage()).apply();
+    }
+
+    private TextView action(String title, Runnable onClick) {
+        TextView v = label(title, 16, true);
+        v.setGravity(Gravity.CENTER);
+        v.setFocusable(true);
+        v.setBackground(background(0xFFE8E6FF, 18));
+        v.setOnClickListener(ignored -> onClick.run());
+        return v;
+    }
+
     private void showApps() {
         if (grid == null) return;
         grid.removeAllViews();
         int columns = Math.max(3, Math.min(6, prefs.getInt("columns", 4)));
         grid.setColumnCount(columns);
         boolean names = prefs.getBoolean("labels", true);
-        List<Entry> shown = AppNameFilter.filter(catalog, query.getText().toString(), e -> e.name);
+        String text = query.getText().toString();
+        boolean allApps = drawerOpen || !text.trim().isEmpty();
+        pageControls.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        sectionLabel.setText(allApps ? "All applications" : "Home workspace");
+        homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
+        appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
+        homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
+        appsTab.setTextColor(allApps ? 0xFFFFFFFF : 0xFF2C227C);
+        pageLabel.setText("Page " + (workspace.currentPage() + 1) + " / " + workspace.pageCount());
+
+        List<Entry> shown = new ArrayList<>();
+        if (allApps) {
+            shown.addAll(AppNameFilter.filter(catalog, text, e -> e.name));
+        } else {
+            for (String key : workspace.currentItems()) {
+                Entry item = find(key);
+                if (item != null) shown.add(item);
+            }
+        }
         for (int i = 0; i < shown.size(); i++) {
             View tile = tile(shown.get(i), names, dp(48));
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
@@ -154,8 +256,16 @@ public final class LauncherActivity extends Activity {
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
-        empty.setText(shown.isEmpty() ? getString(catalog.isEmpty() ? R.string.empty : R.string.no_match) : "");
-        empty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
+        if (shown.isEmpty()) {
+            if (!allApps) {
+                empty.setText("This page is empty. Open All apps, then long-press an app to add it.");
+            } else {
+                empty.setText(catalog.isEmpty() ? R.string.empty : R.string.no_match);
+            }
+            empty.setVisibility(View.VISIBLE);
+        } else {
+            empty.setVisibility(View.GONE);
+        }
     }
 
     private View tile(Entry app, boolean names, int iconSize) {
@@ -202,6 +312,20 @@ public final class LauncherActivity extends Activity {
     private void showActions(View target, Entry app) {
         PopupMenu menu = new PopupMenu(this, target);
         String id = app.component.flattenToString();
+        int existing = workspace.pageFor(id);
+        menu.getMenu().add(existing == workspace.currentPage()
+                ? "Remove from home page" : existing >= 0 ? "Move to current home page"
+                : "Add to current home page").setOnMenuItemClickListener(item -> {
+            if (existing == workspace.currentPage()) {
+                workspace.remove(id);
+            } else if (!workspace.place(id)) {
+                Toast.makeText(this, "Page full (24 apps)", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+            saveWorkspace();
+            showApps();
+            return true;
+        });
         menu.getMenu().add(pins.contains(id) ? R.string.unpin : R.string.pin)
             .setOnMenuItemClickListener(item -> {
                 if (!pins.remove(id)) {
