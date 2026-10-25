@@ -42,7 +42,7 @@ for n in matching:
     cmd += (["swipe",str(x),str(y),str(x),str(y),"1000"] if mode=="long"
             else ["tap",str(x),str(y)])
     subprocess.run(cmd,check=True)
-    print("PASS",mode,target)
+    print("PASS",mode,target,"at",x,y,"bounds",a.get("bounds"))
     sys.exit(0)
 raise SystemExit("UI element not found: "+target)
 PY
@@ -192,10 +192,15 @@ sleep 1
 dump_screen moved-page-two
 assert_text moved-page-two "Page 2 / 2"
 assert_shortcut_count moved-page-two 2
+# The page reflows from one full-width tile to two columns after moving.
+# Re-read settled bounds before launching instead of tapping a stale hit region.
+sleep 3
+dump_screen launch-ready
+assert_shortcut_count launch-ready 2
 
 # Verify the launcher opens the fixture, then Android HOME returns to our selected Home.
-tap_label pinned "Launcher QA Fixture"
-sleep 1
+tap_label launch-ready "Launcher QA Fixture"
+sleep 2
 dump_screen launched-fixture
 assert_text launched-fixture "QA target running"
 adb shell input keyevent 3
