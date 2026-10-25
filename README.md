@@ -1,6 +1,6 @@
 # GoreeCloud Launcher
 
-Native Android home screen and launcher. **Early source foundation, not yet device verified, released, or Stable.**
+Native Android home screen and launcher. **Early native Android foundation with limited Android 15 emulator smoke verification; not physically-device verified, released, or Stable.**
 
 The canonical founder-directed product records are in GoreeCloud Google Drive:
 - [Planned capabilities](https://drive.google.com/file/d/1ossnWKM42HDieuee5jihvmIky1WkaEUG/view)
@@ -16,7 +16,7 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 - Long-press to pin/unpin a limited number of dock apps or open Android application information.
 - Basic preferences for grid columns and icon labels, using on-device private preferences.
 
-This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, backup/restore, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. Workspace page actions have not been runtime-tested on a device.
+This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, backup/restore, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. Initial Home/All apps navigation and selected page persistence passed a limited API 35 emulator smoke test; additional behaviors and real hardware remain unverified.
 
 ## Build
 
@@ -24,7 +24,7 @@ Requires JDK 17, Android SDK platform 36, SDK Build Tools 36.0.0 and Gradle 9.6.
 
 Run Gradle tasks: app:assembleDebug and app:testDebugUnitTest.
 
-The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. A CI build cannot stand in for installation or runtime testing.
+The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. The manual emulator workflow uses a separate test-only QA fixture app to exercise HOME role resolution, app discovery/launch, shortcut placement, dock pinning and local persistence. This fixture is not distributed as part of the Launcher APK. Even passing emulator smoke tests cannot establish broad physical-device acceptance.
 
 ## GoreeCloud UI
 
