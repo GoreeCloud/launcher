@@ -46,16 +46,20 @@ raise SystemExit("Clickable element not found: "+target)
 PY
 }
 
+sleep 3 # Allow Android system bars/insets and initial layout to settle before coordinate taps.
 dump_screen "initial"
 assert_text "initial" "Home workspace"
 assert_text "initial" "Page 1 / 1"
 tap_label "initial" "Add home page"
+sleep 1
 dump_screen "added-page"
 assert_text "added-page" "Page 2 / 2"
 tap_label "added-page" "All apps"
+sleep 1
 dump_screen "app-drawer"
 assert_text "app-drawer" "All applications"
 tap_label "app-drawer" "Home"
+sleep 1
 dump_screen "back-home"
 assert_text "back-home" "Page 2 / 2"
 adb shell am force-stop com.goreecloud.launcher
