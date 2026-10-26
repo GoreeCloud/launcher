@@ -26,6 +26,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.6.0'
+      - name: Validate emulator test harness
+        run: |
+          for script in ci/emulator-menu-retry.sh ci/emulator-dock.sh ci/emulator-backup.sh ci/emulator-keyboard.sh; do bash -n "$script"; done
+          bash ci/test-emulator-menu-retry.sh
       - name: Compile and test
         run: gradle :app:assembleDebug :app:testDebugUnitTest :qa-fixture:assembleDebug --no-daemon
       - name: Upload evaluation APK

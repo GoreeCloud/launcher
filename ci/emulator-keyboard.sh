@@ -108,15 +108,30 @@ for title in ("Home tab, selected","All apps tab","Settings","Add home page"):
     print("PASS accessible button semantics:",title)
 PYROLE
 tap_label keyboard-initial "All apps"
-# A fresh Home screen can consume the first tap while focus/insets settle.
-for attempt in 1 2 3 4; do
+# A fresh Home can consume the first tap; package discovery may also lag
+# initial fixture APK installation. Require BOTH selected tab and actual tile.
+for attempt in 1 2 3 4 5 6; do
   sleep 2
   dump_screen keyboard-drawer
   if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/keyboard-drawer.xml"; then
-    break
+    if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/keyboard-drawer.xml"; then
+      break
+    fi
+    echo "Fixture tile not indexed yet on attempt $attempt" >&2
+    if (( attempt % 2 == 0 )); then
+      # Re-query package inventory through normal Home activity startup.
+      # This is a disposable emulator, never a personal Home device.
+      adb shell am force-stop com.goreecloud.launcher
+      adb shell input keyevent KEYCODE_HOME
+      sleep 2
+      dump_screen keyboard-home-refresh
+      assert_text keyboard-home-refresh "Home workspace"
+      tap_label keyboard-home-refresh "All apps"
+    fi
+  else
+    echo "All apps selection not yet visible; retry $attempt" >&2
+    tap_label keyboard-drawer "All apps"
   fi
-  echo "All apps selection not yet visible; retry $attempt"
-  tap_label keyboard-drawer "All apps"
 done
 assert_text keyboard-drawer "All apps tab, selected"
 assert_text keyboard-drawer "Launcher QA Fixture"

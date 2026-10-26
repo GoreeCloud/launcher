@@ -61,6 +61,8 @@ PY
 }
 
 
+. ci/emulator-menu-retry.sh
+
 # Disposable emulator only: the shell role assignment here is bootstrapping
 # dock QA, not evidence of end-user Home role selection (separately tested).
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
@@ -83,11 +85,7 @@ assert_text dock-drawer "Launcher QA Fixture"
 assert_text dock-drawer "Launcher Fixture Notes"
 for app in "Launcher QA Fixture" "Launcher Fixture Notes" \
     "Launcher Fixture Alpha" "Launcher Fixture Beta" "Launcher Fixture Gamma"; do
-  dump_screen "drawer-pre-pin"
-  longpress_label drawer-pre-pin "$app"
-  sleep 1
-  dump_screen pin-context
-  assert_text pin-context "Pin to dock"
+  retry_longpress_menu pin-context "$app" "Pin to dock"
   tap_label pin-context "Pin to dock"
   sleep 1
 done
@@ -109,11 +107,7 @@ PY
 # Attempt a sixth and ensure the full-dock guard refuses mutation.
 tap_label dock-at-capacity "All apps"
 sleep 1
-dump_screen sixth-drawer
-longpress_label sixth-drawer "Launcher Fixture Delta"
-sleep 1
-dump_screen sixth-context
-assert_text sixth-context "Pin to dock"
+retry_longpress_menu sixth-context "Launcher Fixture Delta" "Pin to dock"
 tap_label sixth-context "Pin to dock"
 sleep 1
 dump_screen full-drawer
@@ -132,10 +126,7 @@ print("PASS sixth pin denied without altering five existing pins")
 PY
 
 # Remove existing pin via Home dock, then add previously denied app.
-longpress_label after-full-attempt "Launcher Fixture Alpha"
-sleep 1
-dump_screen unpin-menu
-assert_text unpin-menu "Remove from dock"
+retry_longpress_menu unpin-menu "Launcher Fixture Alpha" "Remove from dock"
 tap_label unpin-menu "Remove from dock"
 sleep 1
 dump_screen after-unpin
@@ -152,11 +143,7 @@ print("PASS unpin removed exactly one dock entry")
 PY
 tap_label after-unpin "All apps"
 sleep 1
-dump_screen drawer-before-repin
-longpress_label drawer-before-repin "Launcher Fixture Delta"
-sleep 1
-dump_screen repin-menu
-assert_text repin-menu "Pin to dock"
+retry_longpress_menu repin-menu "Launcher Fixture Delta" "Pin to dock"
 tap_label repin-menu "Pin to dock"
 sleep 1
 dump_screen before-home-final
@@ -192,10 +179,7 @@ PY
 # Verify real on-screen dock order and accessible reorder actions after restart.
 # The fixture labels identify five distinct app components, not screenshots of
 # synthetic tiles. Inaccessible/missing pins must not affect visible order.
-longpress_label dock-after-restart "Launcher Fixture Delta"
-sleep 1
-dump_screen move-dock-menu
-assert_text move-dock-menu "Move left in dock"
+retry_longpress_menu move-dock-menu "Launcher Fixture Delta" "Move left in dock"
 tap_label move-dock-menu "Move left in dock"
 sleep 1
 dump_screen dock-after-move

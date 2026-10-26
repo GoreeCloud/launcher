@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/android-backup.yml'
       - 'ci/emulator-backup.sh'
+      - 'ci/emulator-menu-retry.sh'
       - 'app/src/main/java/com/goreecloud/launcher/BackupCodec.java'
       - 'app/src/main/java/com/goreecloud/launcher/SettingsActivity.java'
       - 'app/src/main/java/com/goreecloud/launcher/DockOrder.java'
