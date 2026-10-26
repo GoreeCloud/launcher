@@ -74,7 +74,15 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
-        if (grid != null) refresh();
+        if (grid != null) {
+            // The Settings activity may have atomically restored a different saved layout.
+            // Reload rather than accidentally showing stale shortcuts until process restart.
+            pins.clear();
+            pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
+            workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
+            workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
+            refresh();
+        }
     }
 
     private void createScreen() {
