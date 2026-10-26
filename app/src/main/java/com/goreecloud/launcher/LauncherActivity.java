@@ -274,7 +274,7 @@ public final class LauncherActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setFocusableInTouchMode(true);
         rootSurface = root;
-        root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
+        root.setBackground(GoreeVisuals.atmosphere(false)); // GC UI Canvas
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
         systemFontScale = getResources().getConfiguration().fontScale;
@@ -289,7 +289,7 @@ public final class LauncherActivity extends Activity {
             fullPageScroll = fullPage;
             fullPage.setFillViewport(true);
             fullPage.setClipToPadding(true);
-            fullPage.setBackgroundColor(0xFFF4F3FC);
+            fullPage.setBackground(GoreeVisuals.atmosphere(false));
             fullPage.addView(root, new ScrollView.LayoutParams(-1, -2));
             insetSurface = fullPage;
         } else {
@@ -325,16 +325,18 @@ public final class LauncherActivity extends Activity {
         }
 
         LinearLayout heading = new LinearLayout(this);
+        topHeading = heading;
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1,
                 dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 60)));
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
-        TextView title = label("GoreeCloud", 25, true);
+        TextView title = label("GoreeCloud", 22, true);
+        title.setTextColor(0xFFFFFFFF);
         brand.addView(title);
         TextView subtitle = label("Your Android workspace", 12, false);
-        subtitle.setTextColor(0xFF5C596B);
+        subtitle.setTextColor(0xFFE4E3FF);
         brand.addView(subtitle);
         heading.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView settings = label("⚙", 26, false);
@@ -342,7 +344,8 @@ public final class LauncherActivity extends Activity {
         settings.setGravity(Gravity.CENTER);
         settings.setFocusable(true);
         markAsAccessibilityButton(settings);
-        settings.setBackground(background(0xFFFFFFFF, 18));
+        settings.setTextColor(0xFFFFFFFF);
+        settings.setBackground(background(0x735E58A3, 18));
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         heading.addView(settings, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
@@ -357,13 +360,25 @@ public final class LauncherActivity extends Activity {
         LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(48), 1);
         appsTabParams.leftMargin = dp(8);
         modes.addView(appsTab, appsTabParams);
+        heading.setOnLongClickListener(v -> { openHomeEditor(); return true; });
+
+        dashboard = HomeDashboardView.create(this, this::openHomeEditor, this::pickWidget);
+        LinearLayout.LayoutParams dashboardParams = new LinearLayout.LayoutParams(-1, -2);
+        dashboardParams.topMargin = dp(6);
+        root.addView(dashboard, dashboardParams);
+
+        widgetArea = new LinearLayout(this);
+        widgetArea.setOrientation(LinearLayout.VERTICAL);
+        root.addView(widgetArea, new LinearLayout.LayoutParams(-1, -2));
 
         query = new EditText(this);
         query.setSingleLine(true);
         query.setHint(R.string.search_hint);
         query.setTextSize(16);
         query.setPadding(dp(16), dp(9), dp(16), dp(9));
-        query.setBackground(background(0xFFFFFFFF, 18));
+        query.setTextColor(0xFF232243);
+        query.setHintTextColor(0xFF68677C);
+        query.setBackground(background(0xE9F5F3FF, 28));
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
         search.topMargin = dp(16);
         root.addView(query, search);
