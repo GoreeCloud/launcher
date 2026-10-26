@@ -18,12 +18,12 @@ public final class HomeDashboardView {
         LinearLayout stack = new LinearLayout(context);
         stack.setOrientation(LinearLayout.VERTICAL);
         stack.setContentDescription("Home dashboard");
-        stack.setPadding(0, dp(context, 8), 0, dp(context, 8));
+        stack.setPadding(0, dp(context, 4), 0, dp(context, 4));
 
         LinearLayout hero = new LinearLayout(context);
         hero.setOrientation(LinearLayout.HORIZONTAL);
         hero.setGravity(Gravity.CENTER_VERTICAL);
-        stack.addView(hero, new LinearLayout.LayoutParams(-1, dp(context, 134)));
+        stack.addView(hero, new LinearLayout.LayoutParams(-1, dp(context, 112)));
 
         LinearLayout time = new LinearLayout(context);
         time.setGravity(Gravity.CENTER_VERTICAL);
@@ -35,10 +35,10 @@ public final class HomeDashboardView {
         TextClock clock = new TextClock(context);
         clock.setFormat12Hour("h:mm");
         clock.setFormat24Hour("HH:mm");
-        clock.setTextSize(35);
+        clock.setTextSize(30);
         clock.setTypeface(null, Typeface.BOLD);
         clock.setTextColor(0xFFFFFFFF);
-        clock.setContentDescription("Current device time");
+        // Leave live TextClock text accessible; do not replace the time with a static label.
         time.addView(clock);
         TextView today = label(context, "Today", 13, 0xFFF3F0FF, true);
         time.addView(today);
@@ -61,8 +61,8 @@ public final class HomeDashboardView {
 
         LinearLayout secondary = new LinearLayout(context);
         secondary.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(-1, dp(context, 88));
-        secondParams.topMargin = dp(context, 10);
+        LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(-1, dp(context, 66));
+        secondParams.topMargin = dp(context, 8);
         stack.addView(secondary, secondParams);
         secondary.addView(actionCard(context, "Customize", "Wallpaper, layout and gestures", edit),
                 new LinearLayout.LayoutParams(0, -1, 1));
