@@ -222,4 +222,19 @@ sleep 3
 dump_screen restored-after-restart
 assert_text restored-after-restart "Page 2 / 2"
 assert_shortcut_count restored-after-restart 2
+python3 - "$EVIDENCE/restored-after-restart.xml" <<'PY'
+import re,subprocess,sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+device_width=int(re.search(r"(\d+)x",subprocess.check_output(
+    ["adb","shell","wm","size"]).decode()).group(1))
+widths=[]
+for n in root.iter():
+    a=n.attrib
+    if a.get("content-desc")!="Launcher QA Fixture": continue
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",a.get("bounds",""))
+    if m: widths.append(int(m.group(3))-int(m.group(1)))
+if len(widths)<2 or max(widths)>=device_width*0.55:
+    raise SystemExit("Oversized shortcut on sparse Home page: "+str(widths))
+print("PASS sparse Home tile fits a bounded grid slot:",widths)
+PY
 echo "PASS: SAF create/write/read, restore-cancel, restore-apply and process persistence"

@@ -339,11 +339,17 @@ public final class LauncherActivity extends Activity {
                 if (item != null) shown.add(item);
             }
         }
+        // Real grid slots: a sparse Home page must not stretch its one shortcut
+        // across the row. Bound widths on tablets and scale icons on compact phones.
+        int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(40);
+        int slotWidth = Math.max(dp(32), Math.min(dp(112),
+                (availableWidth - dp(4) * columns) / columns));
+        int iconSize = Math.min(dp(48), Math.max(dp(22), slotWidth - dp(12)));
         for (int i = 0; i < shown.size(); i++) {
-            View tile = tile(shown.get(i), names, dp(48));
+            View tile = tile(shown.get(i), names, iconSize);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
-                    GridLayout.spec(i / columns), GridLayout.spec(i % columns, 1f));
-            params.width = 0;
+                    GridLayout.spec(i / columns), GridLayout.spec(i % columns));
+            params.width = slotWidth;
             params.height = dp(names ? 112 : 84);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
