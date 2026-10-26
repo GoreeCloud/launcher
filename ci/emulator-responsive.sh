@@ -152,27 +152,23 @@ sleep 5
 dump_screen responsive-landscape-top
 assert_png_orientation responsive-landscape-top landscape
 assert_text responsive-landscape-top "Home workspace"
-# Landscape has vertically scrolling Home surface; the dock must be reachable.
-adb shell input swipe 680 770 680 175 560
-sleep 2
-dump_screen responsive-landscape-bottom
-assert_text responsive-landscape-bottom "Pinned apps"
-# A hierarchy entry can be partly hidden behind Android's bottom system bar.
-# Scroll farther, then require both the heading and empty dock hint fully inside
-# the visible display instead of trusting UIAutomator text presence alone.
-adb shell input swipe 680 780 680 145 600
-sleep 2
-dump_screen responsive-landscape-dock
-assert_text responsive-landscape-dock "Pinned apps"
-assert_text responsive-landscape-dock "Long-press an app to pin it here"
-python3 - "$EVIDENCE/responsive-landscape-dock.xml" "$EVIDENCE/responsive-landscape-dock.png" <<'PY'
+# Landscape has a vertically scrolling Home surface. A single swipe is not
+# enough to reach its footer on all emulator display densities and font sizes.
+# Continue scrolling a bounded number of times, and accept ONLY if both dock
+# elements are fully visible above the Android navigation bar.
+dock_reached=false
+for attempt in 1 2 3 4 5 6; do
+  adb shell input swipe 680 800 680 145 600
+  sleep 2
+  dump_screen responsive-landscape-dock
+  if python3 - "$EVIDENCE/responsive-landscape-dock.xml" "$EVIDENCE/responsive-landscape-dock.png" <<'PY'
 import re,struct,sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 img=open(sys.argv[2],"rb").read(24)
 width,height=struct.unpack(">II",img[16:24])
 for name in ("Pinned apps","Long-press an app to pin it here"):
     matches=[n.attrib for n in root.iter() if n.attrib.get("text")==name]
-    if len(matches)!=1: raise SystemExit("Cannot find unique dock element "+name)
+    if len(matches)!=1: raise SystemExit("Dock element not yet visible "+name)
     m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',matches[0].get("bounds",""))
     if not m: raise SystemExit("Missing dock element bounds")
     x1,y1,x2,y2=map(int,m.groups())
@@ -180,11 +176,21 @@ for name in ("Pinned apps","Long-press an app to pin it here"):
         raise SystemExit("Dock element clipped by status/navigation bars: "+name+" "+str((x1,y1,x2,y2)))
     print("PASS landscape dock safely visible",name,(x1,y1,x2,y2))
 PY
+  then
+    dock_reached=true
+    echo "PASS dock reached with $attempt landscape scroll gesture(s)"
+    break
+  fi
+done
+if [ "$dock_reached" != true ]; then
+  echo "Landscape dock not safely reachable after six scroll attempts"
+  exit 1
+fi
 # Two-line tile labels must be visible/reachable after scrolling.
-python3 - "$EVIDENCE/responsive-landscape-top.xml" "$EVIDENCE/responsive-landscape-bottom.xml" <<'PY'
+python3 - "$EVIDENCE/responsive-landscape-top.xml" "$EVIDENCE/responsive-landscape-dock.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
 all_nodes=[]
-for p in sys.argv[1:]: all_nodes+=list(ET.parse(p).getroot().iter())
+for p in (sys.argv[1],sys.argv[2]): all_nodes+=list(ET.parse(p).getroot().iter())
 if not any(n.attrib.get("content-desc")=="Launcher QA Fixture" for n in all_nodes):
     raise SystemExit("Landscape fixture shortcut not reachable in scroll hierarchy")
 print("PASS landscape shortcut reachable")
