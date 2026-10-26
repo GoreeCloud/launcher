@@ -69,9 +69,13 @@ adb shell input keyevent 3
 sleep 4
 dump_screen responsive-initial
 assert_text responsive-initial "Home workspace"
+assert_text responsive-initial "Home tab, selected"
+assert_text responsive-initial "All apps tab"
 tap_label responsive-initial "All apps"
 sleep 1
 dump_screen responsive-drawer
+assert_text responsive-drawer "All apps tab, selected"
+assert_text responsive-drawer "Home tab"
 longpress_label responsive-drawer "Launcher QA Fixture"
 sleep 1
 dump_screen responsive-menu
@@ -83,6 +87,7 @@ tap_label responsive-after-add "Home"
 sleep 1
 dump_screen responsive-home
 assert_text responsive-home "Launcher QA Fixture"
+assert_text responsive-home "Home tab, selected"
 
 assert_png_orientation() {
   python3 - "$EVIDENCE/$1.png" "$2" <<'PY'
