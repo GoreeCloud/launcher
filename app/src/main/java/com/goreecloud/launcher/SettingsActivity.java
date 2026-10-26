@@ -308,12 +308,12 @@ public final class SettingsActivity extends Activity {
                     new String(content, StandardCharsets.UTF_8));
             String preview = "Replace the current layout with " + candidate.pageCount()
                     + " page(s), " + candidate.shortcutCount() + " shortcut(s) and "
-                    + candidate.pins.size() + " dock pin(s)?\\n\\n"
+                    + candidate.pins.size() + " dock pin(s)?\n\n"
                     + "This will also replace grid and label settings. Missing apps may "
                     + "remain as inactive shortcuts until installed.";
             new AlertDialog.Builder(this)
                 .setTitle("Restore launcher backup?")
-                .setMessage(preview.replace("\\n", "\n"))
+                .setMessage(preview)
                 .setNegativeButton("Cancel", (dialog, which) -> {})
                 .setPositiveButton("Replace layout", (dialog, which) -> {
                     boolean saved = prefs.edit()

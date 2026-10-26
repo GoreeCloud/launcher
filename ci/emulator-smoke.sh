@@ -256,5 +256,18 @@ if not matching or matching[0].attrib.get("checked")!="false":
     raise SystemExit("Labels preference did not survive app force-stop/relaunch")
 print("PASS saved label preference persisted")
 PY
+# Backup controls must be visible in the native settings ScrollView.
+adb shell input swipe 420 1750 420 520 460
+sleep 1
+dump_screen settings-backup
+assert_text settings-backup "Export backup"
+assert_text settings-backup "Import backup"
+# Open and dismiss the system document picker without exporting user data.
+tap_label settings-backup "Export backup"
+sleep 2
+adb shell input keyevent 4
+sleep 1
+dump_screen settings-after-picker
+assert_text settings-after-picker "Home settings"
 adb shell dumpsys package com.goreecloud.launcher > "$EVIDENCE/package.txt"
 echo "PASS: HOME role, discovery/search, cross-app launch, shortcut/dock and settings persistence"

@@ -16,8 +16,9 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 - Long-press to pin/unpin a limited number of dock apps, move shortcuts earlier/later within a Home page, move them to adjacent pages, or open Android application information.
 - Saved dock pins survive temporary application unavailability; hidden/missing applications are skipped without destroying preferences.
 - Basic preferences for grid columns and icon labels, using on-device private preferences.
+- Manual, versioned local workspace backups through the Android system document picker; restore requires format/integrity checks and explicit replacement confirmation. Contains app identifiers, not passwords, and is not encrypted.
 
-This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, backup/restore, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. Initial Home/All apps navigation and selected page persistence passed a limited API 35 emulator smoke test; additional behaviors and real hardware remain unverified.
+This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, automated/cloud backup, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. Initial Home/All apps navigation and selected page persistence passed a limited API 35 emulator smoke test; additional behaviors and real hardware remain unverified.
 
 ## Build
 
@@ -25,7 +26,7 @@ Requires JDK 17, Android SDK platform 36, SDK Build Tools 36.0.0 and Gradle 9.6.
 
 Run Gradle tasks: app:assembleDebug and app:testDebugUnitTest.
 
-The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. The manual emulator workflow uses a separate test-only QA fixture app with two launchable activities to exercise HOME role resolution, app discovery and search, cross-app launching, shortcut placement, ordering, dock pinning, settings and local persistence. This fixture is not distributed as part of the Launcher APK. Even passing emulator smoke tests cannot establish broad physical-device acceptance.
+The repository does not include an unverified Gradle Wrapper binary; automated GitHub Actions installs pinned Gradle. The manual emulator workflow uses a separate test-only QA fixture app with two launchable activities to exercise HOME role resolution, app discovery and search, cross-app launching, shortcut placement, ordering, dock pinning, settings and local persistence. This fixture is not distributed as part of the Launcher APK. Manual backup/restore uses an explicitly user-selected document and does not require storage permissions; full picker-save/import integration remains a device QA item. Even passing emulator smoke tests cannot establish broad physical-device acceptance.
 
 ## GoreeCloud UI
 
