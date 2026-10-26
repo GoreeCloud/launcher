@@ -764,7 +764,9 @@ public final class LauncherActivity extends Activity {
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
-        dashboard.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        // Space-first responsive Home: a decorative dashboard must not hide the
+        // real workspace, shortcut recovery, or dock in landscape/large text.
+        dashboard.setVisibility(allApps || compactLayout ? View.GONE : View.VISIBLE);
         widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
         topHeading.setVisibility(allApps ? View.GONE : View.VISIBLE);
         applyAppearance(allApps);
