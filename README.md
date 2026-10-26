@@ -1,6 +1,6 @@
 # GoreeCloud Launcher
 
-Native Android home screen and launcher. **Early native Android foundation with limited Android 15 emulator smoke verification; not physically-device verified, released, or Stable.**
+I am building GoreeCloud Launcher as my native Android home-screen and application launcher in the privacy-first GoreeCloud ecosystem. **This remains an early native Android foundation with bounded emulator verification, not a physically-device-verified, released, or Stable product.**
 
 The canonical founder-directed product records are in GoreeCloud Google Drive:
 - [Planned capabilities](https://drive.google.com/file/d/1ossnWKM42HDieuee5jihvmIky1WkaEUG/view)
@@ -37,6 +37,13 @@ The repository does not include an unverified Gradle Wrapper binary; automated G
 - [Bounded shortcut grid and backup regression, API 35](https://github.com/GoreeCloud/launcher/actions/runs/40252843342) — sparse Home page geometry and previous backup behaviors.
 
 These are **single-emulator test cases**, not cross-version or hardware certification.
+
+
+## October 26, 2026 stabilization evidence
+
+- [Rotation recovery PR #4](https://github.com/GoreeCloud/launcher/pull/4) preserves All apps and in-progress search context through Activity recreation; the Android 15 responsive emulator verified drawer continuity across rotation.
+- [Package refresh PR #5](https://github.com/GoreeCloud/launcher/pull/5) invalidates app icons after package updates even when label and component identity are unchanged. Pure-Java policy tests and Android 15 package-availability regression checks passed. An emulator test that changes an icon asset without renaming the app is still pending.
+- These bounded results do not establish OEM, physical-device, TalkBack, switch-access, or Stable acceptance.
 
 ## GoreeCloud UI
 
