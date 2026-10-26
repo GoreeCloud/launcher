@@ -1,6 +1,12 @@
 name: Native Android Home role acceptance
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-home-role.yml'
+      - 'ci/emulator-home-role.sh'
+      - 'app/src/main/java/com/goreecloud/launcher/SettingsActivity.java'
 
 permissions:
   contents: read
