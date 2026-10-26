@@ -8,6 +8,16 @@ public final class ResponsiveHomePolicy {
         return isLandscape || fontScale >= 1.3f;
     }
 
+    /** Prioritize readable names over the preferred compact grid at extreme font sizes. */
+    public static int visibleColumns(int preferredColumns, float fontScale) {
+        int bounded = Math.max(3, Math.min(6, preferredColumns));
+        return fontScale >= 1.75f ? Math.min(2, bounded) : bounded;
+    }
+
+    public static int maximumTileWidthDp(float fontScale) {
+        return fontScale >= 1.75f ? 180 : 112;
+    }
+
     public static int shortcutHeightDp(boolean hasLabels, boolean scrollableHome) {
         return shortcutHeightDp(hasLabels, scrollableHome, 1.0f);
     }

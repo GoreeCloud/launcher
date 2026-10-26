@@ -27,6 +27,16 @@ public final class ResponsiveHomePolicyTest {
         assertEquals(84, ResponsiveHomePolicy.shortcutHeightDp(false, true, 2.0f));
     }
 
+    @Test public void veryLargeTextOverridesDenseGridWithoutMutatingPreference() {
+        assertEquals(4, ResponsiveHomePolicy.visibleColumns(4, 1.0f));
+        assertEquals(4, ResponsiveHomePolicy.visibleColumns(4, 1.45f));
+        assertEquals(2, ResponsiveHomePolicy.visibleColumns(4, 2.0f));
+        assertEquals(2, ResponsiveHomePolicy.visibleColumns(6, 2.0f));
+        assertEquals(3, ResponsiveHomePolicy.visibleColumns(2, 1.0f));
+        assertEquals(112, ResponsiveHomePolicy.maximumTileWidthDp(1.45f));
+        assertEquals(180, ResponsiveHomePolicy.maximumTileWidthDp(2.0f));
+    }
+
     @Test public void fontScalingRejectsNonsensicalBounds() {
         assertEquals(40, ResponsiveHomePolicy.labelHeightDp(Float.NaN));
         assertEquals(40, ResponsiveHomePolicy.labelHeightDp(0.5f));

@@ -119,6 +119,8 @@ txt=next(x for x in tile.iter() if x.attrib.get("text")=="Launcher QA Fixture")
 label=rect(txt)
 density=int(re.search(r'\d+',subprocess.check_output(["adb","shell","wm","density"]).decode()).group())/160
 expected_label=min(3,max(1,scale))*40*density
+if scale>=1.75 and outer[2]-outer[0]<140*density:
+    raise SystemExit("Large text Home tile too narrow for readable labels: "+str(outer))
 if label[3]-label[1] < expected_label*0.8:
     raise SystemExit("Label height too small for accessibility scale: "+str((label,expected_label)))
 if label[1]<outer[1] or label[3]>outer[3]:

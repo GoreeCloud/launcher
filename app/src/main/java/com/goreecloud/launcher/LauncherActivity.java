@@ -332,7 +332,8 @@ public final class LauncherActivity extends Activity {
     private void showApps() {
         if (grid == null) return;
         grid.removeAllViews();
-        int columns = Math.max(3, Math.min(6, prefs.getInt("columns", 4)));
+        int columns = ResponsiveHomePolicy.visibleColumns(
+                prefs.getInt("columns", 4), systemFontScale);
         grid.setColumnCount(columns);
         boolean names = prefs.getBoolean("labels", true);
         String text = query.getText().toString();
@@ -366,7 +367,8 @@ public final class LauncherActivity extends Activity {
         // Real grid slots: a sparse Home page must not stretch its one shortcut
         // across the row. Bound widths on tablets and scale icons on compact phones.
         int availableWidth = getResources().getDisplayMetrics().widthPixels - dp(40);
-        int slotWidth = Math.max(dp(32), Math.min(dp(112),
+        int slotWidth = Math.max(dp(32), Math.min(
+                dp(ResponsiveHomePolicy.maximumTileWidthDp(systemFontScale)),
                 (availableWidth - dp(4) * columns) / columns));
         int iconSize = Math.min(dp(48), Math.max(dp(22), slotWidth - dp(12)));
         for (int i = 0; i < shown.size(); i++) {
