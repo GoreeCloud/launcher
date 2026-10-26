@@ -105,6 +105,18 @@ assert_shortcut_count availability-initial 2
 # System-level temporary package unavailability should hide, not delete,
 # saved launcher configuration. Do not use adb on a user's own phone.
 adb shell pm disable-user --user 0 com.goreecloud.launcher.fixture > "$EVIDENCE/disabled-synthetic-app.txt"
+# Protected PACKAGE_CHANGED should refresh visible Home without a restart.
+sleep 3
+dump_screen availability-disabled-live
+assert_text availability-disabled-live "Saved shortcuts unavailable"
+assert_text availability-disabled-live "Saved dock apps are unavailable. Re-enable or reinstall them to restore their icons."
+python3 - "$EVIDENCE/availability-disabled-live.xml" <<'PY'
+import sys,xml.etree.ElementTree as ET
+n=sum(x.attrib.get("content-desc")=="Launcher QA Fixture"
+    for x in ET.parse(sys.argv[1]).getroot().iter())
+if n: raise SystemExit("Disabled fixture remains visible while Launcher is active")
+print("PASS live package-change refresh removed unavailable icons")
+PY
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
@@ -120,6 +132,10 @@ print("PASS fixture hidden while its package is disabled")
 PY
 
 adb shell pm enable --user 0 com.goreecloud.launcher.fixture > "$EVIDENCE/reenabled-synthetic-app.txt"
+sleep 3
+dump_screen availability-reenabled-live
+assert_shortcut_count availability-reenabled-live 2
+echo "PASS live package-change refresh restored Home and dock icons"
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3

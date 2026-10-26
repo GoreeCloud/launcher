@@ -2,6 +2,9 @@ package com.goreecloud.launcher;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.IntentFilter;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,6 +16,8 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Build;
 import android.provider.Settings;
 import android.text.Editable;
@@ -66,6 +71,27 @@ public final class LauncherActivity extends Activity {
     private TextView nextPage;
     private TextView removePageAction;
 
+    // Listen only while the visible Home activity is active. Package actions
+    // are protected Android system broadcasts; do not add manifest receivers
+    // or broad package visibility privileges. Coalesce bursts from app updates.
+    private final Handler packageChangeHandler = new Handler(Looper.getMainLooper());
+    private final Runnable reloadVisibleCatalog = () -> {
+        if (grid != null && !isFinishing()) refresh();
+    };
+    private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent event) {
+            if (event == null) return;
+            String action = event.getAction();
+            if (!Intent.ACTION_PACKAGE_ADDED.equals(action)
+                    && !Intent.ACTION_PACKAGE_REMOVED.equals(action)
+                    && !Intent.ACTION_PACKAGE_CHANGED.equals(action)
+                    && !Intent.ACTION_PACKAGE_REPLACED.equals(action)) return;
+            packageChangeHandler.removeCallbacks(reloadVisibleCatalog);
+            packageChangeHandler.postDelayed(reloadVisibleCatalog, 300);
+        }
+    };
+    private boolean packageReceiverActive;
+
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
@@ -83,6 +109,31 @@ public final class LauncherActivity extends Activity {
                 && intent.hasCategory(Intent.CATEGORY_HOME) && grid != null) {
             setMode(false);
         }
+    }
+
+    @Override protected void onStart() {
+        super.onStart();
+        if (!packageReceiverActive) {
+            IntentFilter filter = new IntentFilter();
+            filter.addAction(Intent.ACTION_PACKAGE_ADDED);
+            filter.addAction(Intent.ACTION_PACKAGE_REMOVED);
+            filter.addAction(Intent.ACTION_PACKAGE_CHANGED);
+            filter.addAction(Intent.ACTION_PACKAGE_REPLACED);
+            filter.addDataScheme("package");
+            // These actions are protected system-only broadcasts, which are
+            // exempt from Android 14's exported-receiver flag requirement.
+            registerReceiver(packageChanges, filter);
+            packageReceiverActive = true;
+        }
+    }
+
+    @Override protected void onStop() {
+        packageChangeHandler.removeCallbacks(reloadVisibleCatalog);
+        if (packageReceiverActive) {
+            unregisterReceiver(packageChanges);
+            packageReceiverActive = false;
+        }
+        super.onStop();
     }
 
     @Override protected void onResume() {
