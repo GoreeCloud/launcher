@@ -43,6 +43,7 @@ public final class SettingsActivity extends Activity {
     private static final int SELECT_HOME_ROLE = 703;
     private SharedPreferences prefs;
     private TextView homeRoleStatus;
+    private Button homeRoleAction;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -175,6 +176,7 @@ public final class SettingsActivity extends Activity {
         updateHomeRoleStatus();
 
         Button home = new Button(this);
+        homeRoleAction = home;
         home.setText(R.string.home_settings);
         home.setAllCaps(false);
         home.setTextSize(16);
@@ -184,6 +186,7 @@ public final class SettingsActivity extends Activity {
         hp.topMargin = dp(22);
         homeCard.addView(home, hp);
         home.setOnClickListener(view -> requestHomeSelection());
+        updateHomeRoleStatus();
 
         LinearLayout.LayoutParams backupHeader = new LinearLayout.LayoutParams(-1, -2);
         backupHeader.topMargin = dp(28);
@@ -237,9 +240,12 @@ public final class SettingsActivity extends Activity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             RoleManager role = getSystemService(RoleManager.class);
             if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                homeRoleStatus.setText(role.isRoleHeld(RoleManager.ROLE_HOME)
+                boolean held = role.isRoleHeld(RoleManager.ROLE_HOME);
+                homeRoleStatus.setText(held
                         ? "Current default Home: GoreeCloud"
                         : "GoreeCloud is not the current default Home");
+                if (homeRoleAction != null) homeRoleAction.setText(
+                        held ? "Manage default Home apps" : "Select default Home app");
                 return;
             }
         }
@@ -252,9 +258,7 @@ public final class SettingsActivity extends Activity {
                 RoleManager role = getSystemService(RoleManager.class);
                 if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
                     if (role.isRoleHeld(RoleManager.ROLE_HOME)) {
-                        Toast.makeText(this, "GoreeCloud is already your default Home",
-                                Toast.LENGTH_SHORT).show();
-                        updateHomeRoleStatus();
+                        startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
                         return;
                     }
                     startActivityForResult(
