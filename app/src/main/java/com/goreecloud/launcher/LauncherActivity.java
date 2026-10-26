@@ -468,7 +468,9 @@ public final class LauncherActivity extends Activity {
         dock.setPadding(dp(6), dp(7), dp(6), dp(7));
         dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
         root.addView(dock, new LinearLayout.LayoutParams(-1, dp(80)));
-        root.setOnLongClickListener(v -> { openHomeEditor(); return true; });
+        // Avoid an Activity-wide long-press handler: on small/large-font Homes a
+        // scroll starting on blank workspace was interpreted as Edit Home.
+        // Editing remains available through Customize and header long-press.
         applyAppearance(false);
         renderWidgets();
     }
