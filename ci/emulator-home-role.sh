@@ -125,6 +125,7 @@ adb shell input swipe 445 1680 445 640 520
 sleep 1
 dump_screen settings-home-held
 assert_text settings-home-held "Current default Home: GoreeCloud"
+assert_text settings-home-held "Manage default Home apps"
 adb shell input keyevent 3
 sleep 2
 dump_screen home-after-consent
