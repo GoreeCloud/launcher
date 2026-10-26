@@ -43,6 +43,8 @@ These are **single-emulator test cases**, not cross-version or hardware certific
 
 - [Rotation recovery PR #4](https://github.com/GoreeCloud/launcher/pull/4) preserves All apps and in-progress search context through Activity recreation; the Android 15 responsive emulator verified drawer continuity across rotation.
 - [Package refresh PR #5](https://github.com/GoreeCloud/launcher/pull/5) invalidates app icons after package updates even when label and component identity are unchanged. Pure-Java policy tests and Android 15 package-availability regression checks passed. An emulator test that changes an icon asset without renaming the app is still pending.
+- [Search continuity PR #7](https://github.com/GoreeCloud/launcher/pull/7) adds live Android 15 emulator assertions that an in-progress Notes query and filtered results survive both rotations, returning Home clears the query, and the existing responsive Home tests still pass ([acceptance run 40329614887](https://github.com/GoreeCloud/launcher/actions/runs/40329614887)). The native implementation is unchanged; this verifies the prior source-level restoration against emulator behavior.
+- [Settings large-text PR #8](https://github.com/GoreeCloud/launcher/pull/8) replaces the fixed-height Settings header with an adaptive minimum-height row. [Android 15 acceptance 40328855610](https://github.com/GoreeCloud/launcher/actions/runs/40328855610) verified visible, non-overlapping Settings heading/subtitle at 200% text size in portrait and landscape and reachable local backup controls. Physical-screen-reader and cross-OEM acceptance remain open.
 - These bounded results do not establish OEM, physical-device, TalkBack, switch-access, or Stable acceptance.
 
 ## GoreeCloud UI
