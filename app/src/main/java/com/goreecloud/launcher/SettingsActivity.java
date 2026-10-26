@@ -323,9 +323,8 @@ public final class SettingsActivity extends Activity {
                         .putInt("columns", candidate.columns)
                         .putBoolean("labels", candidate.labels)
                         .commit();
-                    Toast.makeText(this, saved
-                        ? "Backup restored. Return Home to view your layout."
-                        : "Restore could not be saved", Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, saved ? "Backup restored" : "Restore could not be saved", Toast.LENGTH_LONG).show();
+                    if (saved) recreate();
                 }).show();
         } catch (IOException | IllegalArgumentException | SecurityException ex) {
             Toast.makeText(this, "Invalid, unsupported or unreadable backup", Toast.LENGTH_LONG).show();
