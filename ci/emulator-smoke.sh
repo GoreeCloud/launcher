@@ -265,9 +265,19 @@ assert_text settings-backup "Import backup"
 # Open and dismiss the system document picker without exporting user data.
 tap_label settings-backup "Export backup"
 sleep 2
+dump_screen export-picker-open
+python3 - "$EVIDENCE/export-picker-open.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+values=[n.attrib.get("text","") for n in root.iter()]
+if "Export backup" in values:
+    raise SystemExit("System create-document picker did not open")
+print("PASS external create-document picker opened")
+PY
 adb shell input keyevent 4
 sleep 1
 dump_screen settings-after-picker
-assert_text settings-after-picker "Home settings"
+assert_text settings-after-picker "Export backup"
+assert_text settings-after-picker "Import backup"
 adb shell dumpsys package com.goreecloud.launcher > "$EVIDENCE/package.txt"
 echo "PASS: HOME role, discovery/search, cross-app launch, shortcut/dock and settings persistence"

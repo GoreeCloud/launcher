@@ -47,7 +47,7 @@ public final class SettingsActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(CANVAS);
-        scroll.setClipToPadding(false);
+        scroll.setClipToPadding(true); // Prevent scrolled content obscuring system status icons.
         scroll.setPadding(dp(20), dp(16), dp(20), dp(24));
         scroll.setOnApplyWindowInsetsListener((view, insets) -> {
             int top, bottom, left, right;
