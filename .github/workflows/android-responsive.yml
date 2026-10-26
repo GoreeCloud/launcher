@@ -1,6 +1,12 @@
 name: Native Android responsive Home acceptance
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-responsive.yml'
+      - 'ci/emulator-responsive.sh'
+      - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
+      - 'app/src/main/java/com/goreecloud/launcher/ResponsiveHomePolicy.java'
   push:
     branches: [main]
     paths:

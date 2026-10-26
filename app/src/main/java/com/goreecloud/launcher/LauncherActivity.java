@@ -98,8 +98,22 @@ public final class LauncherActivity extends Activity {
         pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
         workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
         workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
+        // Activity recreation (rotation, density or font change) must keep the
+        // visible drawer and the user's in-progress local app search. These
+        // ephemeral UI values are not part of a persistent workspace backup.
+        if (state != null) drawerOpen = state.getBoolean("drawerOpen", false);
         createScreen();
+        if (state != null) {
+            String search = state.getString("searchQuery", "");
+            if (!search.isEmpty()) query.setText(search);
+        }
         refresh();
+    }
+
+    @Override protected void onSaveInstanceState(Bundle outState) {
+        outState.putBoolean("drawerOpen", drawerOpen);
+        outState.putString("searchQuery", query == null ? "" : query.getText().toString());
+        super.onSaveInstanceState(outState);
     }
 
     @Override protected void onNewIntent(Intent intent) {

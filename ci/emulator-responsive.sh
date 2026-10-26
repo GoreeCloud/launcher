@@ -85,6 +85,17 @@ for attempt in 1 2 3 4; do
 done
 assert_text responsive-drawer "All apps tab, selected"
 assert_text responsive-drawer "Home tab"
+# Rotate the active launcher WITHOUT force-stopping it. Android recreates the
+# Activity; the selected drawer must remain visible across both orientations.
+adb shell settings put system accelerometer_rotation 0
+adb shell settings put system user_rotation 1
+sleep 3
+dump_screen responsive-drawer-landscape
+assert_text responsive-drawer-landscape "All apps tab, selected"
+adb shell settings put system user_rotation 0
+sleep 3
+dump_screen responsive-drawer-portrait
+assert_text responsive-drawer-portrait "All apps tab, selected"
 # Read current grid bounds before each long-press. Newly installed fixture apps may
 # trigger package-change layout updates while the AVD is settling.
 for attempt in 1 2 3 4; do
