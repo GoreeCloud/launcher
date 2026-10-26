@@ -916,15 +916,17 @@ public final class LauncherActivity extends Activity {
                 && workspace.currentItems().size() < WorkspaceState.MAX_ITEMS_PER_PAGE) {
             TextView addHome = action("+", this::beginHomePicker);
             addHome.setContentDescription("Add app to Home");
-            addHome.setTextSize(26);
-            addHome.setTextColor(0xFF5145D9);
+            addHome.setTextSize(22);
+            addHome.setTextColor(0xFFFFFFFF);
+            addHome.setBackground(background(0x8A263342, 50));
             int slot = shown.size();
             GridLayout.LayoutParams addParams = new GridLayout.LayoutParams(
                     GridLayout.spec(slot / columns), GridLayout.spec(slot % columns));
-            addParams.width = slotWidth;
-            addParams.height = dp(ResponsiveHomePolicy.shortcutHeightDp(
-                    names, compactLayout, systemFontScale));
-            addParams.setMargins(dp(2), dp(2), dp(2), dp(2));
+            // This is a small desktop affordance, never a full app-sized
+            // lavender card that dominates the wallpaper or the adjacent icons.
+            addParams.width = Math.min(slotWidth - dp(12), dp(52));
+            addParams.height = dp(52);
+            addParams.setMargins(dp(8), dp(12), dp(8), dp(12));
             grid.addView(addHome, addParams);
         }
         if (shown.isEmpty()) {
