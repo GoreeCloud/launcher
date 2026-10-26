@@ -489,11 +489,10 @@ public final class LauncherActivity extends Activity {
         pageControls.removeView(previousPage);
         pageControls.removeView(nextPage);
         pageControls.removeView(removePageAction);
+        pageControls.removeView(addPage);
         pageControls.setGravity(Gravity.CENTER);
         pageControls.setMinimumHeight(dp(20));
         root.addView(pageControls, new LinearLayout.LayoutParams(-1, dp(24)));
-        TextView addPageGhost = null; // Add page remains available in Edit Home.
-
         dockTitle = label("Pinned apps", 13, true);
         dockTitle.setTextColor(0xFFECEBFF);
         dockTitle.setVisibility(View.GONE);
@@ -710,9 +709,46 @@ public final class LauncherActivity extends Activity {
         if (!forceLayout && !changed) return;
         catalog.clear();
         catalog.addAll(discovered);
+        initializeStarterHomeIfNew();
         // Save unavailable app IDs, do not delete the person's Home/dock layout.
         showApps();
         showDock();
+    }
+
+    /** Seed a real, usable desktop ONLY for a new installation. Never overwrite
+     * saved workspace pages, pinned apps or existing user's customization. */
+    private void initializeStarterHomeIfNew() {
+        if (catalog.isEmpty() || prefs.getBoolean("starter_layout_initialized", false)) return;
+        if (prefs.contains("workspace_pages_v1") || prefs.contains("dock_order_v1")
+                || prefs.contains("pins")) {
+            prefs.edit().putBoolean("starter_layout_initialized", true).apply();
+            return;
+        }
+        String[] homeApps = {"Play Store", "Gallery", "Chrome", "Clock",
+                "Camera", "Calendar", "Settings", "Gmail"};
+        String[] dockApps = {"Phone", "Messages", "Chrome", "Camera", "Contacts"};
+        for (String name : homeApps) {
+            for (Entry app : catalog) {
+                if (app.name.equalsIgnoreCase(name)) {
+                    workspace.place(app.component.flattenToString());
+                    break;
+                }
+            }
+        }
+        for (String name : dockApps) {
+            for (Entry app : catalog) {
+                if (app.name.equalsIgnoreCase(name) && pins.size() < 5) {
+                    String id = app.component.flattenToString();
+                    if (pins.add(id)) dockOrder.add(id);
+                    break;
+                }
+            }
+        }
+        // Seed markers are persistent. Do not repeatedly reshuffle an empty
+        // or deliberately cleared desktop during later app catalog changes.
+        prefs.edit().putBoolean("starter_layout_initialized", true).apply();
+        saveWorkspace();
+        if (!pins.isEmpty()) savePins();
     }
 
     /** Home pages are locally persisted; the drawer always shows available apps. */
