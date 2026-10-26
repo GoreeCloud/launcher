@@ -9,7 +9,18 @@ public final class ResponsiveHomePolicy {
     }
 
     public static int shortcutHeightDp(boolean hasLabels, boolean scrollableHome) {
+        return shortcutHeightDp(hasLabels, scrollableHome, 1.0f);
+    }
+
+    /** Two-line app labels need extra measured space when the user enlarges system text. */
+    public static int labelHeightDp(float fontScale) {
+        float safeScale = Float.isNaN(fontScale) ? 1f
+                : Math.max(1f, Math.min(3f, fontScale));
+        return (int) Math.ceil(40f * safeScale);
+    }
+
+    public static int shortcutHeightDp(boolean hasLabels, boolean scrollableHome, float fontScale) {
         if (!hasLabels) return 84;
-        return scrollableHome ? 132 : 112;
+        return (scrollableHome ? 132 : 112) + labelHeightDp(fontScale) - 40;
     }
 }
