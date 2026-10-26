@@ -18,6 +18,7 @@ import android.provider.Settings;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -344,6 +345,10 @@ public final class LauncherActivity extends Activity {
         appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
         homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
         appsTab.setTextColor(allApps ? 0xFFFFFFFF : 0xFF2C227C);
+        homeTab.setSelected(!allApps);
+        appsTab.setSelected(allApps);
+        homeTab.setContentDescription(allApps ? "Home tab" : "Home tab, selected");
+        appsTab.setContentDescription(allApps ? "All apps tab, selected" : "All apps tab");
         pageLabel.setText("Page " + (workspace.currentPage() + 1) + " / " + workspace.pageCount());
         boolean canPrevious = workspace.currentPage() > 0;
         boolean canNext = workspace.currentPage() + 1 < workspace.pageCount();
@@ -418,6 +423,17 @@ public final class LauncherActivity extends Activity {
         }
         cell.setOnClickListener(v -> launch(app));
         cell.setOnLongClickListener(v -> { showActions(cell, app); return true; });
+        // An external keyboard must not require a touch long-press to place,
+        // reorder or pin apps. Android Menu and Shift+F10 expose the same menu.
+        cell.setOnKeyListener((v, keyCode, event) -> {
+            if (event.getAction() != KeyEvent.ACTION_UP) return false;
+            if (keyCode == KeyEvent.KEYCODE_MENU
+                    || (keyCode == KeyEvent.KEYCODE_F10 && event.isShiftPressed())) {
+                showActions(cell, app);
+                return true;
+            }
+            return false;
+        });
         return cell;
     }
 
