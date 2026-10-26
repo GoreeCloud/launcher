@@ -468,6 +468,126 @@ public final class LauncherActivity extends Activity {
         renderWidgets();
     }
 
+    private void openHomeEditor() {
+        startActivityForResult(new Intent(this, HomeEditActivity.class), EDIT_HOME_REQUEST);
+    }
+
+    private void pickWidget() {
+        int id;
+        try { id = widgetHost.allocateAppWidgetId(); }
+        catch (RuntimeException unavailable) {
+            Toast.makeText(this, "Widgets are not available on this device", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent picker = new Intent(AppWidgetManager.ACTION_APPWIDGET_PICK);
+        picker.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        try {
+            startActivityForResult(picker, PICK_WIDGET_REQUEST);
+        } catch (ActivityNotFoundException | SecurityException unavailable) {
+            widgetHost.deleteAppWidgetId(id);
+            Toast.makeText(this, "Android widget picker is unavailable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request == EDIT_HOME_REQUEST) {
+            if (result == RESULT_OK && data != null
+                    && data.getBooleanExtra(HomeEditActivity.REQUEST_WIDGET, false)) {
+                pickWidget();
+            }
+            refresh();
+            return;
+        }
+        if (request != PICK_WIDGET_REQUEST) return;
+        int chosen = data == null ? -1 : data.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
+        if (result == RESULT_OK && chosen > 0
+                && AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen) != null) {
+            String saved = prefs.getString("home_widget_ids_v1", "");
+            if (!saved.isEmpty()) saved += ",";
+            prefs.edit().putString("home_widget_ids_v1", saved + chosen).apply();
+            setMode(false);
+            renderWidgets();
+        } else if (chosen > 0) {
+            widgetHost.deleteAppWidgetId(chosen);
+        }
+    }
+
+    private void renderWidgets() {
+        if (widgetArea == null || widgetHost == null) return;
+        widgetArea.removeAllViews();
+        String raw = prefs.getString("home_widget_ids_v1", "");
+        if (raw.isEmpty()) return;
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        for (String token : raw.split(",")) {
+            int id;
+            try { id = Integer.parseInt(token); }
+            catch (NumberFormatException badId) { continue; }
+            AppWidgetProviderInfo info = manager.getAppWidgetInfo(id);
+            if (info == null) continue;
+            AppWidgetHostView view;
+            try { view = widgetHost.createView(this, id, info); }
+            catch (RuntimeException unavailable) { continue; }
+            LinearLayout panel = new LinearLayout(this);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setBackground(background(0xA0EEEFFF, 22));
+            LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
+            panelParams.bottomMargin = dp(8);
+            widgetArea.addView(panel, panelParams);
+            panel.addView(view, new LinearLayout.LayoutParams(-1,
+                    dp(Math.max(96, Math.min(220, info.minHeight > 0 ? info.minHeight : 142)))));
+            TextView remove = action("Remove widget", () ->
+                new AlertDialog.Builder(this).setTitle("Remove this widget?")
+                    .setMessage("The original app data will not be deleted.")
+                    .setPositiveButton("Remove", (dialog, which) -> removeWidget(id))
+                    .setNegativeButton("Cancel", null).show());
+            panel.addView(remove, new LinearLayout.LayoutParams(-1, dp(42)));
+        }
+    }
+
+    private void removeWidget(int id) {
+        String raw = prefs.getString("home_widget_ids_v1", "");
+        java.util.List<String> remaining = new java.util.ArrayList<>();
+        for (String token : raw.split(",")) {
+            if (!token.equals(Integer.toString(id)) && !token.isEmpty()) remaining.add(token);
+        }
+        prefs.edit().putString("home_widget_ids_v1", android.text.TextUtils.join(",", remaining)).apply();
+        widgetHost.deleteAppWidgetId(id);
+        renderWidgets();
+    }
+
+    private void applyAppearance(boolean drawer) {
+        String skin = prefs.getString("launcher_skin", "violet");
+        boolean deviceWallpaper = "wallpaper".equals(skin) && !drawer;
+        if (deviceWallpaper) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            rootSurface.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            if (fullPageScroll != null) fullPageScroll.setBackgroundColor(
+                    android.graphics.Color.TRANSPARENT);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            android.graphics.drawable.Drawable visual = GoreeVisuals.atmosphere(
+                    drawer || "night".equals(skin));
+            rootSurface.setBackground(visual);
+            if (fullPageScroll != null) fullPageScroll.setBackground(
+                    GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
+        }
+        getWindow().setStatusBarColor(drawer ? 0xFF242341 : 0xFF7E81CE);
+        getWindow().setNavigationBarColor(drawer ? 0xFF191A32 : 0xFF51528E);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                int bits = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(0, bits);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
+    }
+
     private void refresh() {
         refreshCatalog(true);
     }
