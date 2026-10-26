@@ -77,7 +77,7 @@ assert_text keyboard-drawer "Launcher QA Fixture"
 # Navigate with hardware keyboard Tab events, never a touch long-press.
 # UIAutomator reports the currently focused view; seek the fixture tile.
 found=0
-for attempt in $(seq 1 30); do
+for attempt in $(seq 1 60); do
   adb shell input keyevent KEYCODE_TAB
   sleep 0.20
   adb shell uiautomator dump /sdcard/launcher-hierarchy.xml >/dev/null

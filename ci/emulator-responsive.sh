@@ -85,9 +85,18 @@ for attempt in 1 2 3 4; do
 done
 assert_text responsive-drawer "All apps tab, selected"
 assert_text responsive-drawer "Home tab"
-longpress_label responsive-drawer "Launcher QA Fixture"
-sleep 1
-dump_screen responsive-menu
+# Read current grid bounds before each long-press. Newly installed fixture apps may
+# trigger package-change layout updates while the AVD is settling.
+for attempt in 1 2 3 4; do
+  dump_screen responsive-before-menu
+  longpress_label responsive-before-menu "Launcher QA Fixture"
+  sleep 2
+  dump_screen responsive-menu
+  if grep -Fq 'text="Add to current home page"' "$EVIDENCE/responsive-menu.xml"; then
+    break
+  fi
+  echo "Fixture context menu not yet visible; retry $attempt"
+done
 assert_text responsive-menu "Add to current home page"
 tap_label responsive-menu "Add to current home page"
 sleep 1

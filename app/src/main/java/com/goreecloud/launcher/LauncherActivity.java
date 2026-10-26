@@ -76,7 +76,7 @@ public final class LauncherActivity extends Activity {
     // or broad package visibility privileges. Coalesce bursts from app updates.
     private final Handler packageChangeHandler = new Handler(Looper.getMainLooper());
     private final Runnable reloadVisibleCatalog = () -> {
-        if (grid != null && !isFinishing()) refresh();
+        if (grid != null && !isFinishing()) refreshChangedCatalog();
     };
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent event) {
@@ -324,22 +324,44 @@ public final class LauncherActivity extends Activity {
     }
 
     private void refresh() {
+        refreshCatalog(true);
+    }
+
+    /** Package broadcasts should never destroy focus or open context menus when
+     * the set of installed launchable activities has not actually changed. */
+    private void refreshChangedCatalog() {
+        refreshCatalog(false);
+    }
+
+    private void refreshCatalog(boolean forceLayout) {
         PackageManager pm = getPackageManager();
         Intent discover = new Intent(Intent.ACTION_MAIN);
         discover.addCategory(Intent.CATEGORY_LAUNCHER);
         List<ResolveInfo> results = pm.queryIntentActivities(discover, 0);
         Set<String> seen = new HashSet<>();
-        catalog.clear();
+        List<Entry> discovered = new ArrayList<>();
         for (ResolveInfo item : results) {
             if (item.activityInfo == null) continue;
             ComponentName component = new ComponentName(item.activityInfo.packageName, item.activityInfo.name);
             String key = component.flattenToString();
             if (!seen.add(key) || getPackageName().equals(item.activityInfo.packageName)) continue;
-            catalog.add(new Entry(component, String.valueOf(item.loadLabel(pm)), item.loadIcon(pm)));
+            discovered.add(new Entry(component, String.valueOf(item.loadLabel(pm)), item.loadIcon(pm)));
         }
-        catalog.sort(Comparator.comparing(a -> a.name.toLowerCase(java.util.Locale.ROOT)));
-        // Preserve unavailable apps in user preferences, so reinstalling or re-enabling
-        // a package does not silently destroy the person's dock configuration.
+        discovered.sort(Comparator.comparing(a -> a.name.toLowerCase(java.util.Locale.ROOT)));
+        boolean changed = catalog.size() != discovered.size();
+        if (!changed) {
+            for (int i = 0; i < catalog.size(); i++) {
+                Entry before = catalog.get(i), after = discovered.get(i);
+                if (!before.component.equals(after.component) || !before.name.equals(after.name)) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        if (!forceLayout && !changed) return;
+        catalog.clear();
+        catalog.addAll(discovered);
+        // Save unavailable app IDs, do not delete the person's Home/dock layout.
         showApps();
         showDock();
     }
