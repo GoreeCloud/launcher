@@ -504,7 +504,7 @@ public final class LauncherActivity extends Activity {
                 (availableWidth - dp(4) * columns) / columns));
         int iconSize = Math.min(dp(48), Math.max(dp(22), slotWidth - dp(12)));
         for (int i = 0; i < shown.size(); i++) {
-            View tile = tile(shown.get(i), names, iconSize);
+            View tile = tile(shown.get(i), names, iconSize, false);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                     GridLayout.spec(i / columns), GridLayout.spec(i % columns));
             params.width = slotWidth;
@@ -534,7 +534,7 @@ public final class LauncherActivity extends Activity {
         }
     }
 
-    private View tile(Entry app, boolean names, int iconSize) {
+    private View tile(Entry app, boolean names, int iconSize, boolean dockTile) {
         LinearLayout cell = new LinearLayout(this);
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.CENTER);
@@ -542,6 +542,7 @@ public final class LauncherActivity extends Activity {
         cell.setBackground(background(0xFFFFFFFF, 18)); // GC UI Surface
         cell.setContentDescription(app.name);
         cell.setFocusable(true);
+        markTileAccessible(cell, app, dockTile);
         ImageView image = new ImageView(this);
         image.setImageDrawable(app.icon);
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
@@ -569,6 +570,12 @@ public final class LauncherActivity extends Activity {
         return cell;
     }
 
+    private List<String> visibleDockKeys() {
+        List<String> keys = new ArrayList<>();
+        for (String pinned : dockOrder) if (find(pinned) != null) keys.add(pinned);
+        return keys;
+    }
+
     private void showDock() {
         dock.removeAllViews();
         for (String key : dockOrder) {
@@ -576,7 +583,7 @@ public final class LauncherActivity extends Activity {
             if (app == null) continue;
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
             params.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(tile(app, false, dp(44)), params);
+            dock.addView(tile(app, false, dp(44), true), params);
         }
         int occupied = dock.getChildCount();
         if (occupied == 0) {
@@ -652,8 +659,7 @@ public final class LauncherActivity extends Activity {
                 });
             }
         }
-        List<String> shownDock = new ArrayList<>();
-        for (String pinned : dockOrder) if (find(pinned) != null) shownDock.add(pinned);
+        List<String> shownDock = visibleDockKeys();
         int dockSlot = shownDock.indexOf(id);
         if (dockSlot > 0) {
             String left = shownDock.get(dockSlot - 1);
@@ -721,6 +727,52 @@ public final class LauncherActivity extends Activity {
         prefs.edit().putStringSet("pins", new HashSet<>(pins))
             .putString("dock_order_v1", DockOrder.encode(dockOrder)).apply();
     }
+    /** Native app shortcut semantics and direct, non-gesture dock controls. */
+    private void markTileAccessible(View cell, Entry app, boolean dockTile) {
+        final String id = app.component.flattenToString();
+        cell.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(
+                    View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(android.widget.Button.class.getName());
+                if (!dockTile) return;
+                List<String> visible = visibleDockKeys();
+                int index = visible.indexOf(id);
+                if (index < 0) return;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    info.setHintText("Dock shortcut " + (index + 1) + " of " + visible.size());
+                }
+                if (index > 0) {
+                    info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
+                            R.id.a11y_dock_move_left, "Move left in dock"));
+                }
+                if (index + 1 < visible.size()) {
+                    info.addAction(new AccessibilityNodeInfo.AccessibilityAction(
+                            R.id.a11y_dock_move_right, "Move right in dock"));
+                }
+            }
+
+            @Override public boolean performAccessibilityAction(
+                    View host, int action, Bundle args) {
+                if (dockTile && (action == R.id.a11y_dock_move_left
+                        || action == R.id.a11y_dock_move_right)) {
+                    List<String> visible = visibleDockKeys();
+                    int index = visible.indexOf(id);
+                    int offset = action == R.id.a11y_dock_move_left ? -1 : 1;
+                    int destination = index + offset;
+                    if (index < 0 || destination < 0 || destination >= visible.size()) return false;
+                    if (!DockOrder.swap(dockOrder, id, visible.get(destination))) return false;
+                    savePins();
+                    showDock();
+                    dock.announceForAccessibility(app.name + ", dock position "
+                            + (destination + 1) + " of " + visible.size());
+                    return true;
+                }
+                return super.performAccessibilityAction(host, action, args);
+            }
+        });
+    }
+
     /** Expose styled interactive text as a native accessibility button. */
     private static void markAsAccessibilityButton(View view) {
         view.setAccessibilityDelegate(new View.AccessibilityDelegate() {
