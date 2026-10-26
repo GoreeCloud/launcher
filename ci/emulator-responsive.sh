@@ -85,6 +85,43 @@ for attempt in 1 2 3 4; do
 done
 assert_text responsive-drawer "All apps tab, selected"
 assert_text responsive-drawer "Home tab"
+# Exercise an in-progress local search, not just the All Apps selection.
+# Use the actual EditText bounds rather than a density-specific coordinate.
+python3 - "$EVIDENCE/responsive-drawer.xml" <<'PYCHECK'
+import re,subprocess,sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+fields=[n for n in root.iter() if n.attrib.get("class")=="android.widget.EditText"]
+if len(fields)!=1: raise SystemExit("Expected exactly one launcher search field")
+m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",fields[0].attrib.get("bounds",""))
+if not m: raise SystemExit("Launcher search input has no valid bounds")
+x1,y1,x2,y2=map(int,m.groups())
+if x2<=x1 or y2<=y1: raise SystemExit("Search field bounds invalid")
+subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
+print("PASS tapped actual launcher search field")
+PYCHECK
+adb shell input text Notes
+sleep 2
+dump_screen responsive-search-before-rotation
+assert_filtered_notes() {
+  python3 - "$EVIDENCE/$1.xml" <<'PYCHECK'
+import sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+nodes=list(root.iter())
+fields=[n.attrib.get("text") for n in nodes if n.attrib.get("class")=="android.widget.EditText"]
+if fields!=["Notes"]: raise SystemExit("Search query not restored: "+str(fields))
+descriptions={n.attrib.get("content-desc") for n in nodes}
+if "Launcher Fixture Notes" not in descriptions:
+    raise SystemExit("Matching fixture Notes shortcut missing")
+if "Launcher QA Fixture" in descriptions:
+    raise SystemExit("Nonmatching QA fixture shortcut leaked through search")
+if "All apps tab, selected" not in descriptions:
+    raise SystemExit("Filtered All apps tab selection lost")
+print("PASS local Notes query and matching shortcut retained")
+PYCHECK
+}
+assert_filtered_notes responsive-search-before-rotation
+# Hide only the software keyboard so it does not obscure emulator UI bounds.
+adb shell input keyevent KEYCODE_BACK
 # Rotate the active launcher WITHOUT force-stopping it. Android recreates the
 # Activity; the selected drawer must remain visible across both orientations.
 adb shell settings put system accelerometer_rotation 0
@@ -92,10 +129,34 @@ adb shell settings put system user_rotation 1
 sleep 3
 dump_screen responsive-drawer-landscape
 assert_text responsive-drawer-landscape "All apps tab, selected"
+assert_filtered_notes responsive-drawer-landscape
 adb shell settings put system user_rotation 0
 sleep 3
 dump_screen responsive-drawer-portrait
 assert_text responsive-drawer-portrait "All apps tab, selected"
+assert_filtered_notes responsive-drawer-portrait
+# Returning Home must clear transient search before the existing placement test.
+tap_label responsive-drawer-portrait "Home"
+sleep 2
+dump_screen responsive-cleared-search
+assert_text responsive-cleared-search "Home tab, selected"
+python3 - "$EVIDENCE/responsive-cleared-search.xml" <<'PYCHECK'
+import sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+values=[n.attrib.get("text") for n in root.iter()
+        if n.attrib.get("class")=="android.widget.EditText"]
+if values!=[""]: raise SystemExit("Home should clear drawer query: "+str(values))
+print("PASS returning Home cleared transient drawer query")
+PYCHECK
+tap_label responsive-cleared-search "All apps"
+for attempt in 1 2 3 4; do
+  sleep 2
+  dump_screen responsive-after-search
+  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/responsive-after-search.xml"; then break; fi
+  tap_label responsive-after-search "All apps"
+done
+assert_text responsive-after-search "All apps tab, selected"
+assert_text responsive-after-search "Launcher QA Fixture"
 # Read current grid bounds before each long-press. Newly installed fixture apps may
 # trigger package-change layout updates while the AVD is settling.
 for attempt in 1 2 3 4; do
