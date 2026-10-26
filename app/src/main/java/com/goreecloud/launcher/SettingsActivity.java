@@ -183,13 +183,7 @@ public final class SettingsActivity extends Activity {
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, dp(56));
         hp.topMargin = dp(22);
         homeCard.addView(home, hp);
-        home.setOnClickListener(view -> {
-            try {
-                startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
-            } catch (ActivityNotFoundException | SecurityException ex) {
-                Toast.makeText(this, "Home selection settings unavailable", Toast.LENGTH_LONG).show();
-            }
-        });
+        home.setOnClickListener(view -> requestHomeSelection());
 
         LinearLayout.LayoutParams backupHeader = new LinearLayout.LayoutParams(-1, -2);
         backupHeader.topMargin = dp(28);
@@ -232,6 +226,48 @@ public final class SettingsActivity extends Activity {
         body.addView(note, np);
     }
 
+
+    @Override protected void onResume() {
+        super.onResume();
+        updateHomeRoleStatus();
+    }
+
+    private void updateHomeRoleStatus() {
+        if (homeRoleStatus == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager role = getSystemService(RoleManager.class);
+            if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                homeRoleStatus.setText(role.isRoleHeld(RoleManager.ROLE_HOME)
+                        ? "Current default Home: GoreeCloud"
+                        : "GoreeCloud is not the current default Home");
+                return;
+            }
+        }
+        homeRoleStatus.setText("Choose a default Home app in Android settings");
+    }
+
+    private void requestHomeSelection() {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                RoleManager role = getSystemService(RoleManager.class);
+                if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                    if (role.isRoleHeld(RoleManager.ROLE_HOME)) {
+                        Toast.makeText(this, "GoreeCloud is already your default Home",
+                                Toast.LENGTH_SHORT).show();
+                        updateHomeRoleStatus();
+                        return;
+                    }
+                    startActivityForResult(
+                            role.createRequestRoleIntent(RoleManager.ROLE_HOME), SELECT_HOME_ROLE);
+                    return;
+                }
+            }
+            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
+        } catch (ActivityNotFoundException | SecurityException | IllegalArgumentException ex) {
+            Toast.makeText(this, "Home selection unavailable on this device",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
 
     private Button backupButton(String caption, boolean primary) {
         Button button = new Button(this);
