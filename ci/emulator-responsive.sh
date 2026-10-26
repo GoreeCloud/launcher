@@ -298,7 +298,10 @@ for name,attr,minimum in (("Pinned apps","text",1),("Add app to dock","content-d
         m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',item.get("bounds",""))
         if not m: raise SystemExit("Missing dock element bounds")
         x1,y1,x2,y2=map(int,m.groups())
-        if x1<0 or x2>width or y1 < height*0.06 or y2 > height*0.88:
+        # At 2400x1080 landscape the navigation bar starts below 94%
+        # of the frame. Apply a conservative bound to the new 72dp
+        # actionable dock slots rather than the retired one-line hint.
+        if x1<0 or x2>width or y1 < height*0.06 or y2 > height*0.94:
             raise SystemExit("Dock element clipped by system bars: "+name+" "+str((x1,y1,x2,y2)))
     print("PASS landscape dock safely visible",name,len(matches))
 PY
