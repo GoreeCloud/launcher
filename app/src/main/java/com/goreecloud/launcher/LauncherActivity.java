@@ -439,25 +439,25 @@ public final class LauncherActivity extends Activity {
         emptyPanel = new LinearLayout(this);
         emptyPanel.setOrientation(LinearLayout.VERTICAL);
         emptyPanel.setGravity(Gravity.CENTER);
-        emptyPanel.setPadding(dp(20), dp(28), dp(20), dp(28));
+        emptyPanel.setPadding(dp(16), dp(12), dp(16), dp(12));
         emptyPanel.setBackground(background(0xB1E8E6FF, 24));
-        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(158), Gravity.CENTER);
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(compactLayout ? 214 : 136), Gravity.CENTER);
         viewport.addView(emptyPanel, placeholder);
-        emptyTitle = label("", 22, true);
+        emptyTitle = label("", 17, true);
         emptyTitle.setGravity(Gravity.CENTER);
         emptyTitle.setTextColor(0xFF2C227C);
         emptyPanel.addView(emptyTitle);
-        empty = label("", 15, false);
+        empty = label("", 12, false);
         empty.setGravity(Gravity.CENTER);
         empty.setTextColor(0xFF514A76);
         LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(-1, -2);
-        note.topMargin = dp(12);
+        note.topMargin = dp(6);
         emptyPanel.addView(empty, note);
         emptyAction = action("Add your first Home app", this::beginHomePicker);
         emptyAction.setTextColor(0xFFFFFFFF);
         emptyAction.setBackground(background(0xFF5145D9, 18));
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
-        actionParams.topMargin = dp(20);
+        actionParams.topMargin = dp(8);
         emptyPanel.addView(emptyAction, actionParams);
 
         dockTitle = label("Pinned apps", 13, true);
@@ -467,7 +467,7 @@ public final class LauncherActivity extends Activity {
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(6), dp(7), dp(6), dp(7));
         dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
-        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(90)));
+        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(80)));
         root.setOnLongClickListener(v -> { openHomeEditor(); return true; });
         applyAppearance(false);
         renderWidgets();
