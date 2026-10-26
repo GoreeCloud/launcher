@@ -57,6 +57,7 @@ public final class LauncherActivity extends Activity {
     private WorkspaceState workspace;
     private boolean drawerOpen;
     private boolean choosingDockApp;
+    private boolean choosingHomeApp;
     private boolean compactLayout;
     private float systemFontScale;
     private GridLayout grid;
@@ -128,6 +129,7 @@ public final class LauncherActivity extends Activity {
         if (state != null) {
             drawerOpen = state.getBoolean("drawerOpen", false);
             choosingDockApp = state.getBoolean("choosingDockApp", false);
+            choosingHomeApp = state.getBoolean("choosingHomeApp", false);
         }
         createScreen();
         if (state != null) {
@@ -140,6 +142,7 @@ public final class LauncherActivity extends Activity {
     @Override protected void onSaveInstanceState(Bundle outState) {
         outState.putBoolean("drawerOpen", drawerOpen);
         outState.putBoolean("choosingDockApp", choosingDockApp);
+        outState.putBoolean("choosingHomeApp", choosingHomeApp);
         outState.putString("searchQuery", query == null ? "" : query.getText().toString());
         super.onSaveInstanceState(outState);
     }
@@ -405,7 +408,7 @@ public final class LauncherActivity extends Activity {
         LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(-1, -2);
         note.topMargin = dp(12);
         emptyPanel.addView(empty, note);
-        emptyAction = action("Browse all apps", () -> setMode(true));
+        emptyAction = action("Add your first Home app", this::beginHomePicker);
         emptyAction.setTextColor(0xFFFFFFFF);
         emptyAction.setBackground(background(0xFF5145D9, 18));
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
@@ -474,10 +477,20 @@ public final class LauncherActivity extends Activity {
     }
 
     /** Home pages are locally persisted; the drawer always shows available apps. */
+    private void beginHomePicker() {
+        choosingHomeApp = true;
+        choosingDockApp = false;
+        setMode(true);
+        showApps();
+    }
+
     private void setMode(boolean showDrawer) {
         boolean openingDrawer = showDrawer && !drawerOpen;
         drawerOpen = showDrawer;
-        if (!showDrawer) choosingDockApp = false;
+        if (!showDrawer) {
+            choosingDockApp = false;
+            choosingHomeApp = false;
+        }
         if (!showDrawer) {
             query.setText("");
             InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -554,6 +567,7 @@ public final class LauncherActivity extends Activity {
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         sectionLabel.setText(choosingDockApp && allApps ? "Choose an app for your dock"
+                : choosingHomeApp && allApps ? "Choose an app for Home"
                 : allApps ? "All applications" : "Home workspace");
         homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
         appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
@@ -601,11 +615,26 @@ public final class LauncherActivity extends Activity {
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
+        if (!allApps && !shown.isEmpty()
+                && workspace.currentItems().size() < WorkspaceState.MAX_ITEMS_PER_PAGE) {
+            TextView addHome = action("+", this::beginHomePicker);
+            addHome.setContentDescription("Add app to Home");
+            addHome.setTextSize(26);
+            addHome.setTextColor(0xFF5145D9);
+            int slot = shown.size();
+            GridLayout.LayoutParams addParams = new GridLayout.LayoutParams(
+                    GridLayout.spec(slot / columns), GridLayout.spec(slot % columns));
+            addParams.width = slotWidth;
+            addParams.height = dp(ResponsiveHomePolicy.shortcutHeightDp(
+                    names, compactLayout, systemFontScale));
+            addParams.setMargins(dp(2), dp(2), dp(2), dp(2));
+            grid.addView(addHome, addParams);
+        }
         if (shown.isEmpty()) {
             if (!allApps) {
                 if (workspace.currentItems().isEmpty()) {
-                    emptyTitle.setText("Make this space yours");
-                    empty.setText("Find an app in All apps, then long-press it to add a shortcut to this page.");
+                    emptyTitle.setText("Your Home screen");
+                    empty.setText("Choose your first app below, or swipe up to browse the app drawer.");
                 } else {
                     emptyTitle.setText(R.string.shortcuts_unavailable);
                     empty.setText(R.string.shortcuts_unavailable_help);
@@ -643,7 +672,15 @@ public final class LauncherActivity extends Activity {
                     dp(ResponsiveHomePolicy.labelHeightDp(systemFontScale))));
         }
         cell.setOnClickListener(v -> {
-            if (!dockTile && choosingDockApp) {
+            if (!dockTile && choosingHomeApp) {
+                if (workspace.place(app.component.flattenToString())) {
+                    saveWorkspace();
+                    setMode(false);
+                } else {
+                    Toast.makeText(this, "Could not add app to this Home page",
+                            Toast.LENGTH_SHORT).show();
+                }
+            } else if (!dockTile && choosingDockApp) {
                 String id = app.component.flattenToString();
                 if (!pins.contains(id)) {
                     if (pins.size() >= 5) {
@@ -696,8 +733,9 @@ public final class LauncherActivity extends Activity {
         // dock surface rather than a paragraph whose meaning must be guessed.
         for (int i = occupied; i < 5; i++) {
             TextView add = action("+", () -> {
-                setMode(true);
                 choosingDockApp = true;
+                choosingHomeApp = false;
+                setMode(true);
                 showApps();
                 Toast.makeText(this, "Tap an app to add it to the dock",
                         Toast.LENGTH_SHORT).show();
