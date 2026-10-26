@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
+      - 'ci/emulator-menu-retry.sh'
       - 'qa-fixture/src/main/AndroidManifest.xml'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
       - 'app/src/main/java/com/goreecloud/launcher/DockOrder.java'
@@ -13,6 +14,7 @@ on:
     paths:
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
+      - 'ci/emulator-menu-retry.sh'
       - 'qa-fixture/src/main/AndroidManifest.xml'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
       - 'app/src/main/java/com/goreecloud/launcher/DockOrder.java'

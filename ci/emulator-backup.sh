@@ -61,6 +61,8 @@ PY
 }
 
 
+. ci/emulator-menu-retry.sh
+
 # All application/UI and file mutations below occur only on a disposable CI emulator.
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent 3
@@ -79,19 +81,13 @@ done
 assert_text populated-page "Page 2 / 2"
 tap_label populated-page "All apps"
 sleep 1
-dump_screen backup-drawer
-longpress_label backup-drawer "Launcher QA Fixture"
-sleep 1
-dump_screen backup-place-menu
+retry_longpress_menu backup-place-menu "Launcher QA Fixture" "Add to current home page"
 tap_label backup-place-menu "Add to current home page"
 sleep 1
 dump_screen backup-drawer-after-place
 tap_label backup-drawer-after-place "Home"
 sleep 1
-dump_screen backup-tile
-longpress_label backup-tile "Launcher QA Fixture"
-sleep 1
-dump_screen backup-pin-menu
+retry_longpress_menu backup-pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label backup-pin-menu "Pin to dock"
 sleep 1
 dump_screen backup-pinned
