@@ -26,4 +26,4 @@ The format is intentionally limited: no widget IDs, work profiles, folder models
 
 ## Verification stages
 
-BackupCodecTest covers portable round-trip, canonical serialization, checksum tampering, unsupported/oversized input, bounds, duplicate pins and empty layouts. The native emulator smoke checks backup controls, document-picker entry/dismissal and regression safety. Complete user-selected export/write and import/read/confirmation workflows require testing before claiming runtime-verified portable backup.
+BackupCodecTest covers portable round-trip, canonical serialization, checksum tampering, unsupported/oversized input, bounds, duplicate pins and empty layouts. API 35 emulator run 40251850733 verified real synthetic backup file saving, hash inspection, import, cancel, confirm, immediate Settings refresh and page/dock persistence after restart. CI 40251831635 passed. Evidence artifact contains screenshots, not the saved file. This is single-emulator acceptance; unsupported imports, different document providers, accessibility and physical devices remain unverified.
