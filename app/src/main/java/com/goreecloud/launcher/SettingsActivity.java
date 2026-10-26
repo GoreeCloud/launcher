@@ -167,6 +167,69 @@ public final class SettingsActivity extends Activity {
         surface.addView(labels, new LinearLayout.LayoutParams(-1, dp(60)));
         surface.addView(text("Show app names beneath Home and drawer shortcuts.", 13, false, MUTED));
 
+        TextView iconSizeLabel = text("Home icon size: " + prefs.getInt("icon_size", 48) + " dp",
+                15, true, 0xFF2C227C);
+        LinearLayout.LayoutParams iconLabelParams = new LinearLayout.LayoutParams(-1, -2);
+        iconLabelParams.topMargin = dp(18);
+        surface.addView(iconSizeLabel, iconLabelParams);
+        SeekBar iconSize = new SeekBar(this);
+        iconSize.setMax(6);
+        iconSize.setProgress((Math.max(36, Math.min(60, prefs.getInt("icon_size", 48))) - 36) / 4);
+        iconSize.setContentDescription("Home icon size");
+        iconSize.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                int value = 36 + progress * 4;
+                iconSizeLabel.setText("Home icon size: " + value + " dp");
+                if (fromUser) prefs.edit().putInt("icon_size", value).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        surface.addView(iconSize, new LinearLayout.LayoutParams(-1, dp(56)));
+
+        addSectionHeader(body, "APP DRAWER");
+        LinearLayout drawerCard = settingsCard(body);
+        drawerCard.addView(text("Application drawer", 20, true, TEXT));
+        drawerCard.addView(text("Swipe up on Home or select All apps to browse everything.",
+                14, false, MUTED));
+        TextView drawerGridLabel = text("Drawer grid columns: "
+                + prefs.getInt("drawer_columns", 4), 15, true, 0xFF2C227C);
+        LinearLayout.LayoutParams drawerGridParams = new LinearLayout.LayoutParams(-1, -2);
+        drawerGridParams.topMargin = dp(14);
+        drawerCard.addView(drawerGridLabel, drawerGridParams);
+        SeekBar drawerGrid = new SeekBar(this);
+        drawerGrid.setMax(3);
+        drawerGrid.setProgress(Math.max(0, Math.min(3, prefs.getInt("drawer_columns", 4) - 3)));
+        drawerGrid.setContentDescription("Drawer grid columns");
+        drawerGrid.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+                drawerGridLabel.setText("Drawer grid columns: " + (progress + 3));
+                if (fromUser) prefs.edit().putInt("drawer_columns", progress + 3).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar bar) {}
+            @Override public void onStopTrackingTouch(SeekBar bar) {}
+        });
+        drawerCard.addView(drawerGrid, new LinearLayout.LayoutParams(-1, dp(56)));
+        drawerCard.addView(settingToggle("Animate opening drawer", "drawer_animation", true));
+
+        addSectionHeader(body, "GESTURES");
+        LinearLayout gesturesCard = settingsCard(body);
+        gesturesCard.addView(text("Home gestures", 20, true, TEXT));
+        gesturesCard.addView(settingToggle("Swipe up to open app drawer", "swipe_up_drawer", true));
+        gesturesCard.addView(settingToggle("Swipe down to close app drawer", "swipe_down_close", true));
+        gesturesCard.addView(text("Swipe left or right on an empty part of Home to switch pages. "
+                + "Gestures do not override Android system navigation.",
+                13, false, MUTED));
+
+        addSectionHeader(body, "APP DOCK");
+        LinearLayout dockCard = settingsCard(body);
+        dockCard.addView(text("Persistent Home dock", 20, true, TEXT));
+        dockCard.addView(settingToggle("Show app dock", "dock_enabled", true));
+        dockCard.addView(settingToggle("Show dock icon labels", "dock_labels", false));
+        dockCard.addView(text("Tap an empty dock slot to browse apps, then long-press an icon "
+                + "and choose Pin to dock. Reorder pinned apps through their long-press actions.",
+                13, false, MUTED));
+
         LinearLayout.LayoutParams defaultHeaderParams = new LinearLayout.LayoutParams(-1, -2);
         defaultHeaderParams.topMargin = dp(28);
         defaultHeaderParams.bottomMargin = dp(12);
@@ -409,6 +472,34 @@ public final class SettingsActivity extends Activity {
         } catch (IOException | IllegalArgumentException | SecurityException ex) {
             Toast.makeText(this, "Invalid, unsupported or unreadable backup", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void addSectionHeader(LinearLayout body, String title) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        params.topMargin = dp(28);
+        params.bottomMargin = dp(12);
+        body.addView(section(title), params);
+    }
+
+    private LinearLayout settingsCard(LinearLayout body) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(20), dp(20), dp(20), dp(20));
+        card.setBackground(panel(0xFFFFFFFF, 26));
+        body.addView(card, new LinearLayout.LayoutParams(-1, -2));
+        return card;
+    }
+
+    private Switch settingToggle(String title, String key, boolean defaultValue) {
+        Switch control = new Switch(this);
+        control.setText(title);
+        control.setTextSize(15);
+        control.setTextColor(TEXT);
+        control.setMinHeight(dp(56));
+        control.setChecked(prefs.getBoolean(key, defaultValue));
+        control.setOnCheckedChangeListener((button, checked) ->
+                prefs.edit().putBoolean(key, checked).apply());
+        return control;
     }
 
     private TextView section(String label) {
