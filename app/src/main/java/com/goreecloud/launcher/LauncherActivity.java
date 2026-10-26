@@ -27,6 +27,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.ScrollView;
+import android.widget.Space;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.util.ArrayList;
@@ -243,7 +245,15 @@ public final class LauncherActivity extends Activity {
     /** Home pages are locally persisted; the drawer always shows available apps. */
     private void setMode(boolean showDrawer) {
         drawerOpen = showDrawer;
-        if (!showDrawer) query.setText("");
+        if (!showDrawer) {
+            query.setText("");
+            query.clearFocus();
+            View content = getWindow().getDecorView();
+            content.setFocusableInTouchMode(true);
+            content.requestFocus();
+            InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (keyboard != null) keyboard.hideSoftInputFromWindow(query.getWindowToken(), 0);
+        }
         showApps();
     }
 
@@ -379,10 +389,16 @@ public final class LauncherActivity extends Activity {
             params.setMargins(dp(2), 0, dp(2), 0);
             dock.addView(tile(app, false, dp(44)), params);
         }
-        if (dock.getChildCount() == 0) {
+        int occupied = dock.getChildCount();
+        if (occupied == 0) {
             TextView hint = label(getString(R.string.dock_empty), 13, false);
             hint.setGravity(Gravity.CENTER);
             dock.addView(hint);
+        } else {
+            // Five equal dock slots; one app never expands to occupy the entire dock.
+            for (int i = occupied; i < 5; i++) {
+                dock.addView(new Space(this), new LinearLayout.LayoutParams(0, dp(72), 1));
+            }
         }
     }
 
