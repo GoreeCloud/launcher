@@ -50,6 +50,7 @@ import java.util.Set;
 public final class LauncherActivity extends Activity {
     private final List<Entry> catalog = new ArrayList<>();
     private final Set<String> pins = new HashSet<>();
+    private final List<String> dockOrder = new ArrayList<>();
     private SharedPreferences prefs;
     private WorkspaceState workspace;
     private boolean drawerOpen;
@@ -108,7 +109,7 @@ public final class LauncherActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
-        pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
+        reloadPins();
         workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
         workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
         // Activity recreation (rotation, density or font change) must keep the
@@ -169,8 +170,7 @@ public final class LauncherActivity extends Activity {
         if (grid != null) {
             // The Settings activity may have atomically restored a different saved layout.
             // Reload rather than accidentally showing stale shortcuts until process restart.
-            pins.clear();
-            pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
+            reloadPins();
             workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
             workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
             refresh();
@@ -571,9 +571,7 @@ public final class LauncherActivity extends Activity {
 
     private void showDock() {
         dock.removeAllViews();
-        List<String> sortedPins = new ArrayList<>(pins);
-        Collections.sort(sortedPins);
-        for (String key : sortedPins) {
+        for (String key : dockOrder) {
             Entry app = find(key);
             if (app == null) continue;
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
@@ -654,14 +652,34 @@ public final class LauncherActivity extends Activity {
                 });
             }
         }
+        List<String> shownDock = new ArrayList<>();
+        for (String pinned : dockOrder) if (find(pinned) != null) shownDock.add(pinned);
+        int dockSlot = shownDock.indexOf(id);
+        if (dockSlot > 0) {
+            String left = shownDock.get(dockSlot - 1);
+            menu.getMenu().add("Move left in dock").setOnMenuItemClickListener(item -> {
+                if (DockOrder.swap(dockOrder, id, left)) { savePins(); showDock(); }
+                return true;
+            });
+        }
+        if (dockSlot >= 0 && dockSlot < shownDock.size() - 1) {
+            String right = shownDock.get(dockSlot + 1);
+            menu.getMenu().add("Move right in dock").setOnMenuItemClickListener(item -> {
+                if (DockOrder.swap(dockOrder, id, right)) { savePins(); showDock(); }
+                return true;
+            });
+        }
         menu.getMenu().add(pins.contains(id) ? R.string.unpin : R.string.pin)
             .setOnMenuItemClickListener(item -> {
-                if (!pins.remove(id)) {
+                if (pins.remove(id)) {
+                    dockOrder.remove(id);
+                } else {
                     if (pins.size() >= 5) {
                         Toast.makeText(this, "Dock supports up to five apps", Toast.LENGTH_SHORT).show();
                         return true;
                     }
                     pins.add(id);
+                    dockOrder.add(id);
                 }
                 savePins();
                 showDock();
@@ -693,8 +711,15 @@ public final class LauncherActivity extends Activity {
         for (Entry entry : catalog) if (entry.component.flattenToString().equals(key)) return entry;
         return null;
     }
+    private void reloadPins() {
+        pins.clear();
+        pins.addAll(prefs.getStringSet("pins", Collections.emptySet()));
+        dockOrder.clear();
+        dockOrder.addAll(DockOrder.reconcile(pins, prefs.getString("dock_order_v1", "")));
+    }
     private void savePins() {
-        prefs.edit().putStringSet("pins", new HashSet<>(pins)).apply();
+        prefs.edit().putStringSet("pins", new HashSet<>(pins))
+            .putString("dock_order_v1", DockOrder.encode(dockOrder)).apply();
     }
     /** Expose styled interactive text as a native accessibility button. */
     private static void markAsAccessibilityButton(View view) {

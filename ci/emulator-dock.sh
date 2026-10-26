@@ -188,3 +188,48 @@ if any(v!=1 for v in counts.values()) or removed:
     raise SystemExit("Dock restore/persistence mismatch "+str(counts)+" removed="+str(removed))
 print("PASS dock capacity, unpin, replacement and persistence after restart")
 PY
+
+# Verify real on-screen dock order and accessible reorder actions after restart.
+# The fixture labels identify five distinct app components, not screenshots of
+# synthetic tiles. Inaccessible/missing pins must not affect visible order.
+longpress_label dock-after-restart "Launcher Fixture Delta"
+sleep 1
+dump_screen move-dock-menu
+assert_text move-dock-menu "Move left in dock"
+tap_label move-dock-menu "Move left in dock"
+sleep 1
+dump_screen dock-after-move
+python3 - "$EVIDENCE/dock-after-move.xml" <<'PY'
+import re,sys,xml.etree.ElementTree as ET
+names=["Launcher QA Fixture","Launcher Fixture Notes","Launcher Fixture Beta",
+       "Launcher Fixture Delta","Launcher Fixture Gamma"]
+nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+tiles=[]
+for node in nodes:
+    name=node.attrib.get("content-desc")
+    if name not in names: continue
+    bounds=node.attrib.get("bounds","")
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",bounds)
+    if m: tiles.append((int(m.group(1)),name))
+ordered=[name for _,name in sorted(tiles)]
+if ordered != names: raise SystemExit("Dock move incorrect: "+str(ordered))
+print("PASS real dock tile order after moving Delta left",ordered)
+PY
+adb shell am force-stop com.goreecloud.launcher
+adb shell input keyevent 3
+sleep 3
+dump_screen dock-after-move-restart
+python3 - "$EVIDENCE/dock-after-move-restart.xml" <<'PY'
+import re,sys,xml.etree.ElementTree as ET
+expected=["Launcher QA Fixture","Launcher Fixture Notes","Launcher Fixture Beta",
+          "Launcher Fixture Delta","Launcher Fixture Gamma"]
+tiles=[]
+for node in ET.parse(sys.argv[1]).getroot().iter():
+    name=node.attrib.get("content-desc")
+    if name not in expected: continue
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",node.attrib.get("bounds",""))
+    if m: tiles.append((int(m.group(1)),name))
+ordered=[name for _,name in sorted(tiles)]
+if ordered != expected: raise SystemExit("Dock order not persisted: "+str(ordered))
+print("PASS custom dock order survives process restart")
+PY

@@ -47,6 +47,15 @@ public final class BackupCodecValidationTest {
         }
     }
 
+    @Test public void legacySortedV1RestoresButUnsortedV1Fails() throws Exception {
+        String v1 = replaceAndResign(validBackup(), 0, "GOREELAUNCHER/1");
+        assertEquals(1, BackupCodec.decode(v1).pins.size());
+        BackupCodec.Data data = new BackupCodec.Data("", 0, 4, true,
+                Arrays.asList("org.z/.Main", "org.a/.Main"));
+        String forged = replaceAndResign(BackupCodec.encode(data), 0, "GOREELAUNCHER/1");
+        rejected(forged);
+    }
+
     @Test public void validNestedComponentIdentifiersStillRoundTrip() {
         WorkspaceState state = new WorkspaceState();
         assertTrue(state.place("org.goreecloud.qa/.Inner$Launch"));

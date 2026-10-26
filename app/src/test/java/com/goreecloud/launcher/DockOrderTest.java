@@ -29,6 +29,13 @@ public final class DockOrderTest {
         assertFalse(DockOrder.move(list, "app.c/.C", 2));
     }
 
+    @Test public void visibleNeighborsCanSwapAcrossAnUnavailablePin() {
+        ArrayList<String> order = new ArrayList<>(Arrays.asList("app.a/.A", "gone/.X", "app.b/.B"));
+        assertTrue(DockOrder.swap(order, "app.a/.A", "app.b/.B"));
+        assertEquals(Arrays.asList("app.b/.B", "gone/.X", "app.a/.A"), order);
+        assertFalse(DockOrder.swap(order, "app.a/.A", "missing/.M"));
+    }
+
     @Test public void zeroPinsStayEmpty() {
         assertEquals(Collections.emptyList(), DockOrder.reconcile(Collections.emptySet(), "app.a/.A"));
     }

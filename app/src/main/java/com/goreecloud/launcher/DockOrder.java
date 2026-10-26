@@ -29,6 +29,14 @@ public final class DockOrder {
         return String.join("|", order);
     }
 
+    /** Swap two visible apps while leaving unavailable app placeholders in place. */
+    public static boolean swap(List<String> order, String first, String second) {
+        int a = order.indexOf(first), b = order.indexOf(second);
+        if (a < 0 || b < 0 || a == b) return false;
+        Collections.swap(order, a, b);
+        return true;
+    }
+
     public static boolean move(List<String> order, String key, int offset) {
         if (offset != -1 && offset != 1) return false;
         int before = order.indexOf(key);

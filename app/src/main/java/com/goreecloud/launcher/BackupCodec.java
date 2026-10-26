@@ -17,7 +17,8 @@ import java.util.Set;
  */
 public final class BackupCodec {
     public static final int MAX_BYTES = 65536;
-    private static final String MAGIC = "GOREELAUNCHER/1";
+    private static final String MAGIC = "GOREELAUNCHER/2";
+    private static final String LEGACY_MAGIC = "GOREELAUNCHER/1";
     private BackupCodec() {}
 
     public static final class Data {
@@ -103,10 +104,9 @@ public final class BackupCodec {
     }
     public static String encode(Data data) {
         validate(data);
-        List<String> sorted = new ArrayList<>(data.pins);
-        Collections.sort(sorted);
+        // V2 preserves the person's dock order, rather than sorting IDs.
         List<String> encodedPins = new ArrayList<>();
-        for (String pin : sorted) encodedPins.add(token(pin));
+        for (String pin : data.pins) encodedPins.add(token(pin));
         String payload = MAGIC + "\n"
                 + "page=" + data.selectedPage + "\n"
                 + "columns=" + data.columns + "\n"
@@ -122,7 +122,9 @@ public final class BackupCodec {
         if (content == null || content.getBytes(StandardCharsets.UTF_8).length > MAX_BYTES)
             throw new IllegalArgumentException("Backup exceeds size limit");
         String[] lines = content.split("\n", -1);
-        if (lines.length != 8 || !lines[7].isEmpty() || !lines[0].equals(MAGIC)
+        boolean legacy = lines[0].equals(LEGACY_MAGIC);
+        if (lines.length != 8 || !lines[7].isEmpty()
+                || !(legacy || lines[0].equals(MAGIC))
                 || !lines[1].startsWith("page=") || !lines[2].startsWith("columns=")
                 || !lines[3].startsWith("labels=") || !lines[4].startsWith("workspace=")
                 || !lines[5].startsWith("pins=") || !lines[6].startsWith("sha256="))
@@ -147,8 +149,15 @@ public final class BackupCodec {
             Data restored = new Data(untoken(lines[4].substring(10)),
                     Integer.parseInt(page), Integer.parseInt(cols), lbl.equals("1"), pins);
             validate(restored);
-            if (!encode(restored).equals(content))
+            if (legacy) {
+                // V1 required sorted pin tokens and did not store custom order.
+                List<String> sorted = new ArrayList<>(pins);
+                Collections.sort(sorted);
+                if (!pins.equals(sorted))
+                    throw new IllegalArgumentException("Legacy dock order is not canonical");
+            } else if (!encode(restored).equals(content)) {
                 throw new IllegalArgumentException("Backup is not canonical");
+            }
             return restored;
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Cannot import backup: " + ex.getMessage(), ex);
