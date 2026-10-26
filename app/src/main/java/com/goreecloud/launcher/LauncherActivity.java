@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Typeface;
@@ -45,6 +46,7 @@ public final class LauncherActivity extends Activity {
     private SharedPreferences prefs;
     private WorkspaceState workspace;
     private boolean drawerOpen;
+    private boolean compactLayout;
     private GridLayout grid;
     private LinearLayout rootSurface;
     private LinearLayout pageControls;
@@ -90,10 +92,26 @@ public final class LauncherActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setFocusableInTouchMode(true);
         rootSurface = root;
-        root.setPadding(dp(20), dp(16), dp(20), dp(12));
         root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
+        // Landscape and larger accessibility fonts must not clip Home controls
+        // behind the fixed dock. A full-page scrolling surface keeps them reachable.
+        compactLayout = getResources().getConfiguration().orientation
+                == Configuration.ORIENTATION_LANDSCAPE
+                || getResources().getConfiguration().fontScale >= 1.3f;
+        View insetSurface;
+        if (compactLayout) {
+            ScrollView fullPage = new ScrollView(this);
+            fullPage.setFillViewport(true);
+            fullPage.setClipToPadding(true);
+            fullPage.setBackgroundColor(0xFFF4F3FC);
+            fullPage.addView(root, new ScrollView.LayoutParams(-1, -2));
+            insetSurface = fullPage;
+        } else {
+            insetSurface = root;
+        }
+        insetSurface.setPadding(dp(20), dp(16), dp(20), dp(12));
         // Preserve GC UI gutters while also respecting status/navigation bars on API 26+.
-        root.setOnApplyWindowInsetsListener((view, insets) -> {
+        insetSurface.setOnApplyWindowInsetsListener((view, insets) -> {
             int top, bottom, left, right;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 android.graphics.Insets bars = insets.getInsets(WindowInsets.Type.systemBars());
@@ -107,7 +125,7 @@ public final class LauncherActivity extends Activity {
             view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right, dp(12) + bottom);
             return insets;
         });
-        setContentView(root);
+        setContentView(insetSurface);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
@@ -122,7 +140,8 @@ public final class LauncherActivity extends Activity {
 
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
-        root.addView(heading, new LinearLayout.LayoutParams(-1, dp(60)));
+        root.addView(heading, new LinearLayout.LayoutParams(-1,
+                dp(compactLayout ? 76 : 60)));
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
@@ -192,7 +211,9 @@ public final class LauncherActivity extends Activity {
         pageControls.addView(removePageAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         FrameLayout viewport = new FrameLayout(this);
-        root.addView(viewport, new LinearLayout.LayoutParams(-1, 0, 1));
+        root.addView(viewport, compactLayout
+                ? new LinearLayout.LayoutParams(-1, dp(232))
+                : new LinearLayout.LayoutParams(-1, 0, 1));
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
@@ -350,7 +371,7 @@ public final class LauncherActivity extends Activity {
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                     GridLayout.spec(i / columns), GridLayout.spec(i % columns));
             params.width = slotWidth;
-            params.height = dp(names ? 112 : 84);
+            params.height = dp(names && compactLayout ? 132 : names ? 112 : 84);
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
