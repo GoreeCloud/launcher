@@ -56,6 +56,7 @@ public final class LauncherActivity extends Activity {
     private SharedPreferences prefs;
     private WorkspaceState workspace;
     private boolean drawerOpen;
+    private boolean choosingDockApp;
     private boolean compactLayout;
     private float systemFontScale;
     private GridLayout grid;
@@ -124,7 +125,10 @@ public final class LauncherActivity extends Activity {
         // Activity recreation (rotation, density or font change) must keep the
         // visible drawer and the user's in-progress local app search. These
         // ephemeral UI values are not part of a persistent workspace backup.
-        if (state != null) drawerOpen = state.getBoolean("drawerOpen", false);
+        if (state != null) {
+            drawerOpen = state.getBoolean("drawerOpen", false);
+            choosingDockApp = state.getBoolean("choosingDockApp", false);
+        }
         createScreen();
         if (state != null) {
             String search = state.getString("searchQuery", "");
@@ -135,6 +139,7 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle outState) {
         outState.putBoolean("drawerOpen", drawerOpen);
+        outState.putBoolean("choosingDockApp", choosingDockApp);
         outState.putString("searchQuery", query == null ? "" : query.getText().toString());
         super.onSaveInstanceState(outState);
     }
@@ -472,6 +477,7 @@ public final class LauncherActivity extends Activity {
     private void setMode(boolean showDrawer) {
         boolean openingDrawer = showDrawer && !drawerOpen;
         drawerOpen = showDrawer;
+        if (!showDrawer) choosingDockApp = false;
         if (!showDrawer) {
             query.setText("");
             InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -547,7 +553,8 @@ public final class LauncherActivity extends Activity {
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
-        sectionLabel.setText(allApps ? "All applications" : "Home workspace");
+        sectionLabel.setText(choosingDockApp && allApps ? "Choose an app for your dock"
+                : allApps ? "All applications" : "Home workspace");
         homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
         appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
         homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
@@ -635,7 +642,25 @@ public final class LauncherActivity extends Activity {
             cell.addView(text, new LinearLayout.LayoutParams(-1,
                     dp(ResponsiveHomePolicy.labelHeightDp(systemFontScale))));
         }
-        cell.setOnClickListener(v -> launch(app));
+        cell.setOnClickListener(v -> {
+            if (!dockTile && choosingDockApp) {
+                String id = app.component.flattenToString();
+                if (!pins.contains(id)) {
+                    if (pins.size() >= 5) {
+                        Toast.makeText(this, "Dock supports up to five apps",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    pins.add(id);
+                    dockOrder.add(id);
+                    savePins();
+                }
+                setMode(false);
+                showDock();
+            } else {
+                launch(app);
+            }
+        });
         cell.setOnLongClickListener(v -> { showActions(cell, app); return true; });
         // An external keyboard must not require a touch long-press to place,
         // reorder or pin apps. Android Menu and Shift+F10 expose the same menu.
@@ -672,8 +697,10 @@ public final class LauncherActivity extends Activity {
         for (int i = occupied; i < 5; i++) {
             TextView add = action("+", () -> {
                 setMode(true);
-                Toast.makeText(this, "Long-press an app, then choose Pin to dock",
-                        Toast.LENGTH_LONG).show();
+                choosingDockApp = true;
+                showApps();
+                Toast.makeText(this, "Tap an app to add it to the dock",
+                        Toast.LENGTH_SHORT).show();
             });
             add.setContentDescription("Add app to dock");
             add.setTextSize(23);
