@@ -1,6 +1,7 @@
 package com.goreecloud.launcher;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
