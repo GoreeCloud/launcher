@@ -1,6 +1,13 @@
 name: Native Android backup acceptance
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-backup.yml'
+      - 'ci/emulator-backup.sh'
+      - 'app/src/main/java/com/goreecloud/launcher/BackupCodec.java'
+      - 'app/src/main/java/com/goreecloud/launcher/SettingsActivity.java'
+      - 'app/src/main/java/com/goreecloud/launcher/DockOrder.java'
 
 permissions:
   contents: read

@@ -350,8 +350,8 @@ public final class SettingsActivity extends Activity {
 
     private void exportTo(Uri uri) {
         try {
-            List<String> pins = new ArrayList<>(prefs.getStringSet("pins",
-                    java.util.Collections.emptySet()));
+            List<String> pins = DockOrder.reconcile(prefs.getStringSet("pins",
+                    java.util.Collections.emptySet()), prefs.getString("dock_order_v1", ""));
             BackupCodec.Data snapshot = new BackupCodec.Data(
                     prefs.getString("workspace_pages_v1", ""),
                     prefs.getInt("workspace_current_v1", 0),
@@ -399,6 +399,7 @@ public final class SettingsActivity extends Activity {
                         .putString("workspace_pages_v1", candidate.workspace)
                         .putInt("workspace_current_v1", candidate.selectedPage)
                         .putStringSet("pins", new HashSet<>(candidate.pins))
+                        .putString("dock_order_v1", DockOrder.encode(candidate.pins))
                         .putInt("columns", candidate.columns)
                         .putBoolean("labels", candidate.labels)
                         .commit();

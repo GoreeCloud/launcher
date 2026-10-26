@@ -52,6 +52,13 @@ public final class BackupCodecTest {
             catch (IllegalArgumentException expected) {}
         }
     }
+    @Test public void v2BackupPreservesCustomDockOrder() {
+        BackupCodec.Data state = fixture();
+        String exported = BackupCodec.encode(state);
+        assertTrue(exported.startsWith("GOREELAUNCHER/2\n"));
+        assertEquals(state.pins, BackupCodec.decode(exported).pins);
+    }
+
     @Test public void emptyHomeAndDockRestore() {
         BackupCodec.Data state = new BackupCodec.Data("", 0, 4, true, Collections.emptyList());
         BackupCodec.Data restored = BackupCodec.decode(BackupCodec.encode(state));
