@@ -75,8 +75,11 @@ public final class LauncherActivity extends Activity {
     // are protected Android system broadcasts; do not add manifest receivers
     // or broad package visibility privileges. Coalesce bursts from app updates.
     private final Handler packageChangeHandler = new Handler(Looper.getMainLooper());
+    private final Set<String> packagesWithChangedAssets = new HashSet<>();
     private final Runnable reloadVisibleCatalog = () -> {
-        if (grid != null && !isFinishing()) refreshChangedCatalog();
+        Set<String> changed = new HashSet<>(packagesWithChangedAssets);
+        packagesWithChangedAssets.clear();
+        if (grid != null && !isFinishing()) refreshChangedCatalog(changed);
     };
     private final BroadcastReceiver packageChanges = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent event) {
@@ -86,6 +89,15 @@ public final class LauncherActivity extends Activity {
                     && !Intent.ACTION_PACKAGE_REMOVED.equals(action)
                     && !Intent.ACTION_PACKAGE_CHANGED.equals(action)
                     && !Intent.ACTION_PACKAGE_REPLACED.equals(action)) return;
+            // Icons can change on package update even when labels and activity
+            // names remain identical. Retain only the affected package names.
+            if (Intent.ACTION_PACKAGE_CHANGED.equals(action)
+                    || Intent.ACTION_PACKAGE_REPLACED.equals(action)) {
+                Uri data = event.getData();
+                if (data != null && data.getSchemeSpecificPart() != null) {
+                    packagesWithChangedAssets.add(data.getSchemeSpecificPart());
+                }
+            }
             packageChangeHandler.removeCallbacks(reloadVisibleCatalog);
             packageChangeHandler.postDelayed(reloadVisibleCatalog, 300);
         }
@@ -129,6 +141,7 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onStop() {
         packageChangeHandler.removeCallbacks(reloadVisibleCatalog);
+        packagesWithChangedAssets.clear();
         if (packageReceiverActive) {
             unregisterReceiver(packageChanges);
             packageReceiverActive = false;
@@ -329,11 +342,15 @@ public final class LauncherActivity extends Activity {
 
     /** Package broadcasts should never destroy focus or open context menus when
      * the set of installed launchable activities has not actually changed. */
-    private void refreshChangedCatalog() {
-        refreshCatalog(false);
+    private void refreshChangedCatalog(Set<String> changedPackages) {
+        refreshCatalog(false, changedPackages);
     }
 
     private void refreshCatalog(boolean forceLayout) {
+        refreshCatalog(forceLayout, Collections.emptySet());
+    }
+
+    private void refreshCatalog(boolean forceLayout, Set<String> changedPackages) {
         PackageManager pm = getPackageManager();
         Intent discover = new Intent(Intent.ACTION_MAIN);
         discover.addCategory(Intent.CATEGORY_LAUNCHER);
@@ -357,6 +374,11 @@ public final class LauncherActivity extends Activity {
                     break;
                 }
             }
+        }
+        if (!changed && !changedPackages.isEmpty()) {
+            Set<String> catalogPackages = new HashSet<>();
+            for (Entry entry : catalog) catalogPackages.add(entry.component.getPackageName());
+            changed = CatalogRefreshPolicy.updatedVisiblePackage(changedPackages, catalogPackages);
         }
         if (!forceLayout && !changed) return;
         catalog.clear();
