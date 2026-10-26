@@ -237,4 +237,71 @@ if len(widths)<2 or max(widths)>=device_width*0.55:
     raise SystemExit("Oversized shortcut on sparse Home page: "+str(widths))
 print("PASS sparse Home tile fits a bounded grid slot:",widths)
 PY
+# Negative import cases: replace ONLY the synthetic emulator Downloads file, never
+# any user document. Preserve a local original and never upload its bytes.
+python3 - <<'PY'
+original=open("/tmp/launcher-qa-export.txt","rb").read()
+assert b"columns=4" in original
+with open("/tmp/launcher-qa-bad-checksum.txt","wb") as output:
+    output.write(original.replace(b"columns=4",b"columns=5",1))
+with open("/tmp/launcher-qa-oversize.txt","wb") as output:
+    output.write(b"X"*65537)
+with open("/tmp/launcher-qa-unsupported.txt","wb") as output:
+    output.write(original.replace(b"GOREELAUNCHER/1",b"GOREELAUNCHER/9",1))
+print("Prepared tampered, oversized and unsupported synthetic payloads")
+PY
+tap_label restored-after-restart "Settings"
+sleep 1
+adb shell input swipe 430 1700 430 510 460
+sleep 1
+
+for scenario in bad-checksum oversize unsupported; do
+  adb push "/tmp/launcher-qa-$scenario.txt" "$REMOTE_FILE" >/dev/null
+  sleep 1
+  dump_screen "negative-settings-$scenario"
+  assert_text "negative-settings-$scenario" "Import backup"
+  tap_label "negative-settings-$scenario" "Import backup"
+  sleep 2
+  dump_screen "negative-picker-$scenario"
+  python3 - "$EVIDENCE/negative-picker-$scenario.xml" <<'PY'
+import re, subprocess, sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+for n in root.iter():
+    a=n.attrib
+    if not a.get("text","").startswith("GoreeCloud-Launcher-backup"): continue
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",a.get("bounds",""))
+    if not m: continue
+    x1,y1,x2,y2=map(int,m.groups())
+    subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
+    sys.exit(0)
+raise SystemExit("Synthetic backup document unavailable in Android picker")
+PY
+  sleep 2
+  dump_screen "negative-result-$scenario"
+  assert_text "negative-result-$scenario" "Import backup"
+  python3 - "$EVIDENCE/negative-result-$scenario.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+texts=[n.attrib.get("text","") for n in root.iter()]
+if "Restore launcher backup?" in texts:
+    raise SystemExit("Invalid backup wrongly opened replacement dialog")
+print("PASS invalid backup rejected without replacement dialog")
+PY
+  adb shell input swipe 430 510 430 1700 460
+  sleep 1
+  dump_screen "negative-labels-$scenario"
+  assert_checked "negative-labels-$scenario" false
+  adb shell input swipe 430 1700 430 510 460
+  sleep 1
+done
+# Leave disposable AVD in the same state as before negative tests.
+adb push /tmp/launcher-qa-export.txt "$REMOTE_FILE" >/dev/null
+adb shell input keyevent 4
+sleep 1
+adb shell input keyevent 3
+sleep 1
+dump_screen negative-final-home
+assert_text negative-final-home "Page 2 / 2"
+assert_shortcut_count negative-final-home 2
+echo "PASS: corrupt, overlimit and unsupported backups rejected without changing workspace"
 echo "PASS: SAF create/write/read, restore-cancel, restore-apply and process persistence"
