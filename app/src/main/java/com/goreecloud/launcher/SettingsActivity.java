@@ -2,6 +2,7 @@ package com.goreecloud.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.role.RoleManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -39,7 +40,9 @@ public final class SettingsActivity extends Activity {
     private static final int IRIS = 0xFF5145D9;
     private static final int EXPORT_FILE = 701;
     private static final int IMPORT_FILE = 702;
+    private static final int SELECT_HOME_ROLE = 703;
     private SharedPreferences prefs;
+    private TextView homeRoleStatus;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -167,6 +170,9 @@ public final class SettingsActivity extends Activity {
         LinearLayout.LayoutParams hnt = new LinearLayout.LayoutParams(-1, -2);
         hnt.topMargin = dp(8);
         homeCard.addView(homeHint, hnt);
+        homeRoleStatus = text("", 13, true, 0xFF2C227C);
+        homeCard.addView(homeRoleStatus);
+        updateHomeRoleStatus();
 
         Button home = new Button(this);
         home.setText(R.string.home_settings);
