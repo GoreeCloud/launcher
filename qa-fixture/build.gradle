@@ -9,6 +9,7 @@ android {
         targetSdk 35
         versionCode 1
         versionName '0.1.0-qa'
+        manifestPlaceholders = [fixtureIconResource: project.findProperty('fixtureIconResource') ?: '@drawable/fixture_icon_red']
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

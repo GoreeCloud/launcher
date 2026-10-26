@@ -1,0 +1,83 @@
+name: Native Android live icon-update acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-icon-refresh.yml'
+      - 'ci/emulator-icon-refresh.sh'
+      - 'ci/check-fixture-icon.py'
+      - 'qa-fixture/build.gradle'
+      - 'qa-fixture/src/main/AndroidManifest.xml'
+      - 'qa-fixture/src/main/res/drawable/fixture_icon_red.xml'
+      - 'qa-fixture/src/main/res/drawable/fixture_icon_green.xml'
+      - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
+      - 'app/src/main/java/com/goreecloud/launcher/CatalogRefreshPolicy.java'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/android-icon-refresh.yml'
+      - 'ci/emulator-icon-refresh.sh'
+      - 'ci/check-fixture-icon.py'
+      - 'qa-fixture/build.gradle'
+      - 'qa-fixture/src/main/AndroidManifest.xml'
+      - 'qa-fixture/src/main/res/drawable/fixture_icon_red.xml'
+      - 'qa-fixture/src/main/res/drawable/fixture_icon_green.xml'
+      - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
+      - 'app/src/main/java/com/goreecloud/launcher/CatalogRefreshPolicy.java'
+
+permissions:
+  contents: read
+
+jobs:
+  same-component-icon-refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android SDK
+        run: |
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -path "*/bin/sdkmanager" | sort -V | tail -n 1)"
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.6.0'
+      - name: Build launcher and baseline red fixture
+        run: |
+          gradle :app:assembleDebug :qa-fixture:assembleDebug --no-daemon
+          cp qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk /tmp/goree-fixture-red.apk
+      - name: Build icon-only updated fixture
+        run: |
+          gradle :qa-fixture:assembleDebug '-PfixtureIconResource=@drawable/fixture_icon_green' --rerun-tasks --no-daemon
+          cp qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk /tmp/goree-fixture-green.apk
+          if cmp -s /tmp/goree-fixture-red.apk /tmp/goree-fixture-green.apk; then
+            echo "Fixture app update must produce different signed APK bytes" >&2
+            exit 1
+          fi
+          echo "PASS same-component fixture packages have distinct icon manifests"
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Verify icon asset refresh without Launcher restart
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          disable-animations: true
+          script: bash ci/emulator-icon-refresh.sh
+      - name: Upload disposable emulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GoreeCloud-Launcher-icon-asset-refresh-QA
+          path: build/emulator-evidence/
+          if-no-files-found: warn
