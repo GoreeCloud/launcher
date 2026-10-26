@@ -11,6 +11,15 @@ android {
         versionCode 1
         versionName '0.1.0-dev'
     }
+    // One-off sideload testing without replacing an installed/retained Launcher package.
+    // CI debug keys are ephemeral: this package is NOT a stable update channel.
+    buildTypes {
+        evaluation {
+            initWith debug
+            applicationIdSuffix '.qa'
+            signingConfig signingConfigs.debug
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
