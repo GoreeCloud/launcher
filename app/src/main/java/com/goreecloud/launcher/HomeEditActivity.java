@@ -51,6 +51,18 @@ public final class HomeEditActivity extends Activity {
             return insets;
         });
         setContentView(scroll);
+        getWindow().setStatusBarColor(0xFF242341);
+        getWindow().setNavigationBarColor(0xFF191A32);
+        if (android.os.Build.VERSION.SDK_INT >= 30) {
+            android.view.WindowInsetsController bars = getWindow().getInsetsController();
+            if (bars != null) {
+                int flags = android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                bars.setSystemBarsAppearance(0, flags);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
