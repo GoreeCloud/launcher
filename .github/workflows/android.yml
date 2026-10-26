@@ -32,6 +32,14 @@ jobs:
           bash ci/test-emulator-menu-retry.sh
           for script in ci/emulator-hierarchy-retry.sh ci/emulator-app-availability.sh; do bash -n "$script"; done
           bash ci/test-emulator-hierarchy-retry.sh
+      - name: Validate opt-in physical-device smoke guard
+        run: |
+          bash -n ci/physical-device-smoke.sh
+          bash ci/physical-device-smoke.sh --help >/dev/null
+          if GOREELAUNCHER_DEVICE_SMOKE_ACK= bash ci/physical-device-smoke.sh /nonexistent.apk >/dev/null 2>&1; then
+            echo 'Unsafe: device smoke allowed execution without explicit acknowledgement' >&2
+            exit 1
+          fi
       - name: Compile and test
         run: gradle :app:assembleDebug :app:testDebugUnitTest :qa-fixture:assembleDebug --no-daemon
       - name: Upload evaluation APK
