@@ -1,6 +1,11 @@
 name: Native Android keyboard acceptance
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-keyboard.yml'
+      - 'ci/emulator-keyboard.sh'
+      - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
   push:
     branches: [main]
     paths:
