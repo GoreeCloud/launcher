@@ -135,7 +135,7 @@ import sys,hashlib,base64
 s=open("/tmp/launcher-qa-export.txt","rb").read()
 assert len(s)<65536 and s.endswith(b"\n")
 lines=s.decode("utf8").splitlines()
-assert lines[0]=="GOREELAUNCHER/1" and len(lines)==7
+assert lines[0]=="GOREELAUNCHER/2" and len(lines)==7
 assert lines[1]=="page=1"
 assert lines[2]=="columns=4"
 assert lines[3]=="labels=0"
@@ -247,7 +247,8 @@ with open("/tmp/launcher-qa-bad-checksum.txt","wb") as output:
 with open("/tmp/launcher-qa-oversize.txt","wb") as output:
     output.write(b"X"*65537)
 with open("/tmp/launcher-qa-unsupported.txt","wb") as output:
-    output.write(original.replace(b"GOREELAUNCHER/1",b"GOREELAUNCHER/9",1))
+    assert b"GOREELAUNCHER/2" in original
+    output.write(original.replace(b"GOREELAUNCHER/2",b"GOREELAUNCHER/9",1))
 print("Prepared tampered, oversized and unsupported synthetic payloads")
 PY
 tap_label restored-after-restart "Settings"
