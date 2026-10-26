@@ -69,6 +69,23 @@ sleep 4
 dump_screen home-role
 assert_text home-role "Home workspace"
 assert_text home-role "Page 1 / 1"
+assert_text home-role "Add app to dock"
+
+# Verify an actual touchscreen-like swipe on the disposable emulator opens the
+# drawer from Home and returns to Home. Do not replace this with a tab tap.
+read -r W H < <(adb shell wm size | sed -n 's/.*: \([0-9]*\)x\([0-9]*\).*/\1 \2/p' | head -1)
+test "$W" -gt 0 && test "$H" -gt 0
+X=$((W/2))
+adb shell input swipe "$X" "$((H*70/100))" "$X" "$((H*41/100))" 420
+sleep 2
+dump_screen swipe-up-opens-drawer
+assert_text swipe-up-opens-drawer "All apps tab, selected"
+assert_text swipe-up-opens-drawer "All applications"
+adb shell input swipe "$X" "$((H*44/100))" "$X" "$((H*70/100))" 420
+sleep 2
+dump_screen swipe-down-closes-drawer
+assert_text swipe-down-closes-drawer "Home tab, selected"
+assert_text swipe-down-closes-drawer "Home workspace"
 
 # Android may apply status-bar/window insets after the initial hierarchy capture.
 # Always re-read the current control bounds and confirm the resulting state.
