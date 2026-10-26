@@ -20,8 +20,8 @@ android {
             // evaluation package instead of presenting an invalid update to
             // another CI build or deleting the user's existing launcher data.
             def runId = System.getenv('GITHUB_RUN_ID')
-            applicationIdSuffix (runId != null && runId ==~ /[0-9]+/)
-                    ? ".qa.run${runId}" : '.qa.local'
+            applicationIdSuffix ((runId != null && runId ==~ /[0-9]+/)
+                    ? ".qa.run${runId}" : '.qa.local')
             signingConfig signingConfigs.debug
         }
     }
