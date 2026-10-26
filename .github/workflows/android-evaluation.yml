@@ -39,7 +39,7 @@ jobs:
           APK="app/build/outputs/apk/evaluation/app-evaluation.apk"
           test -s "$APK"
           "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$APK" > /tmp/goreecloud-evaluation-badging.txt
-          grep -F "package: name='com.goreecloud.launcher.qa'" /tmp/goreecloud-evaluation-badging.txt
+          grep -F "package: name='com.goreecloud.launcher.qa.run${GITHUB_RUN_ID}'" /tmp/goreecloud-evaluation-badging.txt
           grep -F "application-label:'GoreeCloud Launcher QA'" /tmp/goreecloud-evaluation-badging.txt
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
           sha256sum "$APK"
