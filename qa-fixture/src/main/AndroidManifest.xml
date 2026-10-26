@@ -15,5 +15,33 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity-alias android:name=".PinAlpha" android:targetActivity=".FixtureActivity"
+            android:exported="true" android:label="Launcher Fixture Alpha">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".PinBeta" android:targetActivity=".FixtureActivity"
+            android:exported="true" android:label="Launcher Fixture Beta">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".PinGamma" android:targetActivity=".FixtureActivity"
+            android:exported="true" android:label="Launcher Fixture Gamma">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".PinDelta" android:targetActivity=".FixtureActivity"
+            android:exported="true" android:label="Launcher Fixture Delta">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
     </application>
 </manifest>
