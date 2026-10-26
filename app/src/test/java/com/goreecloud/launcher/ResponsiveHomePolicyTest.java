@@ -18,4 +18,19 @@ public final class ResponsiveHomePolicyTest {
         assertTrue(ResponsiveHomePolicy.shouldScroll(false, 2.0f));
         assertEquals(84, ResponsiveHomePolicy.shortcutHeightDp(false, true));
     }
+    @Test public void enlargedLabelsGetMeasuredHeight() {
+        assertEquals(40, ResponsiveHomePolicy.labelHeightDp(1.0f));
+        assertEquals(58, ResponsiveHomePolicy.labelHeightDp(1.45f));
+        assertEquals(80, ResponsiveHomePolicy.labelHeightDp(2.0f));
+        assertEquals(150, ResponsiveHomePolicy.shortcutHeightDp(true, true, 1.45f));
+        assertEquals(172, ResponsiveHomePolicy.shortcutHeightDp(true, true, 2.0f));
+        assertEquals(84, ResponsiveHomePolicy.shortcutHeightDp(false, true, 2.0f));
+    }
+
+    @Test public void fontScalingRejectsNonsensicalBounds() {
+        assertEquals(40, ResponsiveHomePolicy.labelHeightDp(Float.NaN));
+        assertEquals(40, ResponsiveHomePolicy.labelHeightDp(0.5f));
+        assertEquals(120, ResponsiveHomePolicy.labelHeightDp(4.0f));
+        assertEquals(212, ResponsiveHomePolicy.shortcutHeightDp(true, true, 4f));
+    }
 }

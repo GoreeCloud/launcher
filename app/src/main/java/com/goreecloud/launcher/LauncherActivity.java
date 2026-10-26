@@ -47,6 +47,7 @@ public final class LauncherActivity extends Activity {
     private WorkspaceState workspace;
     private boolean drawerOpen;
     private boolean compactLayout;
+    private float systemFontScale;
     private GridLayout grid;
     private LinearLayout rootSurface;
     private LinearLayout pageControls;
@@ -95,9 +96,10 @@ public final class LauncherActivity extends Activity {
         root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
+        systemFontScale = getResources().getConfiguration().fontScale;
         compactLayout = ResponsiveHomePolicy.shouldScroll(
                 getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE,
-                getResources().getConfiguration().fontScale);
+                systemFontScale);
         View insetSurface;
         if (compactLayout) {
             ScrollView fullPage = new ScrollView(this);
@@ -141,7 +143,7 @@ public final class LauncherActivity extends Activity {
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1,
-                dp(compactLayout ? 76 : 60)));
+                dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 60)));
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
@@ -187,7 +189,8 @@ public final class LauncherActivity extends Activity {
         });
 
         sectionLabel = label("Home workspace", 17, true);
-        LinearLayout.LayoutParams section = new LinearLayout.LayoutParams(-1, dp(32));
+        LinearLayout.LayoutParams section = new LinearLayout.LayoutParams(-1,
+                dp(compactLayout ? Math.max(40, Math.round(26 * systemFontScale + 8)) : 32));
         section.topMargin = dp(12);
         root.addView(sectionLabel, section);
 
@@ -371,7 +374,8 @@ public final class LauncherActivity extends Activity {
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                     GridLayout.spec(i / columns), GridLayout.spec(i % columns));
             params.width = slotWidth;
-            params.height = dp(ResponsiveHomePolicy.shortcutHeightDp(names, compactLayout));
+            params.height = dp(ResponsiveHomePolicy.shortcutHeightDp(
+                    names, compactLayout, systemFontScale));
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
@@ -407,7 +411,8 @@ public final class LauncherActivity extends Activity {
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
-            cell.addView(text, new LinearLayout.LayoutParams(-1, dp(40)));
+            cell.addView(text, new LinearLayout.LayoutParams(-1,
+                    dp(ResponsiveHomePolicy.labelHeightDp(systemFontScale))));
         }
         cell.setOnClickListener(v -> launch(app));
         cell.setOnLongClickListener(v -> { showActions(cell, app); return true; });
