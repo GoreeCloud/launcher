@@ -1,6 +1,10 @@
 package com.goreecloud.launcher;
 
 import android.app.Activity;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,6 +33,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -68,6 +73,13 @@ public final class LauncherActivity extends Activity {
     private TextView homeTab;
     private TextView appsTab;
     private LinearLayout dock;
+    private LinearLayout dashboard;
+    private LinearLayout widgetArea;
+    private LinearLayout topHeading;
+    private static final int EDIT_HOME_REQUEST = 810;
+    private static final int PICK_WIDGET_REQUEST = 811;
+    private static final int WIDGET_HOST_ID = 32019;
+    private AppWidgetHost widgetHost;
     private TextView dockTitle;
     private FrameLayout homeViewport;
     private ScrollView viewportScroll;
@@ -120,6 +132,7 @@ public final class LauncherActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        widgetHost = new AppWidgetHost(this, WIDGET_HOST_ID);
         reloadPins();
         workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
         workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
@@ -215,6 +228,9 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onStart() {
         super.onStart();
+        try { widgetHost.startListening(); } catch (RuntimeException ignored) {
+            // Widget hosting availability must never prevent Home startup.
+        }
         if (!packageReceiverActive) {
             IntentFilter filter = new IntentFilter();
             filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -236,6 +252,7 @@ public final class LauncherActivity extends Activity {
             unregisterReceiver(packageChanges);
             packageReceiverActive = false;
         }
+        if (widgetHost != null) widgetHost.stopListening();
         super.onStop();
     }
 
@@ -248,6 +265,7 @@ public final class LauncherActivity extends Activity {
             workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
             workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
             refresh();
+            renderWidgets();
         }
     }
 
