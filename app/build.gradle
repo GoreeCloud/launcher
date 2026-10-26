@@ -16,7 +16,12 @@ android {
     buildTypes {
         evaluation {
             initWith debug
-            applicationIdSuffix '.qa'
+            // Github-hosted debug keys are ephemeral. Isolate each CI-installed
+            // evaluation package instead of presenting an invalid update to
+            // another CI build or deleting the user's existing launcher data.
+            def runId = System.getenv('GITHUB_RUN_ID')
+            applicationIdSuffix ((runId != null && runId ==~ /[0-9]+/)
+                    ? ".qa.run${runId}" : '.qa.local')
             signingConfig signingConfigs.debug
         }
     }

@@ -35,6 +35,18 @@ The subsequent `main` commit `9cfd87476ee4bb64395f0701e8ba71efea4e90ee` changes 
 
 Other bounded evidence includes [user-consented Home selection/cancellation](https://github.com/GoreeCloud/launcher/actions/runs/40257203862), [real Android document-picker backup/restore](https://github.com/GoreeCloud/launcher/actions/runs/40251850733), [invalid backup rejection](https://github.com/GoreeCloud/launcher/actions/runs/40253831973), and [Settings 200% font validation](https://github.com/GoreeCloud/launcher/actions/runs/40328855610). These historical runs are **not** asserted to be fresh on the current source revision.
 
+## Physical Android 16 first-run feedback — October 26, 2026
+
+A real owner-provided Android phone screenshot shows that the **isolated QA variant installs and runs**, displaying Home, app catalog and Settings on a physical device. This is initial physical installation/UI evidence only: it does **not** establish use as selected default Home, complete physical-device gestures, OEM compatibility, performance or assistive-technology acceptance.
+
+- The earlier APK installation failed with **`INSTALL_FAILED_UPDATE_INCOMPATIBLE`** because a retained but currently uninstalled `com.goreecloud.launcher` record was signed with a different debug key. Play Protect separately warned that the developer was unfamiliar. An opt-in alternative package ID avoids deleting the retained prior data, but **per-build debug keys and per-build QA package IDs are not a production signing/update channel**.
+- Actual screenshots revealed that Home presented a blank workspace and explanatory dock label; the user explicitly requested a functional Home and app dock, larger configuration surface, and swipe-up/sliding drawer.
+- [PR #28](https://github.com/GoreeCloud/launcher/pull/28) introduces **candidate code** for one-tap Home and dock app selection, upward drawer gesture/animation, downward close, horizontal workspace paging and essential drawer/dock/gesture/icon settings. It is not automatically accepted merely because code compiles. [Native Android 16 smoke](https://github.com/GoreeCloud/launcher/actions/runs/40406134928) passed on a candidate before the final changes; source-specific Android 16 and other regression checks must be read back again before declaring the final revision tested.
+- Prior temporary-app recovery and responsive emulator scripts were found to expect the **obsolete dock placeholder** even though the product now renders actionable empty dock slots; test changes in this PR replace those exact stale expectations with accessibility/visible-slot checks, retaining package recovery and landscape reachability assertions. Their success must be verified against the final PR head.
+- QA updates that use run-specific package IDs **do not update prior installations or migrate their preferences**. This isolation prevents signature collision but leaves a permanent managed signing identity and upgrade/migration design unresolved.
+
+No current device screenshots prove the new gesture or pickers, nor has the current QA APK completed the signed distribution and rollout acceptance matrix. Seal status remains **Not Sealed**.
+
 ## Open blockers before Seal
 
 - [ ] **Actual hardware:** Install and test the identified candidate on a representative physical Android device (including explicit consent and cancel for default Home selection) and at least one relevant OEM variation. Do not silently change a user's current default Home.

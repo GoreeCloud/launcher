@@ -65,8 +65,21 @@ if title[3]>subtitle[1]+3:
 print("PASS settings header legible at 200% font")
 PY
 }
-dump_screen settings-large-home
-press_label settings-large-home "Settings"
+# API35 fresh emulator can still be finishing the system Home transition
+# after am start reports success. Re-open our explicit activity and locate the
+# real accessible Settings button from a NEW hierarchy; never invent a tap.
+opened=false
+for attempt in 1 2 3 4; do
+  dump_screen settings-large-home
+  if grep -Fq 'content-desc="Settings"' "$EVIDENCE/settings-large-home.xml"; then
+    press_label settings-large-home "Settings"
+    opened=true
+    break
+  fi
+  adb shell am start -W -n com.goreecloud.launcher/.LauncherActivity >/dev/null
+  sleep 2
+done
+if [ "$opened" != true ]; then echo "Launcher Settings action inaccessible" >&2; exit 1; fi
 sleep 2
 dump_screen settings-large-portrait
 check_header settings-large-portrait

@@ -160,7 +160,21 @@ assert_text legacy-restart "Home workspace"
 assert_text legacy-restart "Launcher QA Fixture"
 tap_label legacy-restart "Settings"
 sleep 2
-dump_screen legacy-settings
+# The new gesture, dock and drawer sections precede Android Home settings.
+# Keep testing the real fallback control after scrolling, not its initial
+# viewport position.
+home_fallback_reached=false
+for attempt in 1 2 3 4 5 6 7 8; do
+  dump_screen legacy-settings
+  if grep -Fq 'text="Choose a default Home app in Android settings"' "$EVIDENCE/legacy-settings.xml" \
+    && grep -Fq 'text="Select default Home app"' "$EVIDENCE/legacy-settings.xml"; then
+    home_fallback_reached=true
+    break
+  fi
+  adb shell input swipe 430 1680 430 480 520
+  sleep 1
+done
+test "$home_fallback_reached" = true
 assert_text legacy-settings "Choose a default Home app in Android settings"
 assert_text legacy-settings "Select default Home app"
 tap_label legacy-settings "Select default Home app"

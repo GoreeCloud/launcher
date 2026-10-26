@@ -105,7 +105,7 @@ adb shell pm disable-user --user 0 com.goreecloud.launcher.fixture > "$EVIDENCE/
 sleep 3
 dump_screen availability-disabled-live
 assert_text availability-disabled-live "Saved shortcuts unavailable"
-assert_text availability-disabled-live "Saved dock apps are unavailable. Re-enable or reinstall them to restore their icons."
+assert_text availability-disabled-live "Add app to dock"
 python3 - "$EVIDENCE/availability-disabled-live.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
 n=sum(x.attrib.get("content-desc")=="Launcher QA Fixture"
@@ -118,7 +118,7 @@ adb shell input keyevent 3
 sleep 3
 dump_screen availability-disabled
 assert_text availability-disabled "Saved shortcuts unavailable"
-assert_text availability-disabled "Saved dock apps are unavailable. Re-enable or reinstall them to restore their icons."
+assert_text availability-disabled "Add app to dock"
 python3 - "$EVIDENCE/availability-disabled.xml" <<'PY'
 import sys, xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()

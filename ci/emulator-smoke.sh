@@ -7,10 +7,13 @@ trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" 
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
+# Cold-start UiAutomator occasionally produces no root at all on API 36.
+# Retry only freshly created valid hierarchies; never read stale XML.
+. ci/emulator-hierarchy-retry.sh
+
 dump_screen() {
   local name="$1"
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
+  capture_hierarchy_with_retries "$name" "$EVIDENCE/$name.xml"
   adb shell screencap -p /sdcard/launcher-screen.png
   adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
 }
@@ -49,6 +52,9 @@ PY
 }
 tap_label() { act_on "$1" "$2" tap; }
 longpress_label() { act_on "$1" "$2" long; }
+# A transient Android input focus transition can swallow the first long press;
+# retry only when the required real context menu is genuinely missing.
+. ci/emulator-menu-retry.sh
 assert_shortcut_count() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
 import sys, xml.etree.ElementTree as ET
@@ -69,6 +75,23 @@ sleep 4
 dump_screen home-role
 assert_text home-role "Home workspace"
 assert_text home-role "Page 1 / 1"
+assert_text home-role "Add app to dock"
+
+# Verify an actual touchscreen-like swipe on the disposable emulator opens the
+# drawer from Home and returns to Home. Do not replace this with a tab tap.
+read -r W H < <(adb shell wm size | sed -n 's/.*: \([0-9]*\)x\([0-9]*\).*/\1 \2/p' | head -1)
+test "$W" -gt 0 && test "$H" -gt 0
+X=$((W/2))
+adb shell input swipe "$X" "$((H*70/100))" "$X" "$((H*41/100))" 420
+sleep 2
+dump_screen swipe-up-opens-drawer
+assert_text swipe-up-opens-drawer "All apps tab, selected"
+assert_text swipe-up-opens-drawer "All applications"
+adb shell input swipe "$X" "$((H*44/100))" "$X" "$((H*70/100))" 420
+sleep 2
+dump_screen swipe-down-closes-drawer
+assert_text swipe-down-closes-drawer "Home tab, selected"
+assert_text swipe-down-closes-drawer "Home workspace"
 
 # Android may apply status-bar/window insets after the initial hierarchy capture.
 # Always re-read the current control bounds and confirm the resulting state.
@@ -125,18 +148,12 @@ print("PASS local fixture search filters unrelated apps")
 PY
 
 # Exercise contextual placement using an actual independently installed package.
-longpress_label searched "Launcher QA Fixture"
-sleep 1
-dump_screen place-menu
-assert_text place-menu "Add to current home page"
+retry_longpress_menu place-menu "Launcher QA Fixture" "Add to current home page"
 tap_label place-menu "Add to current home page"
 sleep 1
 dump_screen drawer-after-place
 # A second activity provides a stable two-item layout for ordering checks.
-longpress_label drawer-after-place "Launcher Fixture Notes"
-sleep 1
-dump_screen notes-menu
-assert_text notes-menu "Add to current home page"
+retry_longpress_menu notes-menu "Launcher Fixture Notes" "Add to current home page"
 tap_label notes-menu "Add to current home page"
 sleep 1
 dump_screen drawer-after-notes
@@ -155,46 +172,31 @@ print("PASS Home search is not focused")
 PY
 
 # Verify an accessible menu alternative to drag/drop for ordering shortcuts.
-longpress_label home-shortcut "Launcher Fixture Notes"
-sleep 1
-dump_screen order-menu
-assert_text order-menu "Move earlier"
+retry_longpress_menu order-menu "Launcher Fixture Notes" "Move earlier"
 tap_label order-menu "Move earlier"
 sleep 1
 dump_screen reordered
 assert_text reordered "Launcher Fixture Notes"
-longpress_label reordered "Launcher Fixture Notes"
-sleep 1
-dump_screen order-reverse-menu
-assert_text order-reverse-menu "Move later"
+retry_longpress_menu order-reverse-menu "Launcher Fixture Notes" "Move later"
 tap_label order-reverse-menu "Move later"
 sleep 1
 dump_screen order-restored
 assert_text order-restored "Launcher Fixture Notes"
 
-longpress_label home-shortcut "Launcher QA Fixture"
-sleep 1
-dump_screen pin-menu
-assert_text pin-menu "Pin to dock"
+retry_longpress_menu pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label pin-menu "Pin to dock"
 sleep 1
 dump_screen pinned
 assert_shortcut_count pinned 2
 
 # Move a populated shortcut between pre-existing pages, in both directions.
-longpress_label pinned "Launcher QA Fixture"
-sleep 1
-dump_screen cross-page-menu
-assert_text cross-page-menu "Move to previous page"
+retry_longpress_menu cross-page-menu "Launcher QA Fixture" "Move to previous page"
 tap_label cross-page-menu "Move to previous page"
 sleep 1
 dump_screen moved-page-one
 assert_text moved-page-one "Page 1 / 2"
 assert_shortcut_count moved-page-one 2
-longpress_label moved-page-one "Launcher QA Fixture"
-sleep 1
-dump_screen return-menu
-assert_text return-menu "Move to next page"
+retry_longpress_menu return-menu "Launcher QA Fixture" "Move to next page"
 tap_label return-menu "Move to next page"
 sleep 1
 dump_screen moved-page-two
@@ -256,10 +258,20 @@ if not matching or matching[0].attrib.get("checked")!="false":
     raise SystemExit("Labels preference did not survive app force-stop/relaunch")
 print("PASS saved label preference persisted")
 PY
-# Backup controls must be visible in the native settings ScrollView.
-adb shell input swipe 420 1750 420 520 460
-sleep 1
-dump_screen settings-backup
+# New gesture and dock settings lengthen the native ScrollView. Scroll
+# toward the document-picker controls without assuming one screen-height swipe.
+backup_visible=0
+for attempt in 1 2 3 4; do
+  adb shell input swipe 420 1750 420 500 460
+  sleep 1
+  dump_screen settings-backup
+  if grep -Fq 'text="Export backup"' "$EVIDENCE/settings-backup.xml" \
+      && grep -Fq 'text="Import backup"' "$EVIDENCE/settings-backup.xml"; then
+    backup_visible=1
+    break
+  fi
+done
+test "$backup_visible" = 1
 assert_text settings-backup "Export backup"
 assert_text settings-backup "Import backup"
 # Open and dismiss the system document picker without exporting user data.

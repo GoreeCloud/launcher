@@ -291,15 +291,19 @@ import re,struct,sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 img=open(sys.argv[2],"rb").read(24)
 width,height=struct.unpack(">II",img[16:24])
-for name in ("Pinned apps","Long-press an app to pin it here"):
-    matches=[n.attrib for n in root.iter() if n.attrib.get("text")==name]
-    if len(matches)!=1: raise SystemExit("Dock element not yet visible "+name)
-    m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',matches[0].get("bounds",""))
-    if not m: raise SystemExit("Missing dock element bounds")
-    x1,y1,x2,y2=map(int,m.groups())
-    if x1<0 or x2>width or y1 < height*0.06 or y2 > height*0.88:
-        raise SystemExit("Dock element clipped by status/navigation bars: "+name+" "+str((x1,y1,x2,y2)))
-    print("PASS landscape dock safely visible",name,(x1,y1,x2,y2))
+for name,attr,minimum in (("Pinned apps","text",1),("Add app to dock","content-desc",1)):
+    matches=[n.attrib for n in root.iter() if n.attrib.get(attr)==name]
+    if len(matches)<minimum: raise SystemExit("Dock element not yet visible "+name)
+    for item in matches:
+        m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',item.get("bounds",""))
+        if not m: raise SystemExit("Missing dock element bounds")
+        x1,y1,x2,y2=map(int,m.groups())
+        # At 2400x1080 landscape the navigation bar starts below 94%
+        # of the frame. Apply a conservative bound to the new 72dp
+        # actionable dock slots rather than the retired one-line hint.
+        if x1<0 or x2>width or y1 < height*0.06 or y2 > height*0.94:
+            raise SystemExit("Dock element clipped by system bars: "+name+" "+str((x1,y1,x2,y2)))
+    print("PASS landscape dock safely visible",name,len(matches))
 PY
   then
     dock_reached=true
