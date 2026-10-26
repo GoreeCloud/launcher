@@ -95,6 +95,18 @@ adb shell input keyevent KEYCODE_HOME
 sleep 4
 dump_screen keyboard-initial
 assert_text keyboard-initial "Home workspace"
+# Button-looking text actions must expose the actual native button role.
+python3 - "$EVIDENCE/keyboard-initial.xml" <<'PYROLE'
+import sys,xml.etree.ElementTree as ET
+nodes=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()]
+for title in ("Home tab, selected","All apps tab","Settings","Add home page"):
+    matches=[n for n in nodes if n.get("text")==title or n.get("content-desc")==title]
+    if not any(n.get("class")=="android.widget.Button"
+               and n.get("clickable")=="true" and n.get("focusable")=="true"
+               for n in matches):
+        raise SystemExit("Not an accessible button: "+title+" "+str(matches))
+    print("PASS accessible button semantics:",title)
+PYROLE
 tap_label keyboard-initial "All apps"
 # A fresh Home screen can consume the first tap while focus/insets settle.
 for attempt in 1 2 3 4; do

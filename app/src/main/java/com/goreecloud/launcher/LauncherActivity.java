@@ -27,6 +27,7 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
@@ -245,6 +246,7 @@ public final class LauncherActivity extends Activity {
         settings.setContentDescription(getString(R.string.settings));
         settings.setGravity(Gravity.CENTER);
         settings.setFocusable(true);
+        markAsAccessibilityButton(settings);
         settings.setBackground(background(0xFFFFFFFF, 18));
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         heading.addView(settings, new LinearLayout.LayoutParams(dp(52), dp(48)));
@@ -449,6 +451,7 @@ public final class LauncherActivity extends Activity {
         TextView v = label(title, 16, true);
         v.setGravity(Gravity.CENTER);
         v.setFocusable(true);
+        markAsAccessibilityButton(v);
         v.setBackground(background(0xFFE8E6FF, 18));
         v.setOnClickListener(ignored -> onClick.run());
         return v;
@@ -693,6 +696,17 @@ public final class LauncherActivity extends Activity {
     private void savePins() {
         prefs.edit().putStringSet("pins", new HashSet<>(pins)).apply();
     }
+    /** Expose styled interactive text as a native accessibility button. */
+    private static void markAsAccessibilityButton(View view) {
+        view.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(
+                    View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(android.widget.Button.class.getName());
+            }
+        });
+    }
+
     private TextView label(String text, int size, boolean bold) {
         TextView view = new TextView(this);
         view.setText(text);

@@ -70,6 +70,15 @@ press_label settings-large-home "Settings"
 sleep 2
 dump_screen settings-large-portrait
 check_header settings-large-portrait
+python3 - "$EVIDENCE/settings-large-portrait.xml" <<'PYROLE'
+import sys,xml.etree.ElementTree as ET
+matches=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()
+         if n.attrib.get("content-desc")=="Back to Home"]
+if not any(n.get("class")=="android.widget.Button"
+           and n.get("clickable")=="true" for n in matches):
+    raise SystemExit("Settings Back does not expose accessible button role")
+print("PASS Settings Back accessible button semantics")
+PYROLE
 adb shell settings put system user_rotation 1
 sleep 3
 dump_screen settings-large-landscape
