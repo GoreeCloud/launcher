@@ -190,11 +190,18 @@ public final class LauncherActivity extends Activity {
     }
 
     private boolean gestureStartedInWorkspace(float x, float y) {
-        if (homeViewport == null || homeViewport.getVisibility() != View.VISIBLE) return false;
+        // The fixed dock is part of Home: a swipe starting on an empty dock
+        // slot should open the app drawer just like a swipe on the workspace.
+        return containsScreenPoint(homeViewport, x, y)
+                || (!drawerOpen && containsScreenPoint(dock, x, y));
+    }
+
+    private static boolean containsScreenPoint(View view, float x, float y) {
+        if (view == null || view.getVisibility() != View.VISIBLE) return false;
         int[] pos = new int[2];
-        homeViewport.getLocationOnScreen(pos);
-        return x >= pos[0] && x < pos[0] + homeViewport.getWidth()
-                && y >= pos[1] && y < pos[1] + homeViewport.getHeight();
+        view.getLocationOnScreen(pos);
+        return x >= pos[0] && x < pos[0] + view.getWidth()
+                && y >= pos[1] && y < pos[1] + view.getHeight();
     }
 
     @Override protected void onNewIntent(Intent intent) {
