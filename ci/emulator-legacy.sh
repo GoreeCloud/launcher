@@ -72,8 +72,27 @@ tap_label legacy-home "All apps"
 sleep 2
 dump_screen legacy-drawer
 assert_text legacy-drawer "All applications"
-assert_text legacy-drawer "Launcher QA Fixture"
-longpress_label legacy-drawer "Launcher QA Fixture"
+# The fixture is alphabetically below the visible grid on API 28. Verify its
+# discovery using the real local search instead of assuming every app fits.
+python3 - "$EVIDENCE/legacy-drawer.xml" <<'PY'
+import re,subprocess,sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+for n in root.iter():
+    a=n.attrib
+    if a.get("class")!="android.widget.EditText": continue
+    m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",a.get("bounds",""))
+    if m:
+        x1,y1,x2,y2=map(int,m.groups())
+        subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
+        sys.exit(0)
+raise SystemExit("Native application search input missing")
+PY
+adb shell input text QA
+adb shell input keyevent 4
+sleep 2
+dump_screen legacy-filtered
+assert_text legacy-filtered "Launcher QA Fixture"
+longpress_label legacy-filtered "Launcher QA Fixture"
 sleep 1
 dump_screen legacy-menu
 assert_text legacy-menu "Add to current home page"
