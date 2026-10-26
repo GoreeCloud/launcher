@@ -210,13 +210,15 @@ public final class HomeEditActivity extends Activity {
     }
 
     private void chooseTheme() {
-        String[] items = {"GoreeCloud violet", "Midnight", "Use device wallpaper"};
-        String selected = prefs.getString("launcher_skin", "violet");
-        int initial = "night".equals(selected) ? 1 : "wallpaper".equals(selected) ? 2 : 0;
+        // The founder rejected the purple gradient; a real device wallpaper
+        // is the default, with a neutral solid-color alternative.
+        String[] items = {"Use device wallpaper", "Midnight — solid"};
+        String selected = prefs.getString("launcher_skin", "wallpaper");
+        int initial = "night".equals(selected) ? 1 : 0;
         new AlertDialog.Builder(this).setTitle("Home appearance")
             .setSingleChoiceItems(items, initial, (dialog, which) -> {
                 prefs.edit().putString("launcher_skin",
-                    which == 1 ? "night" : which == 2 ? "wallpaper" : "violet").apply();
+                    which == 1 ? "night" : "wallpaper").apply();
                 dialog.dismiss();
             }).setNegativeButton("Cancel", null).show();
     }
