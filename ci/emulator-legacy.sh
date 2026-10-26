@@ -9,10 +9,36 @@ adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
 dump_screen() {
   local name="$1"
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
-  adb shell screencap -p /sdcard/launcher-screen.png
-  adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
+  local xml="$EVIDENCE/$name.xml"
+  local png="$EVIDENCE/$name.png"
+  # Rotation can briefly disconnect ADB, and UIAutomator can return a null
+  # root. Never accept stale local XML/screenshots from a previous attempt.
+  for attempt in 1 2 3 4 5 6 7 8; do
+    rm -f "$xml" "$png"
+    if adb get-state >/dev/null 2>&1 \
+      && adb shell uiautomator dump /sdcard/launcher-hierarchy.xml >/dev/null 2>&1 \
+      && adb pull /sdcard/launcher-hierarchy.xml "$xml" >/dev/null 2>&1 \
+      && adb shell screencap -p /sdcard/launcher-screen.png >/dev/null 2>&1 \
+      && adb pull /sdcard/launcher-screen.png "$png" >/dev/null 2>&1 \
+      && python3 - "$xml" "$png" <<'PYCHECK'
+import struct,sys,xml.etree.ElementTree as ET
+try:
+    root=ET.parse(sys.argv[1]).getroot()
+    if root.tag!="hierarchy": raise ValueError("Not an Android UI hierarchy")
+    with open(sys.argv[2],"rb") as source: header=source.read(24)
+    if len(header)!=24 or header[:8]!=b"\x89PNG\r\n\x1a\n":
+        raise ValueError("Invalid screenshot")
+    width,height=struct.unpack(">II",header[16:24])
+    if width==0 or height==0: raise ValueError("Zero-sized screenshot")
+except (OSError, ET.ParseError, ValueError):
+    raise SystemExit(1)
+PYCHECK
+    then return 0; fi
+    echo "Retry transient emulator hierarchy/screenshot capture ($name, $attempt)"
+    sleep 3
+  done
+  echo "No fresh, valid emulator UI/screenshot for $name" >&2
+  return 1
 }
 assert_text() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
@@ -90,7 +116,16 @@ PY
 adb shell input text QA
 adb shell input keyevent 4
 sleep 2
-dump_screen legacy-filtered
+# Older Android may deliver a delayed package/keyboard transition. Re-read
+# live UI state a bounded number of times before declaring fixture missing.
+for attempt in 1 2 3 4; do
+  dump_screen legacy-filtered
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/legacy-filtered.xml"; then
+    break
+  fi
+  echo "Waiting for API 26/28 filtered fixture discovery ($attempt)"
+  sleep 2
+done
 assert_text legacy-filtered "Launcher QA Fixture"
 longpress_label legacy-filtered "Launcher QA Fixture"
 sleep 1

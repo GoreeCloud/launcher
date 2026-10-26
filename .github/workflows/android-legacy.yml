@@ -1,6 +1,13 @@
 name: Native Android legacy compatibility
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-legacy.yml'
+      - 'ci/emulator-legacy.sh'
+      - 'app/src/main/java/com/goreecloud/launcher/SettingsActivity.java'
+      - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
+      - 'app/src/main/AndroidManifest.xml'
   push:
     branches: [main]
     paths:
