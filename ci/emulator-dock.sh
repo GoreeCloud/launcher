@@ -69,8 +69,16 @@ sleep 4
 dump_screen dock-start
 assert_text dock-start "Home workspace"
 tap_label dock-start "All apps"
-sleep 1
-dump_screen dock-drawer
+# Fresh AVD startup can swallow the initial tap while the task regains focus.
+# Require selected-tab semantics, retrying from the current hierarchy bounds.
+for attempt in 1 2 3 4; do
+  sleep 2
+  dump_screen dock-drawer
+  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/dock-drawer.xml"; then break; fi
+  echo "All apps not yet active; retry $attempt"
+  tap_label dock-drawer "All apps"
+done
+assert_text dock-drawer "All apps tab, selected"
 assert_text dock-drawer "Launcher QA Fixture"
 assert_text dock-drawer "Launcher Fixture Notes"
 for app in "Launcher QA Fixture" "Launcher Fixture Notes" \
