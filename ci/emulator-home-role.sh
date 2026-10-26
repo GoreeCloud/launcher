@@ -94,28 +94,25 @@ assert_text settings-before-consent "Select default Home app"
 tap_label settings-before-consent "Select default Home app"
 sleep 3
 dump_screen home-role-consent
-python3 - "$EVIDENCE/home-role-consent.xml" <<'PY'
-import sys, subprocess, re, xml.etree.ElementTree as ET
-root=ET.parse(sys.argv[1]).getroot()
-nodes=[n.attrib for n in root.iter()]
-all_text=[n.get("text","") for n in nodes]
-print("Consent screen labels:",all_text)
-if not any("GoreeCloud" in txt for txt in all_text):
-    raise SystemExit("Role consent UI does not name GoreeCloud")
-targets=("SET AS DEFAULT","SET DEFAULT","Set as default","SET","ALLOW","OK","Always")
-candidates=[n for n in nodes if n.get("text","") in targets]
-if len(candidates)!=1:
-    raise SystemExit("Ambiguous Home consent positive action: "+str([n.get("text") for n in candidates]))
-n=candidates[0]
-m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.get("bounds",""))
-if not m: raise SystemExit("Consent button has no bounds")
-x1,y1,x2,y2=map(int,m.groups())
-subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
-print("PASS tapped system Home consent:",n.get("text"))
-PY
-sleep 3
-adb shell cmd role get-role-holders --user 0 android.app.role.HOME | tee "$EVIDENCE/role-after.txt"
-grep -F 'com.goreecloud.launcher' "$EVIDENCE/role-after.txt"
+assert_text home-role-consent "GoreeCloud Launcher"
+assert_text home-role-consent "Set as default"
+# Android requires explicitly selecting the candidate radio row before enabling
+# its affirmative button; a tap on disabled "Set as default" changes nothing.
+tap_label home-role-consent "GoreeCloud Launcher"
+sleep 1
+dump_screen role-selected
+tap_label role-selected "Set as default"
+sleep 2
+role_assigned=0
+for attempt in 1 2 3 4 5 6 7 8; do
+  adb shell cmd role get-role-holders --user 0 android.app.role.HOME > "$EVIDENCE/role-after.txt"
+  if grep -Fq 'com.goreecloud.launcher' "$EVIDENCE/role-after.txt"; then
+    role_assigned=1
+    break
+  fi
+  sleep 2
+done
+test "$role_assigned" = 1 || { echo "Android Home role was not granted after user consent"; exit 1; }
 dump_screen after-role-consent
 # Returning to our Settings component reports the actual RoleManager state.
 adb shell am start -n com.goreecloud.launcher/.SettingsActivity
