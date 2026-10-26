@@ -57,12 +57,27 @@ public final class BackupCodec {
         if (!token(text).equals(value)) throw new IllegalArgumentException("Noncanonical text encoding");
         return text;
     }
+    private static boolean isComponentId(String id) {
+        return id != null && id.length() <= 256
+                && id.matches("[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+");
+    }
+
     private static void validate(Data data) {
         if (data.workspace == null || data.workspace.length() > 60000)
             throw new IllegalArgumentException("Workspace size invalid");
         WorkspaceState state = WorkspaceState.decode(data.workspace);
         if (!state.encode().equals(data.workspace))
             throw new IllegalArgumentException("Workspace layout damaged");
+        // Canonical page encoding alone does not prove that tokens are genuine
+        // Android component identifiers. Reject invented or malformed targets
+        // before accepting an imported file, even if its digest is recomputed.
+        for (int page = 0; page < state.pageCount(); page++) {
+            state.selectPage(page);
+            for (String id : state.currentItems()) {
+                if (!isComponentId(id))
+                    throw new IllegalArgumentException("Invalid home shortcut component");
+            }
+        }
         if (data.selectedPage < 0 || data.selectedPage >= state.pageCount())
             throw new IllegalArgumentException("Selected page out of range");
         if (data.columns < 3 || data.columns > 6)
@@ -73,8 +88,7 @@ public final class BackupCodec {
         if (unique.size() != data.pins.size())
             throw new IllegalArgumentException("Duplicate dock entries");
         for (String id : data.pins) {
-            if (id == null || id.length() > 256
-                    || !id.matches("[A-Za-z0-9_.]+/[A-Za-z0-9_.$]+"))
+            if (!isComponentId(id))
                 throw new IllegalArgumentException("Invalid dock component");
         }
     }
