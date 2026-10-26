@@ -253,24 +253,42 @@ public final class SettingsActivity extends Activity {
     }
 
     private void requestHomeSelection() {
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                RoleManager role = getSystemService(RoleManager.class);
-                if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
-                    if (role.isRoleHeld(RoleManager.ROLE_HOME)) {
-                        startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
-                        return;
-                    }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager role = getSystemService(RoleManager.class);
+            if (role != null && role.isRoleAvailable(RoleManager.ROLE_HOME)) {
+                if (role.isRoleHeld(RoleManager.ROLE_HOME)) {
+                    openPlatformHomeSettings();
+                    return;
+                }
+                try {
                     startActivityForResult(
                             role.createRequestRoleIntent(RoleManager.ROLE_HOME), SELECT_HOME_ROLE);
                     return;
+                } catch (ActivityNotFoundException | SecurityException | IllegalArgumentException ex) {
+                    // A device may expose the Home role without a request UI.
                 }
             }
-            startActivity(new Intent(Settings.ACTION_HOME_SETTINGS));
-        } catch (ActivityNotFoundException | SecurityException | IllegalArgumentException ex) {
-            Toast.makeText(this, "Home selection unavailable on this device",
-                    Toast.LENGTH_LONG).show();
         }
+        openPlatformHomeSettings();
+    }
+
+    private void openPlatformHomeSettings() {
+        // API 26–28 and OEM variants may not handle ACTION_HOME_SETTINGS.
+        // Safely degrade to Default apps and finally general Android Settings.
+        String[] actions = {Settings.ACTION_HOME_SETTINGS,
+                Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS, Settings.ACTION_SETTINGS};
+        for (String action : actions) {
+            try {
+                Intent intent = new Intent(action);
+                if (intent.resolveActivity(getPackageManager()) == null) continue;
+                startActivity(intent);
+                return;
+            } catch (ActivityNotFoundException | SecurityException | IllegalArgumentException ex) {
+                // Try the next documented Settings entry point.
+            }
+        }
+        Toast.makeText(this, "Android Home settings unavailable on this device",
+                Toast.LENGTH_LONG).show();
     }
 
     private Button backupButton(String caption, boolean primary) {
