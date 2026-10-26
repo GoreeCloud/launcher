@@ -7,8 +7,6 @@ import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextClock;
 import android.widget.TextView;
-import java.text.DateFormat;
-import java.util.Date;
 
 /** First-party interactive Home cards. Values use device time, never fabricated weather. */
 public final class HomeDashboardView {
@@ -52,12 +50,11 @@ public final class HomeDashboardView {
         LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(0, -1, 2);
         dateParams.leftMargin = dp(context, 10);
         hero.addView(date, dateParams);
-        date.addView(label(context, android.text.format.DateFormat.format("EEE", new Date()).toString(),
-                14, 0xFF514984, true));
-        date.addView(label(context, android.text.format.DateFormat.format("d", new Date()).toString(),
-                34, 0xFF211F30, true));
-        date.addView(label(context, android.text.format.DateFormat.format("MMM", new Date()).toString(),
-                15, 0xFF514984, false));
+        // TextClock receives time/time-zone changes and updates at midnight.
+        // Static Date labels silently become incorrect on a long-running Home.
+        date.addView(dateClock(context, "EEE", 14, 0xFF514984, true));
+        date.addView(dateClock(context, "d", 34, 0xFF211F30, true));
+        date.addView(dateClock(context, "MMM", 15, 0xFF514984, false));
 
         LinearLayout secondary = new LinearLayout(context);
         secondary.setOrientation(LinearLayout.HORIZONTAL);
@@ -85,6 +82,19 @@ public final class HomeDashboardView {
         panel.addView(label(c, subtitle, 11, 0xFF56516C, false));
         panel.setOnClickListener(v -> action.run());
         return panel;
+    }
+
+    /** The founder's date tile always reflects the actual device-local date. */
+    private static TextClock dateClock(Context context, String pattern,
+            int size, int color, boolean bold) {
+        TextClock clock = new TextClock(context);
+        clock.setFormat12Hour(pattern);
+        clock.setFormat24Hour(pattern);
+        clock.setTextSize(size);
+        clock.setTextColor(color);
+        clock.setGravity(Gravity.CENTER);
+        if (bold) clock.setTypeface(null, Typeface.BOLD);
+        return clock;
     }
 
     private static TextView label(Context c, String s, int size, int color, boolean bold) {
