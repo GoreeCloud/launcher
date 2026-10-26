@@ -86,7 +86,10 @@ public final class SettingsActivity extends Activity {
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        body.addView(header, new LinearLayout.LayoutParams(-1, dp(74)));
+        // At 200% system text size the title and subtitle together exceed
+        // 74dp. Never clip the heading or back control in a fixed-height row.
+        header.setMinimumHeight(dp(74));
+        body.addView(header, new LinearLayout.LayoutParams(-1, -2));
         TextView back = text("‹", 30, true, TEXT);
         back.setGravity(Gravity.CENTER);
         back.setContentDescription("Back to Home");
