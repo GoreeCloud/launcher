@@ -24,6 +24,8 @@ import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
+import android.view.animation.DecelerateInterpolator;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
@@ -64,6 +66,13 @@ public final class LauncherActivity extends Activity {
     private TextView homeTab;
     private TextView appsTab;
     private LinearLayout dock;
+    private TextView dockTitle;
+    private FrameLayout homeViewport;
+    private ScrollView viewportScroll;
+    private ScrollView fullPageScroll;
+    private float gestureStartX;
+    private float gestureStartY;
+    private boolean gestureEligible;
     private EditText query;
     private TextView empty;
     private TextView emptyTitle;
@@ -130,6 +139,56 @@ public final class LauncherActivity extends Activity {
         super.onSaveInstanceState(outState);
     }
 
+    /** Native workspace gestures, scoped to the content surface, not Settings or search. */
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                gestureStartX = event.getRawX();
+                gestureStartY = event.getRawY();
+                gestureEligible = gestureStartedInWorkspace(gestureStartX, gestureStartY);
+                break;
+            case MotionEvent.ACTION_UP:
+                if (gestureEligible && homeViewport != null) {
+                    boolean atTop = (viewportScroll == null || viewportScroll.getScrollY() == 0)
+                            && (fullPageScroll == null || fullPageScroll.getScrollY() == 0);
+                    HomeGesturePolicy.Action gesture = HomeGesturePolicy.resolve(
+                        event.getRawX() - gestureStartX, event.getRawY() - gestureStartY,
+                        dp(96), drawerOpen,
+                        prefs.getBoolean("swipe_up_drawer", true),
+                        prefs.getBoolean("swipe_down_close", true), atTop);
+                    gestureEligible = false;
+                    if (gesture != HomeGesturePolicy.Action.NONE) {
+                        // Cancel the child's pending click/long-press rather than
+                        // accidentally opening an app while changing launcher pages.
+                        MotionEvent cancel = MotionEvent.obtain(event);
+                        cancel.setAction(MotionEvent.ACTION_CANCEL);
+                        super.dispatchTouchEvent(cancel);
+                        cancel.recycle();
+                        if (gesture == HomeGesturePolicy.Action.OPEN_DRAWER) setMode(true);
+                        else if (gesture == HomeGesturePolicy.Action.CLOSE_DRAWER) setMode(false);
+                        else if (gesture == HomeGesturePolicy.Action.PREVIOUS_PAGE) switchPage(-1);
+                        else if (gesture == HomeGesturePolicy.Action.NEXT_PAGE) switchPage(1);
+                        return true;
+                    }
+                }
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                gestureEligible = false;
+                break;
+            default:
+                break;
+        }
+        return super.dispatchTouchEvent(event);
+    }
+
+    private boolean gestureStartedInWorkspace(float x, float y) {
+        if (homeViewport == null || homeViewport.getVisibility() != View.VISIBLE) return false;
+        int[] pos = new int[2];
+        homeViewport.getLocationOnScreen(pos);
+        return x >= pos[0] && x < pos[0] + homeViewport.getWidth()
+                && y >= pos[1] && y < pos[1] + homeViewport.getHeight();
+    }
+
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
@@ -190,8 +249,11 @@ public final class LauncherActivity extends Activity {
                 getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE,
                 systemFontScale);
         View insetSurface;
+        fullPageScroll = null;
+        viewportScroll = null;
         if (compactLayout) {
             ScrollView fullPage = new ScrollView(this);
+            fullPageScroll = fullPage;
             fullPage.setFillViewport(true);
             fullPage.setClipToPadding(true);
             fullPage.setBackgroundColor(0xFFF4F3FC);
@@ -304,6 +366,7 @@ public final class LauncherActivity extends Activity {
         pageControls.addView(removePageAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         FrameLayout viewport = new FrameLayout(this);
+        homeViewport = viewport;
         root.addView(viewport, compactLayout
                 ? new LinearLayout.LayoutParams(-1, -2)
                 : new LinearLayout.LayoutParams(-1, 0, 1));
@@ -314,6 +377,7 @@ public final class LauncherActivity extends Activity {
             viewport.addView(grid, new FrameLayout.LayoutParams(-1, -2));
         } else {
             ScrollView scroll = new ScrollView(this);
+            viewportScroll = scroll;
             scroll.setFillViewport(true);
             viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
             scroll.addView(grid);
@@ -324,7 +388,7 @@ public final class LauncherActivity extends Activity {
         emptyPanel.setGravity(Gravity.CENTER);
         emptyPanel.setPadding(dp(20), dp(28), dp(20), dp(28));
         emptyPanel.setBackground(background(0xFFE8E6FF, 26));
-        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(230), Gravity.CENTER);
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(206), Gravity.CENTER);
         viewport.addView(emptyPanel, placeholder);
         emptyTitle = label("", 22, true);
         emptyTitle.setGravity(Gravity.CENTER);
@@ -343,7 +407,7 @@ public final class LauncherActivity extends Activity {
         actionParams.topMargin = dp(20);
         emptyPanel.addView(emptyAction, actionParams);
 
-        TextView dockTitle = label("Pinned apps", 16, true);
+        dockTitle = label("Pinned apps", 16, true);
         root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(36)));
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
@@ -406,6 +470,7 @@ public final class LauncherActivity extends Activity {
 
     /** Home pages are locally persisted; the drawer always shows available apps. */
     private void setMode(boolean showDrawer) {
+        boolean openingDrawer = showDrawer && !drawerOpen;
         drawerOpen = showDrawer;
         if (!showDrawer) {
             query.setText("");
@@ -415,6 +480,17 @@ public final class LauncherActivity extends Activity {
             rootSurface.requestFocus();
         }
         showApps();
+        if (openingDrawer && prefs.getBoolean("drawer_animation", true)) {
+            grid.animate().cancel();
+            grid.setTranslationY(dp(130));
+            grid.setAlpha(0.70f);
+            grid.animate().translationY(0f).alpha(1f).setDuration(260)
+                    .setInterpolator(new DecelerateInterpolator()).start();
+        } else {
+            grid.animate().cancel();
+            grid.setTranslationY(0f);
+            grid.setAlpha(1f);
+        }
     }
 
     private void switchPage(int offset) {
@@ -460,13 +536,17 @@ public final class LauncherActivity extends Activity {
     private void showApps() {
         if (grid == null) return;
         grid.removeAllViews();
+        boolean drawerMode = drawerOpen || !query.getText().toString().trim().isEmpty();
         int columns = ResponsiveHomePolicy.visibleColumns(
-                prefs.getInt("columns", 4), systemFontScale);
+                prefs.getInt(drawerMode ? "drawer_columns" : "columns", 4), systemFontScale);
         grid.setColumnCount(columns);
         boolean names = prefs.getBoolean("labels", true);
         String text = query.getText().toString();
         boolean allApps = drawerOpen || !text.trim().isEmpty();
         pageControls.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
+        dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
+        dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         sectionLabel.setText(allApps ? "All applications" : "Home workspace");
         homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
         appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
@@ -502,7 +582,8 @@ public final class LauncherActivity extends Activity {
         int slotWidth = Math.max(dp(32), Math.min(
                 dp(ResponsiveHomePolicy.maximumTileWidthDp(systemFontScale)),
                 (availableWidth - dp(4) * columns) / columns));
-        int iconSize = Math.min(dp(48), Math.max(dp(22), slotWidth - dp(12)));
+        int iconSize = Math.min(dp(Math.max(36, Math.min(60, prefs.getInt("icon_size", 48)))),
+                Math.max(dp(22), slotWidth - dp(12)));
         for (int i = 0; i < shown.size(); i++) {
             View tile = tile(shown.get(i), names, iconSize, false);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
@@ -583,19 +664,24 @@ public final class LauncherActivity extends Activity {
             if (app == null) continue;
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
             params.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(tile(app, false, dp(44), true), params);
+            dock.addView(tile(app, prefs.getBoolean("dock_labels", false), dp(44), true), params);
         }
         int occupied = dock.getChildCount();
-        if (occupied == 0) {
-            TextView hint = label(getString(pins.isEmpty()
-                    ? R.string.dock_empty : R.string.dock_unavailable), 13, false);
-            hint.setGravity(Gravity.CENTER);
-            dock.addView(hint);
-        } else {
-            // Five equal dock slots; one app never expands to occupy the entire dock.
-            for (int i = occupied; i < 5; i++) {
-                dock.addView(new Space(this), new LinearLayout.LayoutParams(0, dp(72), 1));
-            }
+        // Five visible tappable slots, even on a fresh install. This is a real
+        // dock surface rather than a paragraph whose meaning must be guessed.
+        for (int i = occupied; i < 5; i++) {
+            TextView add = action("+", () -> {
+                setMode(true);
+                Toast.makeText(this, "Long-press an app, then choose Pin to dock",
+                        Toast.LENGTH_LONG).show();
+            });
+            add.setContentDescription("Add app to dock");
+            add.setTextSize(23);
+            add.setTextColor(0xFF5145D9);
+            add.setBackground(background(0xFFF6F5FF, 18));
+            LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, dp(72), 1);
+            slot.setMargins(dp(2), 0, dp(2), 0);
+            dock.addView(add, slot);
         }
     }
 
