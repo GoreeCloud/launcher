@@ -225,13 +225,19 @@ public final class LauncherActivity extends Activity {
 
         FrameLayout viewport = new FrameLayout(this);
         root.addView(viewport, compactLayout
-                ? new LinearLayout.LayoutParams(-1, dp(232))
+                ? new LinearLayout.LayoutParams(-1, -2)
                 : new LinearLayout.LayoutParams(-1, 0, 1));
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
         grid = new GridLayout(this);
-        scroll.addView(grid);
+        if (compactLayout) {
+            // One full-page scroller in landscape and enlarged-text mode.
+            // Nested ScrollViews had intercepted gestures before the dock was reached.
+            viewport.addView(grid, new FrameLayout.LayoutParams(-1, -2));
+        } else {
+            ScrollView scroll = new ScrollView(this);
+            scroll.setFillViewport(true);
+            viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+            scroll.addView(grid);
+        }
 
         emptyPanel = new LinearLayout(this);
         emptyPanel.setOrientation(LinearLayout.VERTICAL);
