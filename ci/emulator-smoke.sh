@@ -145,6 +145,14 @@ sleep 1
 dump_screen home-shortcut
 assert_text home-shortcut "Launcher QA Fixture"
 assert_text home-shortcut "Launcher Fixture Notes"
+python3 - "$EVIDENCE/home-shortcut.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+fields = [n.attrib for n in root.iter() if n.attrib.get("class")=="android.widget.EditText"]
+if len(fields)!=1 or fields[0].get("focused")=="true":
+    raise SystemExit("Home search retained keyboard focus after switching from All apps")
+print("PASS Home search is not focused")
+PY
 
 # Verify an accessible menu alternative to drag/drop for ordering shortcuts.
 longpress_label home-shortcut "Launcher Fixture Notes"

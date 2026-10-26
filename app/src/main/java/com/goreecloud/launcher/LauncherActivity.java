@@ -46,6 +46,7 @@ public final class LauncherActivity extends Activity {
     private WorkspaceState workspace;
     private boolean drawerOpen;
     private GridLayout grid;
+    private LinearLayout rootSurface;
     private LinearLayout pageControls;
     private TextView pageLabel;
     private TextView sectionLabel;
@@ -79,6 +80,8 @@ public final class LauncherActivity extends Activity {
     private void createScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setFocusableInTouchMode(true);
+        rootSurface = root;
         root.setPadding(dp(20), dp(16), dp(20), dp(12));
         root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
         // Preserve GC UI gutters while also respecting status/navigation bars on API 26+.
@@ -247,12 +250,10 @@ public final class LauncherActivity extends Activity {
         drawerOpen = showDrawer;
         if (!showDrawer) {
             query.setText("");
-            query.clearFocus();
-            View content = getWindow().getDecorView();
-            content.setFocusableInTouchMode(true);
-            content.requestFocus();
             InputMethodManager keyboard = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             if (keyboard != null) keyboard.hideSoftInputFromWindow(query.getWindowToken(), 0);
+            query.clearFocus();
+            rootSurface.requestFocus();
         }
         showApps();
     }
