@@ -81,6 +81,7 @@ public final class LauncherActivity extends Activity {
     private static final int PICK_WIDGET_REQUEST = 811;
     private static final int WIDGET_HOST_ID = 32019;
     private AppWidgetHost widgetHost;
+    private int pendingWidgetId = -1;
     private TextView dockTitle;
     private FrameLayout homeViewport;
     private ScrollView viewportScroll;
@@ -134,6 +135,7 @@ public final class LauncherActivity extends Activity {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
         widgetHost = new AppWidgetHost(this, WIDGET_HOST_ID);
+        if (state != null) pendingWidgetId = state.getInt("pendingWidgetId", -1);
         reloadPins();
         workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
         workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
@@ -155,6 +157,7 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle outState) {
         outState.putBoolean("drawerOpen", drawerOpen);
+        outState.putInt("pendingWidgetId", pendingWidgetId);
         outState.putBoolean("choosingDockApp", choosingDockApp);
         outState.putBoolean("choosingHomeApp", choosingHomeApp);
         outState.putString("searchQuery", query == null ? "" : query.getText().toString());
@@ -474,18 +477,25 @@ public final class LauncherActivity extends Activity {
     }
 
     private void pickWidget() {
+        if (prefs.getString("home_widget_ids_v1", "").split(",").length >= 3
+                && !prefs.getString("home_widget_ids_v1", "").isEmpty()) {
+            Toast.makeText(this, "This preview supports three widgets", Toast.LENGTH_LONG).show();
+            return;
+        }
         int id;
         try { id = widgetHost.allocateAppWidgetId(); }
         catch (RuntimeException unavailable) {
             Toast.makeText(this, "Widgets are not available on this device", Toast.LENGTH_SHORT).show();
             return;
         }
+        pendingWidgetId = id;
         Intent picker = new Intent(AppWidgetManager.ACTION_APPWIDGET_PICK);
         picker.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
         try {
             startActivityForResult(picker, PICK_WIDGET_REQUEST);
         } catch (ActivityNotFoundException | SecurityException unavailable) {
             widgetHost.deleteAppWidgetId(id);
+            pendingWidgetId = -1;
             Toast.makeText(this, "Android widget picker is unavailable", Toast.LENGTH_SHORT).show();
         }
     }
@@ -501,8 +511,10 @@ public final class LauncherActivity extends Activity {
             return;
         }
         if (request != PICK_WIDGET_REQUEST) return;
-        int chosen = data == null ? -1 : data.getIntExtra(
-                AppWidgetManager.EXTRA_APPWIDGET_ID, -1);
+        int chosen = data == null ? pendingWidgetId : data.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
+        int originallyAllocated = pendingWidgetId;
+        pendingWidgetId = -1;
         if (result == RESULT_OK && chosen > 0
                 && AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen) != null) {
             String saved = prefs.getString("home_widget_ids_v1", "");
@@ -512,6 +524,9 @@ public final class LauncherActivity extends Activity {
             renderWidgets();
         } else if (chosen > 0) {
             widgetHost.deleteAppWidgetId(chosen);
+        }
+        if (originallyAllocated > 0 && originallyAllocated != chosen) {
+            widgetHost.deleteAppWidgetId(originallyAllocated);
         }
     }
 
