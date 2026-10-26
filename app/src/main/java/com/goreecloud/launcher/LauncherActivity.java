@@ -76,6 +76,15 @@ public final class LauncherActivity extends Activity {
         refresh();
     }
 
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())
+                && intent.hasCategory(Intent.CATEGORY_HOME) && grid != null) {
+            setMode(false);
+        }
+    }
+
     @Override protected void onResume() {
         super.onResume();
         if (grid != null) {
