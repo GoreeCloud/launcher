@@ -305,6 +305,10 @@ public final class SettingsActivity extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == SELECT_HOME_ROLE) {
+            updateHomeRoleStatus();
+            return;
+        }
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri chosen = data.getData();
         if (request == EXPORT_FILE) exportTo(chosen);
