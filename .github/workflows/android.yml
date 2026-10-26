@@ -30,6 +30,8 @@ jobs:
         run: |
           for script in ci/emulator-menu-retry.sh ci/emulator-dock.sh ci/emulator-backup.sh ci/emulator-keyboard.sh; do bash -n "$script"; done
           bash ci/test-emulator-menu-retry.sh
+          for script in ci/emulator-hierarchy-retry.sh ci/emulator-app-availability.sh; do bash -n "$script"; done
+          bash ci/test-emulator-hierarchy-retry.sh
       - name: Compile and test
         run: gradle :app:assembleDebug :app:testDebugUnitTest :qa-fixture:assembleDebug --no-daemon
       - name: Upload evaluation APK
