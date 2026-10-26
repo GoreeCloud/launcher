@@ -79,6 +79,7 @@ public final class LauncherActivity extends Activity {
     private LinearLayout topHeading;
     private static final int EDIT_HOME_REQUEST = 810;
     private static final int PICK_WIDGET_REQUEST = 811;
+    private static final int CONFIGURE_WIDGET_REQUEST = 812;
     private static final int WIDGET_HOST_ID = 32019;
     private AppWidgetHost widgetHost;
     private int pendingWidgetId = -1;
@@ -510,10 +511,28 @@ public final class LauncherActivity extends Activity {
             refresh();
             return;
         }
-        if (request != PICK_WIDGET_REQUEST) return;
+        if (request != PICK_WIDGET_REQUEST && request != CONFIGURE_WIDGET_REQUEST) return;
         int chosen = data == null ? pendingWidgetId : data.getIntExtra(
                 AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
         int originallyAllocated = pendingWidgetId;
+        if (request == PICK_WIDGET_REQUEST && result == RESULT_OK && chosen > 0) {
+            AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen);
+            if (info != null && info.configure != null) {
+                Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
+                configure.setComponent(info.configure);
+                configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, chosen);
+                pendingWidgetId = chosen;
+                try {
+                    startActivityForResult(configure, CONFIGURE_WIDGET_REQUEST);
+                    if (originallyAllocated > 0 && originallyAllocated != chosen)
+                        widgetHost.deleteAppWidgetId(originallyAllocated);
+                    return;
+                } catch (ActivityNotFoundException | SecurityException exception) {
+                    // Never retain an unconfigured provider as a working widget.
+                    result = RESULT_CANCELED;
+                }
+            }
+        }
         pendingWidgetId = -1;
         if (result == RESULT_OK && chosen > 0
                 && AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen) != null) {
@@ -525,9 +544,8 @@ public final class LauncherActivity extends Activity {
         } else if (chosen > 0) {
             widgetHost.deleteAppWidgetId(chosen);
         }
-        if (originallyAllocated > 0 && originallyAllocated != chosen) {
+        if (originallyAllocated > 0 && originallyAllocated != chosen)
             widgetHost.deleteAppWidgetId(originallyAllocated);
-        }
     }
 
     private void renderWidgets() {
