@@ -724,8 +724,12 @@ public final class LauncherActivity extends Activity {
         dockOrder.addAll(DockOrder.reconcile(pins, prefs.getString("dock_order_v1", "")));
     }
     private void savePins() {
-        prefs.edit().putStringSet("pins", new HashSet<>(pins))
-            .putString("dock_order_v1", DockOrder.encode(dockOrder)).apply();
+        // Explicit user gestures are rare; persist the set and its custom order
+        // before the activity can be stopped or an accessibility client exits.
+        if (!prefs.edit().putStringSet("pins", new HashSet<>(pins))
+                .putString("dock_order_v1", DockOrder.encode(dockOrder)).commit()) {
+            Toast.makeText(this, "Could not save dock changes", Toast.LENGTH_SHORT).show();
+        }
     }
     /** Native app shortcut semantics and direct, non-gesture dock controls. */
     private void markTileAccessible(View cell, Entry app, boolean dockTile) {
