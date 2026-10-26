@@ -148,6 +148,29 @@ adb shell input swipe 680 770 680 175 560
 sleep 2
 dump_screen responsive-landscape-bottom
 assert_text responsive-landscape-bottom "Pinned apps"
+# A hierarchy entry can be partly hidden behind Android's bottom system bar.
+# Scroll farther, then require both the heading and empty dock hint fully inside
+# the visible display instead of trusting UIAutomator text presence alone.
+adb shell input swipe 680 780 680 145 600
+sleep 2
+dump_screen responsive-landscape-dock
+assert_text responsive-landscape-dock "Pinned apps"
+assert_text responsive-landscape-dock "Long-press an app to pin it here"
+python3 - "$EVIDENCE/responsive-landscape-dock.xml" "$EVIDENCE/responsive-landscape-dock.png" <<'PY'
+import re,struct,sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+img=open(sys.argv[2],"rb").read(24)
+width,height=struct.unpack(">II",img[16:24])
+for name in ("Pinned apps","Long-press an app to pin it here"):
+    matches=[n.attrib for n in root.iter() if n.attrib.get("text")==name]
+    if len(matches)!=1: raise SystemExit("Cannot find unique dock element "+name)
+    m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',matches[0].get("bounds",""))
+    if not m: raise SystemExit("Missing dock element bounds")
+    x1,y1,x2,y2=map(int,m.groups())
+    if x1<0 or x2>width or y1 < height*0.06 or y2 > height*0.88:
+        raise SystemExit("Dock element clipped by status/navigation bars: "+name+" "+str((x1,y1,x2,y2)))
+    print("PASS landscape dock safely visible",name,(x1,y1,x2,y2))
+PY
 # Two-line tile labels must be visible/reachable after scrolling.
 python3 - "$EVIDENCE/responsive-landscape-top.xml" "$EVIDENCE/responsive-landscape-bottom.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
