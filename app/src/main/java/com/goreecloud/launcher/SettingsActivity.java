@@ -226,8 +226,8 @@ public final class SettingsActivity extends Activity {
         dockCard.addView(text("Persistent Home dock", 20, true, TEXT));
         dockCard.addView(settingToggle("Show app dock", "dock_enabled", true));
         dockCard.addView(settingToggle("Show dock icon labels", "dock_labels", false));
-        dockCard.addView(text("Tap an empty dock slot to browse apps, then long-press an icon "
-                + "and choose Pin to dock. Reorder pinned apps through their long-press actions.",
+        dockCard.addView(text("Tap an empty dock slot, then tap an app to pin it. "
+                + "Reorder pinned apps through their long-press actions.",
                 13, false, MUTED));
 
         LinearLayout.LayoutParams defaultHeaderParams = new LinearLayout.LayoutParams(-1, -2);
