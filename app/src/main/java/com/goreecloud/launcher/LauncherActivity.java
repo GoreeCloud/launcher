@@ -95,9 +95,9 @@ public final class LauncherActivity extends Activity {
         root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
-        compactLayout = getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_LANDSCAPE
-                || getResources().getConfiguration().fontScale >= 1.3f;
+        compactLayout = ResponsiveHomePolicy.shouldScroll(
+                getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE,
+                getResources().getConfiguration().fontScale);
         View insetSurface;
         if (compactLayout) {
             ScrollView fullPage = new ScrollView(this);
@@ -371,7 +371,7 @@ public final class LauncherActivity extends Activity {
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                     GridLayout.spec(i / columns), GridLayout.spec(i % columns));
             params.width = slotWidth;
-            params.height = dp(names && compactLayout ? 132 : names ? 112 : 84);
+            params.height = dp(ResponsiveHomePolicy.shortcutHeightDp(names, compactLayout));
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
