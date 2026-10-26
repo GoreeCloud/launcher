@@ -7,10 +7,37 @@ trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" 
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
+# Android's accessibility bridge occasionally returns a null hierarchy
+# immediately after emulator startup. Retry only the snapshot, and never use
+# an XML file left over from a previous iteration.
+dump_hierarchy() {
+  local name="$1" remote=/sdcard/launcher-hierarchy.xml attempt
+  for attempt in 1 2 3 4 5 6; do
+    adb shell rm -f "$remote" >/dev/null 2>&1 || true
+    if adb shell uiautomator dump "$remote" >/dev/null 2>&1 \
+        && adb shell test -s "$remote" \
+        && adb pull "$remote" "$EVIDENCE/$name.xml" >/dev/null 2>&1 \
+        && python3 - "$EVIDENCE/$name.xml" <<'PY'
+import sys, xml.etree.ElementTree as ET
+try:
+    root = ET.parse(sys.argv[1]).getroot()
+    if root.tag != 'hierarchy':
+        raise ValueError('Unexpected UI hierarchy root')
+except (ET.ParseError, ValueError):
+    sys.exit(1)
+PY
+    then
+      return 0
+    fi
+    echo "UI hierarchy unavailable ($name, attempt $attempt/6)" >&2
+    sleep 2
+  done
+  echo "Unable to obtain a valid UI hierarchy: $name" >&2
+  return 1
+}
 dump_screen() {
   local name="$1"
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
+  dump_hierarchy "$name"
   adb shell screencap -p /sdcard/launcher-screen.png
   adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
 }
@@ -69,19 +96,27 @@ sleep 4
 dump_screen keyboard-initial
 assert_text keyboard-initial "Home workspace"
 tap_label keyboard-initial "All apps"
-sleep 2
-dump_screen keyboard-drawer
-assert_text keyboard-drawer "All applications"
+# A fresh Home screen can consume the first tap while focus/insets settle.
+for attempt in 1 2 3 4; do
+  sleep 2
+  dump_screen keyboard-drawer
+  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/keyboard-drawer.xml"; then
+    break
+  fi
+  echo "All apps selection not yet visible; retry $attempt"
+  tap_label keyboard-drawer "All apps"
+done
+assert_text keyboard-drawer "All apps tab, selected"
 assert_text keyboard-drawer "Launcher QA Fixture"
 
 # Navigate with hardware keyboard Tab events, never a touch long-press.
 # UIAutomator reports the currently focused view; seek the fixture tile.
 found=0
-for attempt in $(seq 1 60); do
+# A full drawer can contain more than 60 focusable Android/system nodes.
+for attempt in $(seq 1 100); do
   adb shell input keyevent KEYCODE_TAB
   sleep 0.20
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml >/dev/null
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/tab-traversal.xml" >/dev/null
+  dump_hierarchy tab-traversal
   if python3 - "$EVIDENCE/tab-traversal.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
@@ -94,8 +129,17 @@ PY
     found=1
     break
   fi
+  if (( attempt % 15 == 0 )); then
+    python3 - "$EVIDENCE/tab-traversal.xml" "$attempt" <<'PY'
+import sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+focused = [(n.attrib.get("content-desc") or n.attrib.get("text") or n.attrib.get("class"))
+           for n in root.iter() if n.attrib.get("focused") == "true"]
+print("Tab step", sys.argv[2], "focused:", focused)
+PY
+  fi
 done
-test "$found" -eq 1 || { echo "Unable to focus launcher tile with Tab"; exit 1; }
+test "$found" -eq 1 || { echo "Unable to focus launcher tile with Tab after 100 events"; exit 1; }
 dump_screen keyboard-tile-focused
 
 # Android's physical Menu key must expose the native contextual actions.
