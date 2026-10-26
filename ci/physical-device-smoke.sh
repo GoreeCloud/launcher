@@ -73,8 +73,9 @@ cleanup() {
 trap cleanup EXIT
 
 echo "Preflight complete; physical Android API $(adbq shell getprop ro.build.version.sdk | tr -d '\r')."
-adbq install --no-streaming "$apk" >/dev/null
+# Register ownership before installation so a partially successful install is cleaned up.
 installed=1
+adbq install --no-streaming "$apk" >/dev/null
 echo "Installed disposable evaluation APK; checking launch."
 output="$(adbq shell am start -W -n "$package/.LauncherActivity")"
 grep -Eq 'Status:[[:space:]]*ok' <<<"$output" ||
