@@ -6,6 +6,7 @@ on:
       - '.github/workflows/android-availability.yml'
       - 'ci/emulator-app-availability.sh'
       - 'ci/emulator-hierarchy-retry.sh'
+      - 'ci/emulator-menu-retry.sh'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
       - 'app/src/main/java/com/goreecloud/launcher/CatalogRefreshPolicy.java'
   push:
@@ -14,6 +15,7 @@ on:
       - '.github/workflows/android-availability.yml'
       - 'ci/emulator-app-availability.sh'
       - 'ci/emulator-hierarchy-retry.sh'
+      - 'ci/emulator-menu-retry.sh'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
 
 permissions:
