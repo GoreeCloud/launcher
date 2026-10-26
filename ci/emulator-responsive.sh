@@ -16,6 +16,7 @@ dump_screen() {
   for attempt in 1 2 3 4 5 6 7 8; do
     rm -f "$xml" "$png"
     if adb get-state >/dev/null 2>&1 \
+      && adb shell rm -f /sdcard/launcher-hierarchy.xml /sdcard/launcher-screen.png >/dev/null 2>&1 \
       && adb shell uiautomator dump /sdcard/launcher-hierarchy.xml >/dev/null 2>&1 \
       && adb pull /sdcard/launcher-hierarchy.xml "$xml" >/dev/null 2>&1 \
       && adb shell screencap -p /sdcard/launcher-screen.png >/dev/null 2>&1 \
@@ -145,7 +146,21 @@ if "All apps tab, selected" not in descriptions:
 print("PASS local Notes query and matching shortcut retained")
 PYCHECK
 }
-assert_filtered_notes responsive-search-before-rotation
+# The fixture package catalog can settle after HOME startup on a cold AVD.
+# Retry the same real query and matching/nonmatching assertions against fresh
+# snapshots; never merely accept a visible All Apps tab as search success.
+assert_filtered_notes_eventually() {
+  local name="$1"
+  for attempt in 1 2 3 4 5 6; do
+    dump_screen "$name"
+    if assert_filtered_notes "$name"; then return 0; fi
+    echo "Awaiting actual filtered Notes fixture ($name, attempt $attempt)"
+    sleep 2
+  done
+  echo "Failed to establish real Notes search/filter state: $name" >&2
+  return 1
+}
+assert_filtered_notes_eventually responsive-search-before-rotation
 # Hide only the software keyboard so it does not obscure emulator UI bounds.
 adb shell input keyevent KEYCODE_BACK
 # Rotate the active launcher WITHOUT force-stopping it. Android recreates the
@@ -155,12 +170,12 @@ adb shell settings put system user_rotation 1
 sleep 3
 dump_screen responsive-drawer-landscape
 assert_text responsive-drawer-landscape "All apps tab, selected"
-assert_filtered_notes responsive-drawer-landscape
+assert_filtered_notes_eventually responsive-drawer-landscape
 adb shell settings put system user_rotation 0
 sleep 3
 dump_screen responsive-drawer-portrait
 assert_text responsive-drawer-portrait "All apps tab, selected"
-assert_filtered_notes responsive-drawer-portrait
+assert_filtered_notes_eventually responsive-drawer-portrait
 # Returning Home must clear transient search before the existing placement test.
 tap_label responsive-drawer-portrait "Home"
 sleep 2
