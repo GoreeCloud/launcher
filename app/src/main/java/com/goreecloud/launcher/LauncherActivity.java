@@ -77,6 +77,8 @@ public final class LauncherActivity extends Activity {
     private LinearLayout dashboard;
     private LinearLayout widgetArea;
     private LinearLayout topHeading;
+    private LinearLayout modeTabs;
+    private Space workspaceSpacer;
     private static final int EDIT_HOME_REQUEST = 810;
     private static final int PICK_WIDGET_REQUEST = 811;
     private static final int CONFIGURE_WIDGET_REQUEST = 812;
@@ -285,7 +287,7 @@ public final class LauncherActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setFocusableInTouchMode(true);
         rootSurface = root;
-        root.setBackground(GoreeVisuals.atmosphere(false)); // GC UI Canvas
+        root.setBackgroundColor(android.graphics.Color.TRANSPARENT); // System wallpaper
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
         systemFontScale = getResources().getConfiguration().fontScale;
@@ -300,7 +302,7 @@ public final class LauncherActivity extends Activity {
             fullPageScroll = fullPage;
             fullPage.setFillViewport(true);
             fullPage.setClipToPadding(true);
-            fullPage.setBackground(GoreeVisuals.atmosphere(false));
+            fullPage.setBackgroundColor(android.graphics.Color.TRANSPARENT);
             fullPage.addView(root, new ScrollView.LayoutParams(-1, -2));
             insetSurface = fullPage;
         } else {
@@ -362,6 +364,7 @@ public final class LauncherActivity extends Activity {
 
         LinearLayout modes = new LinearLayout(this);
         modes.setGravity(Gravity.CENTER_VERTICAL);
+        modeTabs = modes;
         LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(42));
         modesParams.topMargin = dp(5);
         root.addView(modes, modesParams);
@@ -375,7 +378,7 @@ public final class LauncherActivity extends Activity {
 
         dashboard = HomeDashboardView.create(this, this::openHomeEditor, this::pickWidget);
         LinearLayout.LayoutParams dashboardParams = new LinearLayout.LayoutParams(-1, -2);
-        dashboardParams.topMargin = dp(6);
+        dashboardParams.topMargin = dp(4);
         root.addView(dashboard, dashboardParams);
 
         widgetArea = new LinearLayout(this);
@@ -384,14 +387,17 @@ public final class LauncherActivity extends Activity {
 
         query = new EditText(this);
         query.setSingleLine(true);
-        query.setHint(R.string.search_hint);
+        query.setHint("Search apps");
         query.setTextSize(16);
         query.setPadding(dp(16), dp(9), dp(16), dp(9));
         query.setTextColor(0xFF232243);
         query.setHintTextColor(0xFF68677C);
-        query.setBackground(background(0xE9F5F3FF, 28));
+        query.setBackground(background(0xE9FFFFFF, 28));
+        query.setOnFocusChangeListener((v, focused) -> {
+            if (focused && !drawerOpen) setMode(true);
+        });
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
-        search.topMargin = dp(9);
+        search.topMargin = dp(8);
         root.addView(query, search);
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -404,6 +410,7 @@ public final class LauncherActivity extends Activity {
                 dp(compactLayout ? Math.max(40, Math.round(26 * systemFontScale + 8)) : 32));
         section.topMargin = dp(12);
         root.addView(sectionLabel, section);
+        sectionLabel.setVisibility(View.GONE);
 
         pageControls = new LinearLayout(this);
         pageControls.setGravity(Gravity.CENTER_VERTICAL);
@@ -439,41 +446,65 @@ public final class LauncherActivity extends Activity {
             viewportScroll = scroll;
             scroll.setFillViewport(true);
             viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
-            scroll.addView(grid);
+            // When Home has few shortcuts, keep its icons near the dock
+            // instead of floating in the middle of an empty screen.
+            LinearLayout canvasColumn = new LinearLayout(this);
+            canvasColumn.setOrientation(LinearLayout.VERTICAL);
+            scroll.addView(canvasColumn, new ScrollView.LayoutParams(-1, -1));
+            workspaceSpacer = new Space(this);
+            canvasColumn.addView(workspaceSpacer,
+                    new LinearLayout.LayoutParams(-1, 0, 1));
+            canvasColumn.addView(grid, new LinearLayout.LayoutParams(-1, -2));
         }
 
         emptyPanel = new LinearLayout(this);
         emptyPanel.setOrientation(LinearLayout.VERTICAL);
         emptyPanel.setGravity(Gravity.CENTER);
         emptyPanel.setPadding(dp(16), dp(12), dp(16), dp(12));
-        emptyPanel.setBackground(background(0xB1E8E6FF, 24));
-        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(compactLayout ? 214 : 136), Gravity.CENTER);
+        emptyPanel.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(68), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
         viewport.addView(emptyPanel, placeholder);
         emptyTitle = label("", 17, true);
         emptyTitle.setGravity(Gravity.CENTER);
         emptyTitle.setTextColor(0xFF2C227C);
+        emptyTitle.setVisibility(View.GONE);
         emptyPanel.addView(emptyTitle);
         empty = label("", 12, false);
         empty.setGravity(Gravity.CENTER);
         empty.setTextColor(0xFF514A76);
         LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(-1, -2);
         note.topMargin = dp(6);
+        empty.setVisibility(View.GONE);
         emptyPanel.addView(empty, note);
-        emptyAction = action("Add your first Home app", this::beginHomePicker);
+        emptyAction = action("+  Add apps", this::beginHomePicker);
         emptyAction.setTextColor(0xFFFFFFFF);
-        emptyAction.setBackground(background(0xFF5145D9, 18));
-        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
+        emptyAction.setBackground(background(0xC82A3141, 23));
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(dp(150), dp(46));
         actionParams.topMargin = dp(8);
         emptyPanel.addView(emptyAction, actionParams);
 
+        // The mockup uses page dots, NOT a toolbar with page arrows and +/-.
+        // Page creation/removal stays in the native Home editor.
+        root.removeView(pageControls);
+        pageControls.removeView(previousPage);
+        pageControls.removeView(nextPage);
+        pageControls.removeView(removePageAction);
+        pageControls.setGravity(Gravity.CENTER);
+        pageControls.setMinimumHeight(dp(20));
+        root.addView(pageControls, new LinearLayout.LayoutParams(-1, dp(24)));
+        TextView addPageGhost = null; // Add page remains available in Edit Home.
+
         dockTitle = label("Pinned apps", 13, true);
         dockTitle.setTextColor(0xFFECEBFF);
-        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(24)));
+        dockTitle.setVisibility(View.GONE);
+        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, 0));
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
-        dock.setPadding(dp(6), dp(7), dp(6), dp(7));
+        dock.setPadding(dp(8), dp(5), dp(8), dp(5));
         dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
-        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(80)));
+        LinearLayout.LayoutParams dockParams = new LinearLayout.LayoutParams(-1, dp(68));
+        dockParams.bottomMargin = dp(6);
+        root.addView(dock, dockParams);
         // Avoid an Activity-wide long-press handler: on small/large-font Homes a
         // scroll starting on blank workspace was interpreted as Edit Home.
         // Editing remains available through Customize and header long-press.
@@ -600,8 +631,10 @@ public final class LauncherActivity extends Activity {
     }
 
     private void applyAppearance(boolean drawer) {
-        String skin = prefs.getString("launcher_skin", "violet");
-        boolean deviceWallpaper = "wallpaper".equals(skin) && !drawer;
+        // Older violet selection is deliberately retired: the founder
+        // rejected that gradient. Wallpaper is always the Home default.
+        String skin = prefs.getString("launcher_skin", "wallpaper");
+        boolean deviceWallpaper = !drawer && !"night".equals(skin);
         if (deviceWallpaper) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
             getWindow().setBackgroundDrawableResource(android.R.color.transparent);
@@ -616,8 +649,8 @@ public final class LauncherActivity extends Activity {
             if (fullPageScroll != null) fullPageScroll.setBackground(
                     GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
         }
-        getWindow().setStatusBarColor(drawer ? 0xFF242341 : 0xFF7E81CE);
-        getWindow().setNavigationBarColor(drawer ? 0xFF191A32 : 0xFF51528E);
+        getWindow().setStatusBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
@@ -707,9 +740,9 @@ public final class LauncherActivity extends Activity {
         showApps();
         if (openingDrawer && prefs.getBoolean("drawer_animation", true)) {
             grid.animate().cancel();
-            grid.setTranslationY(dp(130));
-            grid.setAlpha(0.70f);
-            grid.animate().translationY(0f).alpha(1f).setDuration(260)
+            grid.setTranslationY(dp(230));
+            grid.setAlpha(0.45f);
+            grid.animate().translationY(0f).alpha(1f).setDuration(300)
                     .setInterpolator(new DecelerateInterpolator()).start();
         } else {
             grid.animate().cancel();
@@ -769,16 +802,22 @@ public final class LauncherActivity extends Activity {
         String text = query.getText().toString();
         boolean allApps = drawerOpen || !text.trim().isEmpty();
         pageControls.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        if (workspaceSpacer != null) workspaceSpacer.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        // Home is a desktop, not a two-tab workspace settings app.
+        topHeading.setVisibility(View.GONE);
+        modeTabs.setVisibility(View.GONE);
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
-        dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
+        dockTitle.setVisibility(View.GONE);
         // Space-first responsive Home: a decorative dashboard must not hide the
         // real workspace, shortcut recovery, or dock in landscape/large text.
         dashboard.setVisibility(allApps || compactLayout ? View.GONE : View.VISIBLE);
         widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
-        topHeading.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        topHeading.setVisibility(View.GONE);
         applyAppearance(allApps);
         sectionLabel.setTextColor(0xFFF8F7FF);
+        sectionLabel.setVisibility((choosingDockApp || choosingHomeApp) && allApps
+                ? View.VISIBLE : View.GONE);
         sectionLabel.setText(choosingDockApp && allApps ? "Choose an app for your dock"
                 : choosingHomeApp && allApps ? "Choose an app for Home"
                 : allApps ? "All applications" : "Home workspace");
@@ -790,7 +829,16 @@ public final class LauncherActivity extends Activity {
         appsTab.setSelected(allApps);
         homeTab.setContentDescription(allApps ? "Home tab" : "Home tab, selected");
         appsTab.setContentDescription(allApps ? "All apps tab, selected" : "All apps tab");
-        pageLabel.setText("Page " + (workspace.currentPage() + 1) + " / " + workspace.pageCount());
+        StringBuilder dots = new StringBuilder();
+        for (int i = 0; i < workspace.pageCount(); i++) {
+            if (i > 0) dots.append("  ");
+            dots.append(i == workspace.currentPage() ? "●" : "○");
+        }
+        pageLabel.setText(dots.toString());
+        pageLabel.setContentDescription("Home page " + (workspace.currentPage() + 1)
+                + " of " + workspace.pageCount());
+        pageLabel.setTextColor(0xFFF8F8FC);
+        pageLabel.setTextSize(12);
         boolean canPrevious = workspace.currentPage() > 0;
         boolean canNext = workspace.currentPage() + 1 < workspace.pageCount();
         boolean canRemove = workspace.pageCount() > 1 && workspace.currentItems().isEmpty();
@@ -870,9 +918,9 @@ public final class LauncherActivity extends Activity {
         cell.setGravity(Gravity.CENTER);
         cell.setPadding(dp(2), dp(6), dp(2), dp(6));
         boolean inDrawer = drawerOpen && !dockTile;
-        cell.setBackground(inDrawer ? background(0x154C487F, 20)
-                : dockTile ? background(0x0AFFFFFF, 18)
-                : background(0xA1EFEDFF, 20));
+        // Individual icons sit directly on wallpaper/drawer like a launcher;
+        // no square cards behind each application.
+        cell.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         cell.setContentDescription(app.name);
         cell.setFocusable(true);
         markTileAccessible(cell, app, dockTile);
@@ -881,7 +929,7 @@ public final class LauncherActivity extends Activity {
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
             TextView text = label(app.name, 12, false);
-            text.setTextColor(inDrawer ? 0xFFFFFFFF : 0xFF282444);
+            text.setTextColor(0xFFFFFFFF);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -959,9 +1007,10 @@ public final class LauncherActivity extends Activity {
             });
             add.setContentDescription("Add app to dock");
             add.setTextSize(23);
-            add.setTextColor(0xFF5145D9);
-            add.setBackground(background(0xFFF6F5FF, 18));
-            LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, dp(72), 1);
+            add.setTextColor(0xFFE0E5F3);
+            add.setTextSize(18);
+            add.setBackground(background(0x70404758, 50));
+            LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, dp(56), 1);
             slot.setMargins(dp(2), 0, dp(2), 0);
             dock.addView(add, slot);
         }
