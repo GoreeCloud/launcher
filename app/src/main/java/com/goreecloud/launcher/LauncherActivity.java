@@ -726,7 +726,7 @@ public final class LauncherActivity extends Activity {
         }
         String[] homeApps = {"Play Store", "Gallery", "Chrome", "Clock",
                 "Camera", "Calendar", "Settings", "Gmail"};
-        String[] dockApps = {"Phone", "Messages", "Chrome", "Camera", "Contacts"};
+        String[] dockApps = {"Phone", "Messages", "Chrome", "Camera"};
         for (String name : homeApps) {
             for (Entry app : catalog) {
                 if (app.name.equalsIgnoreCase(name)) {
