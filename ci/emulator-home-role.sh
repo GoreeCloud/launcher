@@ -115,7 +115,11 @@ done
 test "$role_assigned" = 1 || { echo "Android Home role was not granted after user consent"; exit 1; }
 dump_screen after-role-consent
 # Returning to our Settings component reports the actual RoleManager state.
-adb shell am start -n com.goreecloud.launcher/.SettingsActivity
+adb shell input keyevent 3
+sleep 2
+dump_screen home-selected
+assert_text home-selected "Home workspace"
+tap_label home-selected "Settings"
 sleep 2
 adb shell input swipe 445 1680 445 640 520
 sleep 1
