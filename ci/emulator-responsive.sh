@@ -145,7 +145,10 @@ import sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 values=[n.attrib.get("text") for n in root.iter()
         if n.attrib.get("class")=="android.widget.EditText"]
-if values!=[""]: raise SystemExit("Home should clear drawer query: "+str(values))
+# UIAutomator reports an empty EditText using the visible hint on API 35.
+# Both representations mean no search query is retained.
+if values not in ([""], ["Search applications"]):
+    raise SystemExit("Home should clear drawer query: "+str(values))
 print("PASS returning Home cleared transient drawer query")
 PYCHECK
 tap_label responsive-cleared-search "All apps"
