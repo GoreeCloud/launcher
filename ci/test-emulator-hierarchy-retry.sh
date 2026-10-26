@@ -7,6 +7,7 @@ counter=0
 scenario=recovers
 adb() {
   if [[ "${1:-}" == shell && "${2:-}" == uiautomator && "${3:-}" == dump ]]; then
+    printf '%s\n' "$4" >> "$case_dir/remote-paths"
     counter=$((counter + 1))
     case "$scenario:$counter" in
       recovers:1|never:*) return 1 ;;
@@ -38,4 +39,11 @@ if capture_hierarchy_with_retries missing "$case_dir/not-available.xml"; then
   exit 1
 fi
 test "$counter" -eq 3
-echo "PASS valid, invalid, and absent UiAutomator hierarchies fail safely"
+counter=0
+scenario=recovers
+capture_hierarchy_with_retries test "$case_dir/same-snapshot.xml"
+test "$counter" -eq 2
+count=$(wc -l < "$case_dir/remote-paths")
+unique=$(sort -u "$case_dir/remote-paths" | wc -l)
+test "$count" -eq "$unique"
+echo "PASS valid, invalid, absent, and repeated snapshot captures fail safely"

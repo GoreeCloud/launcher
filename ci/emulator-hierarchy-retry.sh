@@ -2,8 +2,11 @@
 # Disposable emulator CI helper: accept only a freshly captured valid UI tree.
 capture_hierarchy_with_retries() {
   local snapshot="$1" output="$2" attempt remote
+  # A snapshot name can be reused in a polling loop. Never reuse the remote
+  # filename across calls: otherwise a failed dump could pull a stale tree.
+  GC_HIERARCHY_CAPTURE_ID=$((${GC_HIERARCHY_CAPTURE_ID:-0} + 1))
   for attempt in 1 2 3; do
-    remote="/sdcard/gc-${snapshot}-${attempt}.xml"
+    remote="/sdcard/gc-${snapshot}-${GC_HIERARCHY_CAPTURE_ID}-${attempt}.xml"
     if adb shell uiautomator dump "$remote" \
         && adb pull "$remote" "$output" >/dev/null \
         && python3 - "$output" <<'PY'
