@@ -333,7 +333,7 @@ public final class LauncherActivity extends Activity {
         topHeading = heading;
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1,
-                dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 60)));
+                dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 48)));
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
@@ -356,13 +356,13 @@ public final class LauncherActivity extends Activity {
 
         LinearLayout modes = new LinearLayout(this);
         modes.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(52));
-        modesParams.topMargin = dp(8);
+        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(42));
+        modesParams.topMargin = dp(5);
         root.addView(modes, modesParams);
         homeTab = action("Home", () -> setMode(false));
         appsTab = action("All apps", () -> setMode(true));
-        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(38), 1));
+        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(38), 1);
         appsTabParams.leftMargin = dp(8);
         modes.addView(appsTab, appsTabParams);
         heading.setOnLongClickListener(v -> { openHomeEditor(); return true; });
@@ -385,7 +385,7 @@ public final class LauncherActivity extends Activity {
         query.setHintTextColor(0xFF68677C);
         query.setBackground(background(0xE9F5F3FF, 28));
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
-        search.topMargin = dp(16);
+        search.topMargin = dp(9);
         root.addView(query, search);
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
