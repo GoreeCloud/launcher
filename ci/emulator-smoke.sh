@@ -76,6 +76,22 @@ dump_screen home-role
 assert_text home-role "Home workspace"
 assert_text home-role "Page 1 / 1"
 assert_text home-role "Add app to dock"
+assert_text home-role "Home dashboard"
+assert_text home-role "Customize"
+# The founder mockup's overview is a real native Activity, not a screenshot.
+tap_label home-role "Customize"
+sleep 2
+dump_screen visual-edit-mode
+assert_text visual-edit-mode "Edit Home"
+assert_text visual-edit-mode "Home screen settings"
+assert_text visual-edit-mode "Swipe up for app drawer"
+assert_text visual-edit-mode "Show dock"
+assert_text visual-edit-mode "Wallpapers"
+assert_text visual-edit-mode "Widgets"
+adb shell input keyevent 4
+sleep 2
+dump_screen edit-returned-home
+assert_text edit-returned-home "Home workspace"
 
 # Verify an actual touchscreen-like swipe on the disposable emulator opens the
 # drawer from Home and returns to Home. Do not replace this with a tab tap.
