@@ -150,7 +150,8 @@ root=ET.parse(sys.argv[1]).getroot()
 matches=[n.attrib for n in root.iter()
     if n.attrib.get("content-desc")=="Launcher QA Fixture" and n.attrib.get("focused")=="true"]
 if not matches: sys.exit(1)
-print("PASS keyboard Tab focused fixture shortcut")
+assert all(n.get("class")=="android.widget.Button" and n.get("clickable")=="true" for n in matches), "Expected native Button role"
+print("PASS keyboard Tab focused accessible Button fixture shortcut")
 PY
   then
     found=1

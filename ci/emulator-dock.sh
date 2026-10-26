@@ -101,7 +101,8 @@ expected=["Launcher QA Fixture","Launcher Fixture Notes","Launcher Fixture Alpha
 counts={v:sum(n.attrib.get("content-desc")==v for n in root.iter()) for v in expected}
 if not all(counts[x]==1 for x in expected):
     raise SystemExit("Expected five unique pinned tiles: "+str(counts))
-print("PASS five dock pins",counts)
+assert all(n.attrib.get("class")=="android.widget.Button" and n.attrib.get("clickable")=="true" for n in root.iter() if n.attrib.get("content-desc") in expected), "Dock tile missing Button role"
+print("PASS five accessible Button dock pins",counts)
 PY
 
 # Attempt a sixth and ensure the full-dock guard refuses mutation.
