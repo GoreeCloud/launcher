@@ -16,6 +16,7 @@ dump_screen() {
   for attempt in 1 2 3 4 5 6 7 8; do
     rm -f "$xml" "$png"
     if adb get-state >/dev/null 2>&1 \
+      && adb shell rm -f /sdcard/launcher-hierarchy.xml /sdcard/launcher-screen.png >/dev/null 2>&1 \
       && adb shell uiautomator dump /sdcard/launcher-hierarchy.xml >/dev/null 2>&1 \
       && adb pull /sdcard/launcher-hierarchy.xml "$xml" >/dev/null 2>&1 \
       && adb shell screencap -p /sdcard/launcher-screen.png >/dev/null 2>&1 \
@@ -127,9 +128,18 @@ for attempt in 1 2 3 4; do
   sleep 2
 done
 assert_text legacy-filtered "Launcher QA Fixture"
-longpress_label legacy-filtered "Launcher QA Fixture"
-sleep 1
-dump_screen legacy-menu
+# Older AVDs may ignore the first long-press during app-grid focus settling.
+# Refresh bounds and require the actual menu before accepting placement.
+for attempt in 1 2 3 4; do
+  dump_screen legacy-before-menu
+  longpress_label legacy-before-menu "Launcher QA Fixture"
+  sleep 2
+  dump_screen legacy-menu
+  if grep -Fq 'text="Add to current home page"' "$EVIDENCE/legacy-menu.xml"; then
+    break
+  fi
+  echo "API 26/28 fixture menu not yet visible ($attempt)"
+done
 assert_text legacy-menu "Add to current home page"
 tap_label legacy-menu "Add to current home page"
 sleep 2
