@@ -6,6 +6,7 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 - [Planned capabilities](https://drive.google.com/file/d/1ossnWKM42HDieuee5jihvmIky1WkaEUG/view)
 - [Verified implemented features](https://drive.google.com/file/d/1aZiSsnF4MhbFwUkXH3v7SHhqgJONcQUz/view)
 - [Competitive objectives](https://drive.google.com/file/d/1KNpn-2XEG_CoVqhH7zq8VXRi-Cr5F-kZ/view)
+- [Release Seal readiness gate](docs/seal-readiness.md) — evidence-based acceptance checklist; **not Sealed** while hardware, accessibility and release requirements remain incomplete.
 
 ## Foundation in source
 
