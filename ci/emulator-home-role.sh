@@ -68,6 +68,20 @@ if grep -Fq 'com.goreecloud.launcher' "$EVIDENCE/role-before.txt"; then
 fi
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 3
+# A fresh Google APIs AVD can show an ANR from its stock Pixel Launcher
+# even while GoreeCloud is visible beneath it. Dismiss that stock-app
+# crash, never assign any role from the emulator shell.
+for attempt in 1 2 3; do
+  dump_screen "launcher-initial-$attempt"
+  if grep -Eq "isn.t responding" "$EVIDENCE/launcher-initial-$attempt.xml"; then
+    tap_label "launcher-initial-$attempt" "Close app"
+    sleep 2
+    adb shell am start -n com.goreecloud.launcher/.LauncherActivity
+    sleep 2
+  else
+    break
+  fi
+done
 dump_screen home-before-consent
 assert_text home-before-consent "Home workspace"
 tap_label home-before-consent "Settings"
