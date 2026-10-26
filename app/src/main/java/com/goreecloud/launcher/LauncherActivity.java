@@ -208,8 +208,14 @@ public final class LauncherActivity extends Activity {
     }
 
     private boolean gestureStartedInWorkspace(float x, float y) {
-        // The fixed dock is part of Home: a swipe starting on an empty dock
-        // slot should open the app drawer just like a swipe on the workspace.
+        // In landscape and large-text mode the entire Home is a scrolling page.
+        // A swipe over icons must scroll that page, NOT unexpectedly open All apps.
+        // The fixed dock remains an explicit drawer-swipe starting region.
+        // The normal, non-scrolling Home still supports swipe-up anywhere on its
+        // workspace and swipe-down at the top of the drawer.
+        if (compactLayout && !drawerOpen) {
+            return containsScreenPoint(dock, x, y);
+        }
         return containsScreenPoint(homeViewport, x, y)
                 || (!drawerOpen && containsScreenPoint(dock, x, y));
     }
