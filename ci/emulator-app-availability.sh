@@ -7,10 +7,12 @@ trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" 
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
+. ci/emulator-hierarchy-retry.sh
+. ci/emulator-menu-retry.sh
+
 dump_screen() {
   local name="$1"
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
+  capture_hierarchy_with_retries "$name" "$EVIDENCE/$name.xml"
   adb shell screencap -p /sdcard/launcher-screen.png
   adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
 }
@@ -83,17 +85,11 @@ for attempt in 1 2 3 4; do
 done
 assert_text availability-drawer "All apps tab, selected"
 assert_text availability-drawer "Launcher QA Fixture"
-longpress_label availability-drawer "Launcher QA Fixture"
-sleep 1
-dump_screen availability-pin-menu
-assert_text availability-pin-menu "Pin to dock"
+retry_longpress_menu availability-pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label availability-pin-menu "Pin to dock"
 sleep 1
 dump_screen availability-after-pin
-longpress_label availability-after-pin "Launcher QA Fixture"
-sleep 1
-dump_screen availability-place-menu
-assert_text availability-place-menu "Add to current home page"
+retry_longpress_menu availability-place-menu "Launcher QA Fixture" "Add to current home page"
 tap_label availability-place-menu "Add to current home page"
 sleep 1
 dump_screen availability-after-place
