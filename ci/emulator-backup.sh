@@ -49,6 +49,26 @@ PY
 }
 tap_label() { act_on "$1" "$2" tap; }
 longpress_label() { act_on "$1" "$2" long; }
+# Expanded Settings adds multiple sections. Keep SAF tests grounded in the
+# actual target control instead of assuming a single fixed-height scroll.
+seek_setting() {
+  local target="$1" snapshot="$2" direction="$3" attempt
+  for attempt in 1 2 3 4 5 6; do
+    dump_screen "$snapshot"
+    if grep -Fq "text=\"$target\"" "$EVIDENCE/$snapshot.xml"; then
+      assert_text "$snapshot" "$target"
+      return 0
+    fi
+    if [ "$direction" = up ]; then
+      adb shell input swipe 430 520 430 1690 460
+    else
+      adb shell input swipe 430 1700 430 510 460
+    fi
+    sleep 1
+  done
+  echo "Settings control not reachable by scrolling $direction: $target" >&2
+  return 1
+}
 assert_shortcut_count() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
 import sys, xml.etree.ElementTree as ET
@@ -107,10 +127,7 @@ x=[a.attrib for a in r.iter() if a.attrib.get("text")=="Show application labels"
 if not x or x[0].get("checked")!="false": raise SystemExit("Expected labels off before export")
 print("PASS synthetic label setting disabled")
 PY
-adb shell input swipe 430 1700 430 510 460
-sleep 1
-dump_screen backup-settings-scroll
-assert_text backup-settings-scroll "Export backup"
+seek_setting "Export backup" backup-settings-scroll down
 tap_label backup-settings-scroll "Export backup"
 sleep 2
 dump_screen backup-export-picker
@@ -144,9 +161,7 @@ print("PASS synthetic backup file created and validated")
 PY
 
 # Mutate the saved preference. A canceled restore must leave it unchanged.
-adb shell input swipe 420 520 420 1690 460
-sleep 1
-dump_screen settings-revisit-labels
+seek_setting "Show application labels" settings-revisit-labels up
 tap_label settings-revisit-labels "Show application labels"
 sleep 1
 dump_screen labels-mutated
@@ -164,9 +179,7 @@ assert_checked labels-mutated true
 
 # Repeated imports exercise the real ACTION_OPEN_DOCUMENT user flow.
 begin_import() {
-  adb shell input swipe 430 1690 430 510 460
-  sleep 1
-  dump_screen "backup-import-settings-$1"
+  seek_setting "Import backup" "backup-import-settings-$1" down
   tap_label "backup-import-settings-$1" "Import backup"
   sleep 2
   dump_screen "backup-import-picker-$1"
@@ -193,17 +206,13 @@ PY
 begin_import cancel
 tap_label backup-restore-confirm-cancel "CANCEL"
 sleep 1
-adb shell input swipe 420 520 420 1690 460
-sleep 1
-dump_screen after-restore-cancel
+seek_setting "Show application labels" after-restore-cancel up
 assert_checked after-restore-cancel true
 
 begin_import apply
 tap_label backup-restore-confirm-apply "REPLACE LAYOUT"
 sleep 1
-adb shell input swipe 420 520 420 1690 460
-sleep 1
-dump_screen after-restore-apply
+seek_setting "Show application labels" after-restore-apply up
 assert_checked after-restore-apply false
 
 # Confirm shortcut+pin, page selection and label preference survive process restart.
@@ -249,14 +258,12 @@ print("Prepared tampered, oversized and unsupported synthetic payloads")
 PY
 tap_label restored-after-restart "Settings"
 sleep 1
-adb shell input swipe 430 1700 430 510 460
-sleep 1
+seek_setting "Import backup" negative-settings-start down
 
 for scenario in bad-checksum oversize unsupported; do
   adb push "/tmp/launcher-qa-$scenario.txt" "$REMOTE_FILE" >/dev/null
   sleep 1
-  dump_screen "negative-settings-$scenario"
-  assert_text "negative-settings-$scenario" "Import backup"
+  seek_setting "Import backup" "negative-settings-$scenario" down
   tap_label "negative-settings-$scenario" "Import backup"
   sleep 2
   dump_screen "negative-picker-$scenario"
@@ -284,12 +291,8 @@ if "Restore launcher backup?" in texts:
     raise SystemExit("Invalid backup wrongly opened replacement dialog")
 print("PASS invalid backup rejected without replacement dialog")
 PY
-  adb shell input swipe 430 510 430 1700 460
-  sleep 1
-  dump_screen "negative-labels-$scenario"
+  seek_setting "Show application labels" "negative-labels-$scenario" up
   assert_checked "negative-labels-$scenario" false
-  adb shell input swipe 430 1700 430 510 460
-  sleep 1
 done
 # Leave disposable AVD in the same state as before negative tests.
 adb push /tmp/launcher-qa-export.txt "$REMOTE_FILE" >/dev/null
