@@ -70,8 +70,18 @@ dump_screen availability-start
 assert_text availability-start "Home workspace"
 
 tap_label availability-start "All apps"
-sleep 2
-dump_screen availability-drawer
+# Emulator focus and insets may settle after the first tap. Re-read current
+# UI bounds and require the selected state before inspecting app inventory.
+for attempt in 1 2 3 4; do
+  sleep 2
+  dump_screen availability-drawer
+  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/availability-drawer.xml"; then
+    break
+  fi
+  echo "All apps transition not yet visible; retry $attempt"
+  tap_label availability-drawer "All apps"
+done
+assert_text availability-drawer "All apps tab, selected"
 assert_text availability-drawer "Launcher QA Fixture"
 longpress_label availability-drawer "Launcher QA Fixture"
 sleep 1
