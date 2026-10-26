@@ -435,8 +435,8 @@ public final class LauncherActivity extends Activity {
         emptyPanel.setOrientation(LinearLayout.VERTICAL);
         emptyPanel.setGravity(Gravity.CENTER);
         emptyPanel.setPadding(dp(20), dp(28), dp(20), dp(28));
-        emptyPanel.setBackground(background(0xFFE8E6FF, 26));
-        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(206), Gravity.CENTER);
+        emptyPanel.setBackground(background(0xB1E8E6FF, 24));
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(158), Gravity.CENTER);
         viewport.addView(emptyPanel, placeholder);
         emptyTitle = label("", 22, true);
         emptyTitle.setGravity(Gravity.CENTER);
@@ -455,13 +455,17 @@ public final class LauncherActivity extends Activity {
         actionParams.topMargin = dp(20);
         emptyPanel.addView(emptyAction, actionParams);
 
-        dockTitle = label("Pinned apps", 16, true);
-        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(36)));
+        dockTitle = label("Pinned apps", 13, true);
+        dockTitle.setTextColor(0xFFECEBFF);
+        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(24)));
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(6), dp(7), dp(6), dp(7));
-        dock.setBackground(background(0xFFECEAF8, 26)); // GC UI Lens tonal fallback
+        dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
         root.addView(dock, new LinearLayout.LayoutParams(-1, dp(90)));
+        root.setOnLongClickListener(v -> { openHomeEditor(); return true; });
+        applyAppearance(false);
+        renderWidgets();
     }
 
     private void refresh() {
@@ -606,11 +610,16 @@ public final class LauncherActivity extends Activity {
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
+        dashboard.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        topHeading.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        applyAppearance(allApps);
+        sectionLabel.setTextColor(0xFFF8F7FF);
         sectionLabel.setText(choosingDockApp && allApps ? "Choose an app for your dock"
                 : choosingHomeApp && allApps ? "Choose an app for Home"
                 : allApps ? "All applications" : "Home workspace");
-        homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
-        appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
+        homeTab.setBackground(background(allApps ? 0xB0B8B0E4 : 0xFF6557E3, 22));
+        appsTab.setBackground(background(allApps ? 0xFF6557E3 : 0xB0B8B0E4, 22));
         homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
         appsTab.setTextColor(allApps ? 0xFFFFFFFF : 0xFF2C227C);
         homeTab.setSelected(!allApps);
@@ -696,7 +705,10 @@ public final class LauncherActivity extends Activity {
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.CENTER);
         cell.setPadding(dp(2), dp(6), dp(2), dp(6));
-        cell.setBackground(background(0xFFFFFFFF, 18)); // GC UI Surface
+        boolean inDrawer = drawerOpen && !dockTile;
+        cell.setBackground(inDrawer ? background(0x154C487F, 20)
+                : dockTile ? background(0x0AFFFFFF, 18)
+                : background(0xA1EFEDFF, 20));
         cell.setContentDescription(app.name);
         cell.setFocusable(true);
         markTileAccessible(cell, app, dockTile);
@@ -705,6 +717,7 @@ public final class LauncherActivity extends Activity {
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
             TextView text = label(app.name, 12, false);
+            text.setTextColor(inDrawer ? 0xFFFFFFFF : 0xFF282444);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
