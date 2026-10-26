@@ -72,8 +72,17 @@ assert_text responsive-initial "Home workspace"
 assert_text responsive-initial "Home tab, selected"
 assert_text responsive-initial "All apps tab"
 tap_label responsive-initial "All apps"
-sleep 1
-dump_screen responsive-drawer
+# The first tap after emulator HOME startup can be ignored while focus settles.
+# Require the visible selected state and retry with freshly captured bounds.
+for attempt in 1 2 3 4; do
+  sleep 2
+  dump_screen responsive-drawer
+  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/responsive-drawer.xml"; then
+    break
+  fi
+  echo "All apps transition not yet visible; retry $attempt"
+  tap_label responsive-drawer "All apps"
+done
 assert_text responsive-drawer "All apps tab, selected"
 assert_text responsive-drawer "Home tab"
 longpress_label responsive-drawer "Launcher QA Fixture"
