@@ -10,5 +10,8 @@
     <string name="no_match">No matching applications.</string>
     <string name="launch_failed">Unable to open the application.</string>
     <string name="dock_empty">Long-press an app to pin it here</string>
+    <string name="shortcuts_unavailable">Saved shortcuts unavailable</string>
+    <string name="shortcuts_unavailable_help">Apps saved on this page are not available right now. Shortcuts return when those apps are re-enabled or reinstalled.</string>
+    <string name="dock_unavailable">Saved dock apps are unavailable. Re-enable or reinstall them to restore their icons.</string>
     <string name="home_settings">Select default Home app</string>
 </resources>

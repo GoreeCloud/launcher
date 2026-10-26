@@ -99,6 +99,8 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen availability-disabled
+assert_text availability-disabled "Saved shortcuts unavailable"
+assert_text availability-disabled "Saved dock apps are unavailable. Re-enable or reinstall them to restore their icons."
 python3 - "$EVIDENCE/availability-disabled.xml" <<'PY'
 import sys, xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()

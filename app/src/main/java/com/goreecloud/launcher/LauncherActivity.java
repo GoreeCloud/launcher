@@ -403,8 +403,13 @@ public final class LauncherActivity extends Activity {
         }
         if (shown.isEmpty()) {
             if (!allApps) {
-                emptyTitle.setText("Make this space yours");
-                empty.setText("Find an app in All apps, then long-press it to add a shortcut to this page.");
+                if (workspace.currentItems().isEmpty()) {
+                    emptyTitle.setText("Make this space yours");
+                    empty.setText("Find an app in All apps, then long-press it to add a shortcut to this page.");
+                } else {
+                    emptyTitle.setText(R.string.shortcuts_unavailable);
+                    empty.setText(R.string.shortcuts_unavailable_help);
+                }
             } else {
                 emptyTitle.setText(catalog.isEmpty() ? "No apps yet" : "Nothing matches");
                 empty.setText(catalog.isEmpty() ? getString(R.string.empty)
@@ -465,7 +470,8 @@ public final class LauncherActivity extends Activity {
         }
         int occupied = dock.getChildCount();
         if (occupied == 0) {
-            TextView hint = label(getString(R.string.dock_empty), 13, false);
+            TextView hint = label(getString(pins.isEmpty()
+                    ? R.string.dock_empty : R.string.dock_unavailable), 13, false);
             hint.setGravity(Gravity.CENTER);
             dock.addView(hint);
         } else {
