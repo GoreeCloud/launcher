@@ -127,11 +127,11 @@ root=ET.parse(sys.argv[1]).getroot()
 packages={n.attrib.get("package","") for n in root.iter()}
 if "com.android.settings" not in packages:
     raise SystemExit("Legacy Home fallback did not open Android Settings: "+str(packages))
-print("PASS Android 9 opened platform Home selection settings")
+print("PASS legacy API opened platform Home selection settings")
 PY
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 2
 dump_screen legacy-final
 assert_text legacy-final "Home workspace"
 assert_text legacy-final "Launcher QA Fixture"
-echo "PASS Android 9 native app discovery, launch, shortcut persistence and default Home fallback"
+echo "PASS Android API $(adb shell getprop ro.build.version.sdk | tr -d '\r') native app discovery, launch, shortcut persistence and default Home fallback"

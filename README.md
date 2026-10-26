@@ -18,7 +18,7 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 - Basic preferences for grid columns and icon labels, using on-device private preferences.
 - Manual, versioned local workspace backups through the Android system document picker; restore requires format/integrity checks and explicit replacement confirmation. Contains app identifiers, not passwords, and is not encrypted.
 
-This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, automated/cloud backup, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. The bounded Android 15 emulator suite has verified basic Home/app launching, workspace shortcut persistence, user-consented default Home selection and cancellation, and manual export/import/restore through the Android Downloads provider. Other versions, physical devices, OEM launchers and accessibility are unverified.
+This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, automated/cloud backup, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. The bounded Android 15 emulator suite has verified basic Home/app launching, workspace shortcut persistence, user-consented default Home selection and cancellation, and manual export/import/restore through the Android Downloads provider. Android 8 (API 26), Android 9 (API 28), and Android 15 (API 35) have passed bounded emulator checks; intermediate versions, physical devices, OEM variants and comprehensive accessibility acceptance remain unverified.
 
 ## Build
 
@@ -30,6 +30,7 @@ The repository does not include an unverified Gradle Wrapper binary; automated G
 
 ## Verified emulator evidence
 
+- [Legacy Home settings fallback and app launch, API 26 and 28](https://github.com/GoreeCloud/launcher/actions/runs/40269093618) — both Google APIs emulator matrix jobs passed discovery, local search, launcher shortcut placement, fixture launch, persistence after restart and platform Home settings entry.
 - [Home role consent and cancellation, API 35](https://github.com/GoreeCloud/launcher/actions/runs/40257203862) — Android system selection, cancellation preserves the previous Home, confirmed selection, selected-state Settings UI and Home-key return.
 - [Manual local backup and restore, API 35](https://github.com/GoreeCloud/launcher/actions/runs/40251850733) — actual file export/import, checksum, cancel, confirmation and post-restart persistence.
 - [Invalid backup rejection, API 35](https://github.com/GoreeCloud/launcher/actions/runs/40253831973) — stale checksum, 65,537-byte oversized and unsupported-version files rejected without overwriting state.
