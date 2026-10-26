@@ -195,7 +195,7 @@ PY
 }
 
 begin_import cancel
-tap_label backup-restore-confirm-cancel "Cancel"
+tap_label backup-restore-confirm-cancel "CANCEL"
 sleep 1
 adb shell input swipe 420 520 420 1690 460
 sleep 1
@@ -203,7 +203,7 @@ dump_screen after-restore-cancel
 assert_checked after-restore-cancel true
 
 begin_import apply
-tap_label backup-restore-confirm-apply "Replace layout"
+tap_label backup-restore-confirm-apply "REPLACE LAYOUT"
 sleep 1
 adb shell input swipe 420 520 420 1690 460
 sleep 1
