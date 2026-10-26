@@ -5,7 +5,11 @@ retry_longpress_menu() {
   local snapshot="$1" tile="$2" option="$3" attempt
   for attempt in 1 2 3; do
     dump_screen "${snapshot}-before-${attempt}"
-    longpress_label "${snapshot}-before-${attempt}" "$tile"
+    if ! longpress_label "${snapshot}-before-${attempt}" "$tile"; then
+      echo "Context target $tile unavailable before long-press (attempt $attempt of 3)" >&2
+      sleep 2
+      continue
+    fi
     sleep 1
     dump_screen "$snapshot"
     if grep -Fq "text=\"$option\"" "$EVIDENCE/$snapshot.xml"; then

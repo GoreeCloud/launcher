@@ -7,7 +7,7 @@ scenario=eventual
 presses=0
 dump_screen() {
   local name="$1"
-  if [[ "$name" == menu && "$scenario" == eventual && "$presses" -ge 2 ]]; then
+  if [[ "$name" == menu && ( "$scenario" == eventual || "$scenario" == missingtile ) && "$presses" -ge 2 ]]; then
     printf '<node text="Pin to dock"/>\n' > "$EVIDENCE/$name.xml"
   else
     printf '<node text="All applications"/>\n' > "$EVIDENCE/$name.xml"
@@ -16,6 +16,7 @@ dump_screen() {
 longpress_label() {
   test "$2" = "Fixture"
   presses=$((presses + 1))
+  if [[ "$scenario" == missingtile && "$presses" -eq 1 ]]; then return 1; fi
 }
 assert_text() { grep -Fq "text=\"$2\"" "$EVIDENCE/$1.xml"; }
 sleep() { :; }
@@ -23,6 +24,11 @@ sleep() { :; }
 
 retry_longpress_menu menu Fixture "Pin to dock"
 test "$presses" -eq 2 || { echo "Expected second-attempt success" >&2; exit 1; }
+
+scenario=missingtile
+presses=0
+retry_longpress_menu menu Fixture "Pin to dock"
+test "$presses" -eq 2 || { echo "Expected source-target recovery" >&2; exit 1; }
 
 scenario=never
 presses=0
