@@ -96,9 +96,24 @@ sleep 3
 dump_screen home-role-consent
 assert_text home-role-consent "GoreeCloud Launcher"
 assert_text home-role-consent "Set as default"
+# Cancel the system request. No HOME role mutation is authorized by cancellation.
+assert_text home-role-consent "Cancel"
+tap_label home-role-consent "Cancel"
+sleep 2
+adb shell cmd role get-role-holders --user 0 android.app.role.HOME > "$EVIDENCE/role-after-cancel.txt"
+if grep -Fq 'com.goreecloud.launcher' "$EVIDENCE/role-after-cancel.txt"; then
+  echo "Home role unexpectedly changed after Cancel"; exit 1
+fi
+dump_screen settings-after-cancel
+assert_text settings-after-cancel "GoreeCloud is not the current default Home"
+assert_text settings-after-cancel "Select default Home app"
+tap_label settings-after-cancel "Select default Home app"
+sleep 2
+dump_screen role-consent-retry
+assert_text role-consent-retry "GoreeCloud Launcher"
 # Android requires explicitly selecting the candidate radio row before enabling
 # its affirmative button; a tap on disabled "Set as default" changes nothing.
-tap_label home-role-consent "GoreeCloud Launcher"
+tap_label role-consent-retry "GoreeCloud Launcher"
 sleep 1
 dump_screen role-selected
 tap_label role-selected "Set as default"
@@ -130,4 +145,4 @@ adb shell input keyevent 3
 sleep 2
 dump_screen home-after-consent
 assert_text home-after-consent "Home workspace"
-echo "PASS: user-facing RoleManager HOME dialog, consent, role ownership and Home return"
+echo "PASS: cancelled Home selection unchanged, then consent granted role and Home returned"
