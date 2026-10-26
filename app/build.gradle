@@ -7,6 +7,7 @@ android {
         applicationId 'com.goreecloud.launcher'
         minSdk 26
         targetSdk 36
+        testInstrumentationRunner 'com.goreecloud.launcher.test.DockActionProbe'
         versionCode 1
         versionName '0.1.0-dev'
     }
