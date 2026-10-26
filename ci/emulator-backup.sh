@@ -179,8 +179,8 @@ import sys,re,subprocess,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 for n in root.iter():
     a=n.attrib
-    name=a.get("text","")+" "+a.get("content-desc","")
-    if "GoreeCloud-Launcher-backup" not in name: continue
+    name=a.get("text","")
+    if not name.startswith("GoreeCloud-Launcher-backup"): continue
     m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",a.get("bounds",""))
     if not m: continue
     x1,y1,x2,y2=map(int,m.groups())
