@@ -1,13 +1,23 @@
 package com.goreecloud.launcher;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.net.Uri;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
@@ -27,10 +37,13 @@ public final class SettingsActivity extends Activity {
     private static final int TEXT = 0xFF211F30;
     private static final int MUTED = 0xFF5C596B;
     private static final int IRIS = 0xFF5145D9;
+    private static final int EXPORT_FILE = 701;
+    private static final int IMPORT_FILE = 702;
+    private SharedPreferences prefs;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        SharedPreferences prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        prefs = getSharedPreferences("launcher", MODE_PRIVATE);
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(CANVAS);
@@ -172,10 +185,151 @@ public final class SettingsActivity extends Activity {
             }
         });
 
+        LinearLayout.LayoutParams backupHeader = new LinearLayout.LayoutParams(-1, -2);
+        backupHeader.topMargin = dp(28);
+        backupHeader.bottomMargin = dp(12);
+        body.addView(section("BACKUP AND RESTORE"), backupHeader);
+        LinearLayout backupCard = new LinearLayout(this);
+        backupCard.setOrientation(LinearLayout.VERTICAL);
+        backupCard.setPadding(dp(20), dp(20), dp(20), dp(22));
+        backupCard.setBackground(panel(0xFFFFFFFF, 26));
+        body.addView(backupCard, new LinearLayout.LayoutParams(-1, -2));
+        backupCard.addView(text("Keep your layout", 20, true, TEXT));
+        TextView backupHelp = text(
+            "Save your Home pages, dock pins, grid and label preferences to a file you choose.",
+            14, false, MUTED);
+        LinearLayout.LayoutParams helpParams = new LinearLayout.LayoutParams(-1, -2);
+        helpParams.topMargin = dp(8);
+        backupCard.addView(backupHelp, helpParams);
+
+        Button export = backupButton("Export backup", true);
+        LinearLayout.LayoutParams exportParams = new LinearLayout.LayoutParams(-1, dp(56));
+        exportParams.topMargin = dp(18);
+        backupCard.addView(export, exportParams);
+        export.setOnClickListener(v -> chooseExport());
+
+        Button restore = backupButton("Import backup", false);
+        LinearLayout.LayoutParams restoreParams = new LinearLayout.LayoutParams(-1, dp(56));
+        restoreParams.topMargin = dp(10);
+        backupCard.addView(restore, restoreParams);
+        restore.setOnClickListener(v -> chooseImport());
+
+        TextView caution = text("Backups contain installed-app identifiers and are not encrypted. Import replaces your current layout after confirmation. Widgets and passwords are not included.",
+            13, false, MUTED);
+        LinearLayout.LayoutParams cautionParams = new LinearLayout.LayoutParams(-1, -2);
+        cautionParams.topMargin = dp(16);
+        backupCard.addView(caution, cautionParams);
+
         TextView note = text("Your workspace preferences are saved locally on this device.", 13, false, MUTED);
         LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(-1, -2);
         np.topMargin = dp(26);
         body.addView(note, np);
+    }
+
+
+    private Button backupButton(String caption, boolean primary) {
+        Button button = new Button(this);
+        button.setText(caption);
+        button.setAllCaps(false);
+        button.setTextSize(16);
+        button.setTextColor(primary ? 0xFFFFFFFF : 0xFF2C227C);
+        button.setBackground(panel(primary ? IRIS : 0xFFE8E6FF, 18));
+        return button;
+    }
+
+    private void chooseExport() {
+        try {
+            Intent picker = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            picker.setType("text/plain");
+            picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.putExtra(Intent.EXTRA_TITLE, "GoreeCloud-Launcher-backup.gcl");
+            startActivityForResult(picker, EXPORT_FILE);
+        } catch (ActivityNotFoundException | SecurityException ex) {
+            Toast.makeText(this, "Document picker unavailable", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void chooseImport() {
+        try {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.setType("*/*");
+            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(picker, IMPORT_FILE);
+        } catch (ActivityNotFoundException | SecurityException ex) {
+            Toast.makeText(this, "Document picker unavailable", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (result != RESULT_OK || data == null || data.getData() == null) return;
+        Uri chosen = data.getData();
+        if (request == EXPORT_FILE) exportTo(chosen);
+        if (request == IMPORT_FILE) importFrom(chosen);
+    }
+
+    private void exportTo(Uri uri) {
+        try {
+            List<String> pins = new ArrayList<>(prefs.getStringSet("pins",
+                    java.util.Collections.emptySet()));
+            BackupCodec.Data snapshot = new BackupCodec.Data(
+                    prefs.getString("workspace_pages_v1", ""),
+                    prefs.getInt("workspace_current_v1", 0),
+                    prefs.getInt("columns", 4), prefs.getBoolean("labels", true), pins);
+            byte[] body = BackupCodec.encode(snapshot).getBytes(StandardCharsets.UTF_8);
+            try (OutputStream out = getContentResolver().openOutputStream(uri, "w")) {
+                if (out == null) throw new IOException("Document could not be opened");
+                out.write(body);
+                out.flush();
+            }
+            Toast.makeText(this, "Workspace backup exported", Toast.LENGTH_LONG).show();
+        } catch (IOException | IllegalArgumentException | SecurityException ex) {
+            Toast.makeText(this, "Export unsuccessful; verify the destination", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void importFrom(Uri uri) {
+        try {
+            byte[] content;
+            try (InputStream in = getContentResolver().openInputStream(uri)) {
+                if (in == null) throw new IOException("Document could not be opened");
+                ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+                byte[] chunk = new byte[4096];
+                int count;
+                while ((count = in.read(chunk)) != -1) {
+                    if (bytes.size() + count > BackupCodec.MAX_BYTES)
+                        throw new IllegalArgumentException("Backup file too large");
+                    bytes.write(chunk, 0, count);
+                }
+                content = bytes.toByteArray();
+            }
+            BackupCodec.Data candidate = BackupCodec.decode(
+                    new String(content, StandardCharsets.UTF_8));
+            String preview = "Replace the current layout with " + candidate.pageCount()
+                    + " page(s), " + candidate.shortcutCount() + " shortcut(s) and "
+                    + candidate.pins.size() + " dock pin(s)?\\n\\n"
+                    + "This will also replace grid and label settings. Missing apps may "
+                    + "remain as inactive shortcuts until installed.";
+            new AlertDialog.Builder(this)
+                .setTitle("Restore launcher backup?")
+                .setMessage(preview.replace("\\n", "\n"))
+                .setNegativeButton("Cancel", (dialog, which) -> {})
+                .setPositiveButton("Replace layout", (dialog, which) -> {
+                    boolean saved = prefs.edit()
+                        .putString("workspace_pages_v1", candidate.workspace)
+                        .putInt("workspace_current_v1", candidate.selectedPage)
+                        .putStringSet("pins", new HashSet<>(candidate.pins))
+                        .putInt("columns", candidate.columns)
+                        .putBoolean("labels", candidate.labels)
+                        .commit();
+                    Toast.makeText(this, saved
+                        ? "Backup restored. Return Home to view your layout."
+                        : "Restore could not be saved", Toast.LENGTH_LONG).show();
+                }).show();
+        } catch (IOException | IllegalArgumentException | SecurityException ex) {
+            Toast.makeText(this, "Invalid, unsupported or unreadable backup", Toast.LENGTH_LONG).show();
+        }
     }
 
     private TextView section(String label) {
