@@ -19,7 +19,7 @@ public final class LauncherAppLock {
     return prefs(c).contains("pin_salt") && prefs(c).contains("pin_hash");
   }
   public static boolean locked(Context c,String pkg){
-    return configured(c)&&prefs(c).getStringSet("locked",Collections.emptySet()).contains(pkg);
+    return prefs(c).getStringSet("locked",Collections.emptySet()).contains(pkg);
   }
   public static int count(Context c){
     return prefs(c).getStringSet("locked",Collections.emptySet()).size();
@@ -67,7 +67,10 @@ public final class LauncherAppLock {
     Toast.makeText(a,msg,Toast.LENGTH_SHORT).show();
   }
   public static void require(Activity a,String reason,Runnable onVerified){
-    if(!configured(a)){setup(a,onVerified);return;}
+    if(!configured(a)){
+      if(count(a)>0){toast(a,"App Lock data unavailable. Unlock blocked.");return;}
+      setup(a,onVerified);return;
+    }
     SharedPreferences p=prefs(a);
     if(p.getLong("cooldown",0)>System.currentTimeMillis()){
       toast(a,"Too many attempts. Try again later.");return;
