@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -88,24 +89,27 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen backup-home
-assert_text backup-home "Page 1 / 1"
+assert_text backup-home "Home page 1 of 1"
 
 # Create a nonempty second page; the backup must carry state, not only defaults.
-for attempt in 1 2 3; do
-  dump_screen "before-create-$attempt"
-  tap_label "before-create-$attempt" "Add home page"
-  sleep 2
-  dump_screen populated-page
-  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/populated-page.xml"; then break; fi
-done
-assert_text populated-page "Page 2 / 2"
-tap_label populated-page "All apps"
+tap_label backup-home "Edit Home screen"
+sleep 1
+dump_screen before-create
+tap_label before-create "Add page +"
+sleep 1
+dump_screen editor-page-two
+assert_text editor-page-two "Home page 2 of 2"
+adb shell input keyevent 4
+sleep 2
+dump_screen populated-page
+assert_text populated-page "Home page 2 of 2"
+launcher_swipe_up
 sleep 1
 retry_longpress_menu backup-place-menu "Launcher QA Fixture" "Add to current home page"
 tap_label backup-place-menu "Add to current home page"
 sleep 1
 dump_screen backup-drawer-after-place
-tap_label backup-drawer-after-place "Home"
+launcher_swipe_down
 sleep 1
 retry_longpress_menu backup-pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label backup-pin-menu "Pin to dock"
@@ -114,7 +118,10 @@ dump_screen backup-pinned
 assert_shortcut_count backup-pinned 2
 
 # Save a synthetic two-page, one-shortcut, one-pin layout with labels disabled.
-tap_label backup-pinned "Settings"
+tap_label backup-pinned "Edit Home screen"
+sleep 1
+dump_screen backup-editor
+tap_label backup-editor "Settings"
 sleep 1
 dump_screen backup-settings
 tap_label backup-settings "Show application labels"
@@ -154,9 +161,18 @@ assert lines[2]=="columns=4"
 assert lines[3]=="labels=0"
 assert lines[-1]=="sha256="+hashlib.sha256(b"\n".join(s.splitlines()[:-1])+b"\n").hexdigest()
 ws=base64.urlsafe_b64decode(lines[4].split("=",1)[1]+"===")
-assert ws.startswith(b"|") and b"com.goreecloud.launcher.fixture" in ws or ws.startswith(b"|")
+# Home has real starter icons now: its first page is NOT empty.
+# Decode each actual component token instead of assuming workspace starts '|'.
+pages=ws.split(b"|")
+assert len(pages)==2, "Two-page workspace missing from backup"
+components=[
+    base64.urlsafe_b64decode(token+b"===")
+    for page in pages for token in page.split(b".") if token
+]
+assert any(b"com.goreecloud.launcher.fixture/" in component for component in components), (
+    "Fixture Home shortcut missing from backup")
 assert lines[5].startswith("pins=") and len(lines[5])>5
-open(sys.argv[1],"w").write("PASS synthetic SAF export: version 1, two pages, labels off, dock pin, valid checksum\n")
+open(sys.argv[1],"w").write("PASS synthetic SAF export: version 2, two pages, labels off, dock pin, valid checksum\n")
 print("PASS synthetic backup file created and validated")
 PY
 
@@ -216,16 +232,16 @@ seek_setting "Show application labels" after-restore-apply up
 assert_checked after-restore-apply false
 
 # Confirm shortcut+pin, page selection and label preference survive process restart.
-adb shell input keyevent 4
-sleep 1
+adb shell input keyevent 3
+sleep 2
 dump_screen restored-home
-assert_text restored-home "Page 2 / 2"
+assert_text restored-home "Home page 2 of 2"
 assert_shortcut_count restored-home 2
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen restored-after-restart
-assert_text restored-after-restart "Page 2 / 2"
+assert_text restored-after-restart "Home page 2 of 2"
 assert_shortcut_count restored-after-restart 2
 python3 - "$EVIDENCE/restored-after-restart.xml" <<'PY'
 import re,subprocess,sys,xml.etree.ElementTree as ET
@@ -256,7 +272,10 @@ with open("/tmp/launcher-qa-unsupported.txt","wb") as output:
     output.write(original.replace(b"GOREELAUNCHER/2",b"GOREELAUNCHER/9",1))
 print("Prepared tampered, oversized and unsupported synthetic payloads")
 PY
-tap_label restored-after-restart "Settings"
+tap_label restored-after-restart "Edit Home screen"
+sleep 1
+dump_screen restored-editor
+tap_label restored-editor "Settings"
 sleep 1
 seek_setting "Import backup" negative-settings-start down
 
@@ -301,7 +320,7 @@ sleep 1
 adb shell input keyevent 3
 sleep 1
 dump_screen negative-final-home
-assert_text negative-final-home "Page 2 / 2"
+assert_text negative-final-home "Home page 2 of 2"
 assert_shortcut_count negative-final-home 2
 echo "PASS: corrupt, overlimit and unsupported backups rejected without changing workspace"
 echo "PASS: SAF create/write/read, restore-cancel, restore-apply and process persistence"

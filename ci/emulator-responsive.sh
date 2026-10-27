@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -95,23 +96,21 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen responsive-initial
-assert_text responsive-initial "Home workspace"
-assert_text responsive-initial "Home tab, selected"
-assert_text responsive-initial "All apps tab"
-tap_label responsive-initial "All apps"
+assert_text responsive-initial "Live Home clock and date"
+assert_text responsive-initial "Home page 1 of 1"
+launcher_swipe_up
 # The first tap after emulator HOME startup can be ignored while focus settles.
 # Require the visible selected state and retry with freshly captured bounds.
 for attempt in 1 2 3 4; do
   sleep 2
   dump_screen responsive-drawer
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/responsive-drawer.xml"; then
+  if grep -Fq 'text="Search apps"' "$EVIDENCE/responsive-drawer.xml"; then
     break
   fi
   echo "All apps transition not yet visible; retry $attempt"
-  tap_label responsive-drawer "All apps"
+  launcher_swipe_up
 done
-assert_text responsive-drawer "All apps tab, selected"
-assert_text responsive-drawer "Home tab"
+assert_text responsive-drawer "Search apps"
 # Exercise an in-progress local search, not just the All Apps selection.
 # Use the actual EditText bounds rather than a density-specific coordinate.
 python3 - "$EVIDENCE/responsive-drawer.xml" <<'PYCHECK'
@@ -141,8 +140,8 @@ if "Launcher Fixture Notes" not in descriptions:
     raise SystemExit("Matching fixture Notes shortcut missing")
 if "Launcher QA Fixture" in descriptions:
     raise SystemExit("Nonmatching QA fixture shortcut leaked through search")
-if "All apps tab, selected" not in descriptions:
-    raise SystemExit("Filtered All apps tab selection lost")
+if "Launcher Fixture Notes" not in descriptions:
+    raise SystemExit("Filtered matching app not present in drawer")
 print("PASS local Notes query and matching shortcut retained")
 PYCHECK
 }
@@ -169,18 +168,18 @@ adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
 sleep 3
 dump_screen responsive-drawer-landscape
-assert_text responsive-drawer-landscape "All apps tab, selected"
+assert_text responsive-drawer-landscape "Launcher Fixture Notes"
 assert_filtered_notes_eventually responsive-drawer-landscape
 adb shell settings put system user_rotation 0
 sleep 3
 dump_screen responsive-drawer-portrait
-assert_text responsive-drawer-portrait "All apps tab, selected"
+assert_text responsive-drawer-portrait "Launcher Fixture Notes"
 assert_filtered_notes_eventually responsive-drawer-portrait
 # Returning Home must clear transient search before the existing placement test.
-tap_label responsive-drawer-portrait "Home"
+launcher_swipe_down
 sleep 2
 dump_screen responsive-cleared-search
-assert_text responsive-cleared-search "Home tab, selected"
+assert_text responsive-cleared-search "Live Home clock and date"
 python3 - "$EVIDENCE/responsive-cleared-search.xml" <<'PYCHECK'
 import sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
@@ -188,18 +187,18 @@ values=[n.attrib.get("text") for n in root.iter()
         if n.attrib.get("class")=="android.widget.EditText"]
 # UIAutomator reports an empty EditText using the visible hint on API 35.
 # Both representations mean no search query is retained.
-if values not in ([""], ["Search applications"]):
+if values not in ([""], ["Search apps"]):
     raise SystemExit("Home should clear drawer query: "+str(values))
 print("PASS returning Home cleared transient drawer query")
 PYCHECK
-tap_label responsive-cleared-search "All apps"
+launcher_swipe_up
 for attempt in 1 2 3 4; do
   sleep 2
   dump_screen responsive-after-search
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/responsive-after-search.xml"; then break; fi
-  tap_label responsive-after-search "All apps"
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/responsive-after-search.xml"; then break; fi
+  launcher_swipe_up
 done
-assert_text responsive-after-search "All apps tab, selected"
+assert_text responsive-after-search "Search apps"
 assert_text responsive-after-search "Launcher QA Fixture"
 # Read current grid bounds before each long-press. Newly installed fixture apps may
 # trigger package-change layout updates while the AVD is settling.
@@ -217,11 +216,11 @@ assert_text responsive-menu "Add to current home page"
 tap_label responsive-menu "Add to current home page"
 sleep 1
 dump_screen responsive-after-add
-tap_label responsive-after-add "Home"
+launcher_swipe_down
 sleep 1
 dump_screen responsive-home
 assert_text responsive-home "Launcher QA Fixture"
-assert_text responsive-home "Home tab, selected"
+assert_text responsive-home "Live Home clock and date"
 
 assert_png_orientation() {
   python3 - "$EVIDENCE/$1.png" "$2" <<'PY'
@@ -276,7 +275,7 @@ adb shell input keyevent 3
 sleep 5
 dump_screen responsive-landscape-top
 assert_png_orientation responsive-landscape-top landscape
-assert_text responsive-landscape-top "Home workspace"
+assert_text responsive-landscape-top "Home page 1 of 1"
 # Landscape has a vertically scrolling Home surface. A single swipe is not
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
@@ -291,7 +290,7 @@ import re,struct,sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 img=open(sys.argv[2],"rb").read(24)
 width,height=struct.unpack(">II",img[16:24])
-for name,attr,minimum in (("Pinned apps","text",1),("Add app to dock","content-desc",1)):
+for name,attr,minimum in (("Add app to dock","content-desc",1),):
     matches=[n.attrib for n in root.iter() if n.attrib.get(attr)==name]
     if len(matches)<minimum: raise SystemExit("Dock element not yet visible "+name)
     for item in matches:
@@ -331,7 +330,7 @@ adb shell input keyevent 3
 sleep 5
 dump_screen responsive-large-top
 assert_png_orientation responsive-large-top portrait
-assert_text responsive-large-top "Home workspace"
+assert_text responsive-large-top "Home page 1 of 1"
 adb shell input swipe 630 1670 630 410 600
 sleep 2
 dump_screen responsive-large-content
@@ -341,7 +340,7 @@ assert_tile_label_bounds responsive-large-content 2.0
 adb shell input swipe 630 1670 630 380 600
 sleep 1
 dump_screen responsive-large-dock
-assert_text responsive-large-dock "Pinned apps"
+assert_text responsive-large-dock "Add app to dock"
 # Return default configuration; the fixture shortcut must survive.
 adb shell settings put system user_rotation 0
 adb shell settings put system font_scale 1.0
@@ -349,6 +348,6 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen responsive-restored
-assert_text responsive-restored "Home workspace"
+assert_text responsive-restored "Live Home clock and date"
 assert_text responsive-restored "Launcher QA Fixture"
 echo "PASS: landscape, 145%- and 200%-text Home access, tile geometry, persistence"

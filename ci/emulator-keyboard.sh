@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -94,12 +95,12 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent KEYCODE_HOME
 sleep 4
 dump_screen keyboard-initial
-assert_text keyboard-initial "Home workspace"
+assert_text keyboard-initial "Live Home clock and date"
 # Button-looking text actions must expose the actual native button role.
 python3 - "$EVIDENCE/keyboard-initial.xml" <<'PYROLE'
 import sys,xml.etree.ElementTree as ET
 nodes=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()]
-for title in ("Home tab, selected","All apps tab","Settings","Add home page"):
+for title in ("Edit Home screen","Add Android widget","Add app to dock"):
     matches=[n for n in nodes if n.get("text")==title or n.get("content-desc")==title]
     if not any(n.get("class")=="android.widget.Button"
                and n.get("clickable")=="true" and n.get("focusable")=="true"
@@ -107,13 +108,13 @@ for title in ("Home tab, selected","All apps tab","Settings","Add home page"):
         raise SystemExit("Not an accessible button: "+title+" "+str(matches))
     print("PASS accessible button semantics:",title)
 PYROLE
-tap_label keyboard-initial "All apps"
+launcher_swipe_up
 # A fresh Home can consume the first tap; package discovery may also lag
 # initial fixture APK installation. Require BOTH selected tab and actual tile.
 for attempt in 1 2 3 4 5 6; do
   sleep 2
   dump_screen keyboard-drawer
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/keyboard-drawer.xml"; then
+  if grep -Fq 'text="Search apps"' "$EVIDENCE/keyboard-drawer.xml"; then
     if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/keyboard-drawer.xml"; then
       break
     fi
@@ -125,15 +126,15 @@ for attempt in 1 2 3 4 5 6; do
       adb shell input keyevent KEYCODE_HOME
       sleep 2
       dump_screen keyboard-home-refresh
-      assert_text keyboard-home-refresh "Home workspace"
-      tap_label keyboard-home-refresh "All apps"
+      assert_text keyboard-home-refresh "Live Home clock and date"
+      launcher_swipe_up
     fi
   else
     echo "All apps selection not yet visible; retry $attempt" >&2
-    tap_label keyboard-drawer "All apps"
+    launcher_swipe_up
   fi
 done
-assert_text keyboard-drawer "All apps tab, selected"
+assert_text keyboard-drawer "Launcher QA Fixture"
 assert_text keyboard-drawer "Launcher QA Fixture"
 
 # Navigate with hardware keyboard Tab events, never a touch long-press.
@@ -194,6 +195,6 @@ PY
 adb shell input keyevent KEYCODE_HOME
 sleep 2
 dump_screen keyboard-home
-assert_text keyboard-home "Home workspace"
+assert_text keyboard-home "Live Home clock and date"
 assert_text keyboard-home "Launcher QA Fixture"
 echo "PASS: hardware Tab, Menu and Enter shortcut placement"

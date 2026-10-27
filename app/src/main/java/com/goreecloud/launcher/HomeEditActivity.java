@@ -67,21 +67,28 @@ public final class HomeEditActivity extends Activity {
         content.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(content, new ScrollView.LayoutParams(-1, -2));
 
-        Button back = button("‹  Back to Home", () -> finish());
-        content.addView(back, new LinearLayout.LayoutParams(-1, dp(52)));
-        content.addView(text("Edit Home", 27, 0xFFFFFFFF, true));
-        content.addView(text("Your pages, your layout", 14, 0xFFDDDDF6, false));
+        // The mockup's editor opens as a desktop overview: a quiet Home
+        // affordance at the top, not a full-width settings-page back button.
+        TextView back = text("⌂", 31, 0xFFFFFFFF, false);
+        back.setGravity(Gravity.CENTER);
+        back.setFocusable(true);
+        back.setContentDescription("Back to Home");
+        back.setOnClickListener(v -> finish());
+        content.addView(back, new LinearLayout.LayoutParams(-1, dp(48)));
+        TextView editorTitle = text("Edit Home", 17, 0xFFE9EDF4, true);
+        editorTitle.setGravity(Gravity.CENTER);
+        content.addView(editorTitle, new LinearLayout.LayoutParams(-1, dp(38)));
 
-        LinearLayout preview = card(0x817772B1);
+        LinearLayout preview = card(0xA03C4858);
         LinearLayout.LayoutParams previewParams = new LinearLayout.LayoutParams(-1, -2);
-        previewParams.topMargin = dp(22);
+        previewParams.topMargin = dp(12);
         content.addView(preview, previewParams);
-        pageTitle = text("", 19, 0xFFFFFFFF, true);
+        pageTitle = text("", 16, 0xFFFFFFFF, true);
         pageTitle.setGravity(Gravity.CENTER);
         preview.addView(pageTitle);
         previewItems = new LinearLayout(this);
         previewItems.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams itemsParams = new LinearLayout.LayoutParams(-1, dp(95));
+        LinearLayout.LayoutParams itemsParams = new LinearLayout.LayoutParams(-1, dp(115));
         itemsParams.topMargin = dp(10);
         preview.addView(previewItems, itemsParams);
         indicators = new LinearLayout(this);
@@ -108,11 +115,18 @@ public final class HomeEditActivity extends Activity {
         });
         renderPreview();
 
-        content.addView(text("PERSONALIZE", 13, 0xFFE1DBFF, true));
+        // All edit tools and settings belong in ONE lower configuration sheet,
+        // as in the owner's reference, rather than stacked standalone cards.
+        LinearLayout settings = card(0xE1263141);
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(-1, -2);
+        settingsParams.topMargin = dp(14);
+        content.addView(settings, settingsParams);
+        settings.addView(text("Home screen settings", 17, 0xFFFFFFFF, true));
         LinearLayout actions = new LinearLayout(this);
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(64));
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(58));
         actionsParams.topMargin = dp(10);
-        content.addView(actions, actionsParams);
+        actionsParams.bottomMargin = dp(10);
+        settings.addView(actions, actionsParams);
         addFlexButton(actions, "Wallpapers", this::chooseWallpaper);
         addFlexButton(actions, "Widgets", () -> {
             setResult(RESULT_OK, new Intent().putExtra(REQUEST_WIDGET, true));
@@ -120,12 +134,6 @@ public final class HomeEditActivity extends Activity {
         });
         addFlexButton(actions, "Themes", this::chooseTheme);
         addFlexButton(actions, "Settings", () -> startActivity(new Intent(this, SettingsActivity.class)));
-
-        LinearLayout settings = card(0xDC303052);
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(-1, -2);
-        settingsParams.topMargin = dp(16);
-        content.addView(settings, settingsParams);
-        settings.addView(text("Home screen settings", 19, 0xFFFFFFFF, true));
         TextView grid = text("Home screen grid: " + prefs.getInt("columns", 4) + " columns",
                 14, 0xFFE5E4FF, false);
         settings.addView(grid);
@@ -210,13 +218,15 @@ public final class HomeEditActivity extends Activity {
     }
 
     private void chooseTheme() {
-        String[] items = {"GoreeCloud violet", "Midnight", "Use device wallpaper"};
-        String selected = prefs.getString("launcher_skin", "violet");
-        int initial = "night".equals(selected) ? 1 : "wallpaper".equals(selected) ? 2 : 0;
+        // The founder rejected the purple gradient; a real device wallpaper
+        // is the default, with a neutral solid-color alternative.
+        String[] items = {"Use device wallpaper", "Midnight — solid"};
+        String selected = prefs.getString("launcher_skin", "wallpaper");
+        int initial = "night".equals(selected) ? 1 : 0;
         new AlertDialog.Builder(this).setTitle("Home appearance")
             .setSingleChoiceItems(items, initial, (dialog, which) -> {
                 prefs.edit().putString("launcher_skin",
-                    which == 1 ? "night" : which == 2 ? "wallpaper" : "violet").apply();
+                    which == 1 ? "night" : "wallpaper").apply();
                 dialog.dismiss();
             }).setNegativeButton("Cancel", null).show();
     }
@@ -252,8 +262,8 @@ public final class HomeEditActivity extends Activity {
         Button b = new Button(this);
         b.setText(caption);
         b.setAllCaps(false);
-        b.setTextColor(0xFF2E285B);
-        b.setBackground(GoreeVisuals.card(getResources(), 0xEAF1EEFF, 16));
+        b.setTextColor(0xFF263445);
+        b.setBackground(GoreeVisuals.card(getResources(), 0xEFF1F3F5, 16));
         b.setOnClickListener(v -> click.run());
         return b;
     }

@@ -73,13 +73,23 @@ grep -F 'com.goreecloud.launcher' "$EVIDENCE/home-role.txt"
 adb shell input keyevent 3
 sleep 4
 dump_screen home-role
-assert_text home-role "Home workspace"
-assert_text home-role "Page 1 / 1"
+assert_text home-role "Live Home clock and date"
+assert_text home-role "Home page 1 of 1"
 assert_text home-role "Add app to dock"
-assert_text home-role "Home dashboard"
-assert_text home-role "Customize"
-# The founder mockup's overview is a real native Activity, not a screenshot.
-tap_label home-role "Customize"
+assert_text home-role "Edit Home screen"
+# Assert a desktop rather than the previous tabbed settings-style workspace.
+python3 - "$EVIDENCE/home-role.xml" <<'PY'
+import sys,xml.etree.ElementTree as ET
+nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+labels={n.attrib.get("text","") for n in nodes}
+if "Home workspace" in labels or "Pinned apps" in labels:
+    raise SystemExit("Deprecated workspace toolbar still visible on Home")
+if not any(n.attrib.get("content-desc")=="Edit Home screen" for n in nodes):
+    raise SystemExit("Native Home editor action is inaccessible")
+print("PASS Home uses wallpaper desktop affordances, not workspace chrome")
+PY
+# The founder mockup's overview is a real native Activity.
+tap_label home-role "Edit Home screen"
 sleep 2
 dump_screen visual-edit-mode
 assert_text visual-edit-mode "Edit Home"
@@ -91,7 +101,7 @@ assert_text visual-edit-mode "Widgets"
 adb shell input keyevent 4
 sleep 2
 dump_screen edit-returned-home
-assert_text edit-returned-home "Home workspace"
+assert_text edit-returned-home "Live Home clock and date"
 
 # Verify an actual touchscreen-like swipe on the disposable emulator opens the
 # drawer from Home and returns to Home. Do not replace this with a tab tap.
@@ -101,39 +111,30 @@ X=$((W/2))
 adb shell input swipe "$X" "$((H*70/100))" "$X" "$((H*41/100))" 420
 sleep 2
 dump_screen swipe-up-opens-drawer
-assert_text swipe-up-opens-drawer "All apps tab, selected"
-assert_text swipe-up-opens-drawer "All applications"
+assert_text swipe-up-opens-drawer "Launcher QA Fixture"
 adb shell input swipe "$X" "$((H*44/100))" "$X" "$((H*70/100))" 420
 sleep 2
 dump_screen swipe-down-closes-drawer
-assert_text swipe-down-closes-drawer "Home tab, selected"
-assert_text swipe-down-closes-drawer "Home workspace"
+assert_text swipe-down-closes-drawer "Live Home clock and date"
 
-# Android may apply status-bar/window insets after the initial hierarchy capture.
-# Always re-read the current control bounds and confirm the resulting state.
-page_ready=0
-for attempt in 1 2 3; do
-  dump_screen "before-add-$attempt"
-  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/before-add-$attempt.xml"; then
-    page_ready=1
-    break
-  fi
-  tap_label "before-add-$attempt" "Add home page"
-  sleep 2
-  dump_screen page-two
-  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/page-two.xml"; then
-    page_ready=1
-    break
-  fi
-  echo "Page-add tap did not take effect; refreshing UI coordinates (attempt $attempt)" >&2
-done
-test "$page_ready" = 1
-dump_screen page-two
-assert_text page-two "Page 2 / 2"
-tap_label page-two "All apps"
+# Adding pages is now intentionally in Edit Home, not a desktop toolbar.
+tap_label swipe-down-closes-drawer "Edit Home screen"
 sleep 1
+dump_screen editor-before-page
+assert_text editor-before-page "Edit Home"
+tap_label editor-before-page "Add page +"
+sleep 1
+dump_screen editor-page-two
+assert_text editor-page-two "Home page 2 of 2"
+adb shell input keyevent 4
+sleep 2
+dump_screen page-two
+assert_text page-two "Home page 2 of 2"
+# A real swipe from the wallpaper desktop opens the drawer.
+adb shell input swipe "$X" "$((H*70/100))" "$X" "$((H*41/100))" 420
+sleep 2
 dump_screen drawer
-assert_text drawer "All applications"
+assert_text drawer "Launcher QA Fixture"
 assert_text drawer "Launcher QA Fixture"
 
 # Exercise the actual search field before using filtered results for placement.
@@ -173,8 +174,8 @@ retry_longpress_menu notes-menu "Launcher Fixture Notes" "Add to current home pa
 tap_label notes-menu "Add to current home page"
 sleep 1
 dump_screen drawer-after-notes
-tap_label drawer-after-notes "Home"
-sleep 1
+adb shell input swipe "$X" "$((H*44/100))" "$X" "$((H*70/100))" 420
+sleep 2
 dump_screen home-shortcut
 assert_text home-shortcut "Launcher QA Fixture"
 assert_text home-shortcut "Launcher Fixture Notes"
@@ -210,13 +211,13 @@ retry_longpress_menu cross-page-menu "Launcher QA Fixture" "Move to previous pag
 tap_label cross-page-menu "Move to previous page"
 sleep 1
 dump_screen moved-page-one
-assert_text moved-page-one "Page 1 / 2"
+assert_text moved-page-one "Home page 1 of 2"
 assert_shortcut_count moved-page-one 2
 retry_longpress_menu return-menu "Launcher QA Fixture" "Move to next page"
 tap_label return-menu "Move to next page"
 sleep 1
 dump_screen moved-page-two
-assert_text moved-page-two "Page 2 / 2"
+assert_text moved-page-two "Home page 2 of 2"
 assert_shortcut_count moved-page-two 2
 # The page reflows from one full-width tile to two columns after moving.
 # Re-read settled bounds before launching instead of tapping a stale hit region.
@@ -232,11 +233,14 @@ assert_text launched-fixture "QA target running"
 adb shell input keyevent 3
 sleep 2
 dump_screen home-after-launch
-assert_text home-after-launch "Page 2 / 2"
+assert_text home-after-launch "Home page 2 of 2"
 assert_shortcut_count home-after-launch 2
 
 # Verify the native setting changes on device and persists after activity recreation.
-tap_label home-after-launch "Settings"
+tap_label home-after-launch "Edit Home screen"
+sleep 1
+dump_screen editor-before-settings
+tap_label editor-before-settings "Settings"
 sleep 1
 dump_screen settings-before
 assert_text settings-before "Home settings"
@@ -252,8 +256,8 @@ if not matching or matching[0].attrib.get("checked")!="false":
     raise SystemExit("Application label switch was not disabled")
 print("PASS labels setting disabled")
 PY
-adb shell input keyevent 4
-sleep 1
+adb shell input keyevent 3
+sleep 2
 dump_screen home-hidden-labels
 assert_shortcut_count home-hidden-labels 2
 
@@ -261,9 +265,12 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen after-restart
-assert_text after-restart "Page 2 / 2"
+assert_text after-restart "Home page 2 of 2"
 assert_shortcut_count after-restart 2
-tap_label after-restart "Settings"
+tap_label after-restart "Edit Home screen"
+sleep 1
+dump_screen editor-restored
+tap_label editor-restored "Settings"
 sleep 1
 dump_screen settings-restored
 python3 - "$EVIDENCE/settings-restored.xml" <<'PY'
