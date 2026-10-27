@@ -1341,6 +1341,13 @@ public final class LauncherActivity extends Activity {
                 showDock();
                 return true;
             });
+        boolean locked=LauncherAppLock.locked(this,app.component.getPackageName());
+        menu.getMenu().add(locked?"Unlock":"Lock").setOnMenuItemClickListener(item->{
+            LauncherAppLock.setLocked(this,app.component.getPackageName(),!locked,()->{
+                showApps();showDock();
+            });
+            return true;
+        });
         try {
             android.content.pm.ApplicationInfo info = getPackageManager()
                     .getApplicationInfo(app.component.getPackageName(), 0);
@@ -1369,6 +1376,9 @@ public final class LauncherActivity extends Activity {
     }
 
     private void launch(Entry app) {
+        LauncherAppLock.guard(this,app.component.getPackageName(),()->launchUnlocked(app));
+    }
+    private void launchUnlocked(Entry app) {
         Intent open = Intent.makeMainActivity(app.component);
         open.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try { startActivity(open); }
