@@ -59,6 +59,50 @@ public final class QuickAnswers {
       });
     });
   }
+  private static String fetchGoreeCloud(String question) throws Exception {
+    JSONObject payload = new JSONObject().put("query",question).put("category","general")
+      .put("range","").put("page",1).put("language","all").put("safesearch",1);
+    HttpURLConnection c=(HttpURLConnection)new URL(GoreeCloudSearchContract.ENDPOINT).openConnection();
+    c.setConnectTimeout(12000);c.setReadTimeout(18000);
+    c.setRequestMethod("POST");c.setDoOutput(true);c.setInstanceFollowRedirects(false);
+    c.setRequestProperty("Content-Type","application/json");
+    c.setRequestProperty("Accept","application/json");
+    try {
+      try(OutputStream out=c.getOutputStream()){
+        out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+      }
+      int status=c.getResponseCode();
+      if(status==403)return "GoreeCloud Search requires authorized NetBird access.";
+      if(status==429)return "GoreeCloud Search rate limit reached. Try again later.";
+      if(status<200||status>=300)return "GoreeCloud Search returned HTTP "+status+".";
+      StringBuilder raw=new StringBuilder();
+      try(InputStreamReader in=new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8)){
+        char[] buf=new char[2048];int n;
+        while((n=in.read(buf))>0){
+          if(raw.length()+n>512000)return "GoreeCloud Search response exceeded size limit.";
+          raw.append(buf,0,n);
+        }
+      }
+      JSONArray results=new JSONObject(raw.toString()).optJSONArray("results");
+      if(results==null||results.length()==0)return "No matching GoreeCloud Search results.";
+      StringBuilder answer=new StringBuilder("GoreeCloud Search — sourced results, not AI text:");
+      int shown=0;
+      for(int i=0;i<results.length()&&shown<3;i++){
+        JSONObject item=results.optJSONObject(i);if(item==null)continue;
+        String url=item.optString("url","");
+        if(!GoreeCloudSearchContract.safeResultUrl(url))continue;
+        shown++;
+        answer.append("\\n\\n").append(shown).append(". ")
+          .append(item.optString("title","Result").replaceAll("[\\r\\n]"," ").substring(0,
+            Math.min(140,item.optString("title","Result").length())))
+          .append("\\n").append(item.optString("description","").replaceAll("[\\r\\n]"," ").substring(0,
+            Math.min(240,item.optString("description","").length())))
+          .append("\\n").append(url);
+      }
+      return shown==0?"No matching safe GoreeCloud Search results.":answer.toString();
+    }finally{c.disconnect();}
+  }
+
   private static String fetch(String id,String model,String key,String question)throws Exception{
     String endpoint;
     JSONObject body=new JSONObject();
