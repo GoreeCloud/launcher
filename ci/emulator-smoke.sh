@@ -125,7 +125,7 @@ assert_text editor-before-page "Edit Home"
 tap_label editor-before-page "Add page +"
 sleep 1
 dump_screen editor-page-two
-assert_text editor-page-two "Page 2 / 2"
+assert_text editor-page-two "Home page 2 of 2"
 adb shell input keyevent 4
 sleep 2
 dump_screen page-two
