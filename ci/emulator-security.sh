@@ -63,6 +63,51 @@ sleep 2
 dump quick-providers
 found quick-providers "‹   Quick answers"
 found quick-providers "GoreeCloud Search quick answers are unavailable until a supported service API is published. No endpoint or credential has been assumed."
+# Select a real provider using only the UI. No request is sent to an API.
+tap quick-providers "GoreeCloud Search"
+sleep 1
+dump quick-provider-options
+found quick-provider-options "OpenAI"
+tap quick-provider-options "OpenAI"
+sleep 2
+dump quick-openai-settings
+found quick-openai-settings "Save API key"
+# Enter a synthetic, deliberately nonfunctional token into the second EditText.
+python3 - "$EVIDENCE/quick-openai-settings.xml" <<'PY'
+import re,sys,subprocess,xml.etree.ElementTree as ET
+nodes=[n for n in ET.parse(sys.argv[1]).getroot().iter()
+       if n.attrib.get("class")=="android.widget.EditText"]
+if len(nodes)!=2:raise SystemExit("Expected model and secret inputs")
+m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',nodes[-1].attrib["bounds"])
+if not m:raise SystemExit("Secret field has no bounds")
+a,b,c,d=map(int,m.groups())
+subprocess.run(["adb","shell","input","tap",str((a+c)//2),str((b+d)//2)],check=True)
+PY
+adb shell input text goreecloud_QA_dummy_not_real
+adb shell input keyevent 4
+sleep 1
+seek "Save API key"
+tap current "Save API key"
+sleep 2
+# The stored bytes must be AES-GCM ciphertext; never export them as CI evidence.
+secret_xml="$(mktemp)"
+trap 'rm -f "$secret_xml"' EXIT
+adb shell run-as com.goreecloud.launcher cat shared_prefs/goree_provider_secrets_private.xml > "$secret_xml"
+grep -q 'k_openai' "$secret_xml"
+if grep -q 'goreecloud_QA_dummy_not_real' "$secret_xml"; then
+  echo "SECURITY FAILURE: plaintext API key persisted" >&2
+  exit 1
+fi
+echo "PASS synthetic provider key persisted only as ciphertext"
+seek "Delete saved key"
+tap current "Delete saved key"
+sleep 1
+adb shell run-as com.goreecloud.launcher cat shared_prefs/goree_provider_secrets_private.xml > "$secret_xml"
+if grep -q 'k_openai' "$secret_xml"; then
+  echo "SECURITY FAILURE: provider key deletion ineffective" >&2
+  exit 1
+fi
+echo "PASS key deletion verified without provider network calls"
 adb shell input keyevent 4
 sleep 2
 # Settings scroll position may be retained or reset across Activity navigation.
