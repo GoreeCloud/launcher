@@ -2,6 +2,8 @@ package com.goreecloud.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.WallpaperManager;
+import android.app.WallpaperColors;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
@@ -650,15 +652,30 @@ public final class LauncherActivity extends Activity {
         }
         getWindow().setStatusBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
+        // On a light user's wallpaper, white system status icons become unreadable.
+        // Follow Android's wallpaper contrast hint without requesting wallpaper pixels.
+        boolean useDarkStatusIcons = false;
+        if (deviceWallpaper && Build.VERSION.SDK_INT >= 27) {
+            try {
+                WallpaperColors colors = WallpaperManager.getInstance(this)
+                        .getWallpaperColors(WallpaperManager.FLAG_SYSTEM);
+                useDarkStatusIcons = colors != null
+                        && (colors.getColorHints() & WallpaperColors.HINT_SUPPORTS_DARK_TEXT) != 0;
+            } catch (RuntimeException unavailable) {
+                // Some OEMs restrict wallpaper-color access; retain safe fallback.
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
                 int bits = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                         | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                controller.setSystemBarsAppearance(0, bits);
+                controller.setSystemBarsAppearance(useDarkStatusIcons
+                        ? WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, bits);
             }
         } else {
-            getWindow().getDecorView().setSystemUiVisibility(0);
+            getWindow().getDecorView().setSystemUiVisibility(useDarkStatusIcons
+                    ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0);
         }
     }
 
