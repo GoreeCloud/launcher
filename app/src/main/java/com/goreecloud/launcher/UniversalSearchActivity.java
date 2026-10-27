@@ -38,11 +38,13 @@ public final class UniversalSearchActivity extends Activity {
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
         getWindow().setStatusBarColor(0xFF191B29);
         getWindow().setNavigationBarColor(0xFF191B29);
+
         ScrollView scroll=new ScrollView(this);
         scroll.setBackgroundColor(0xFF191B29);
         scroll.setFillViewport(true);
         scroll.setPadding(dp(20),dp(44),dp(20),dp(24));
         setContentView(scroll);
+        GoreeVisuals.useLightSystemBarIcons(this);
         LinearLayout page=new LinearLayout(this);
         page.setOrientation(1);scroll.addView(page);
         TextView header=label("⌕   Universal Search",25,true);
@@ -100,7 +102,9 @@ public final class UniversalSearchActivity extends Activity {
                 String title=String.valueOf(app.loadLabel(getPackageManager()));
                 if(!title.toLowerCase(Locale.ROOT).contains(q.toLowerCase(Locale.ROOT)))continue;
                 ComponentName component=new ComponentName(app.activityInfo.packageName,app.activityInfo.name);
-                item(title,()->{try{startActivity(Intent.makeMainActivity(component));}catch(Exception ignored){notice();}});
+                item(title,()->LauncherAppLock.guard(this,component.getPackageName(),
+                    ()->{try{startActivity(Intent.makeMainActivity(component));}
+                        catch(Exception ignored){notice();}}));
                 if(++count>=14)break;
             }
         }
@@ -124,6 +128,14 @@ public final class UniversalSearchActivity extends Activity {
                 startActivity(new Intent(this,SettingsActivity.class)));
             else files(q,Uri.parse(chosen));
         }
+        section("Quick answers");
+        String provider=QuickAnswers.selected(this);
+        TextView answer=label("",15,false);
+        item("Ask "+provider+" for a quick answer",()->{
+            answer.setText("Requesting answer from "+provider+"…");
+            QuickAnswers.ask(this,q,answer::setText);
+        });
+        results.addView(answer);
         if(prefs.getBoolean("search_web",true)) {
             section("Web");
             item("Search the web for “"+q+"”",()->web(q));

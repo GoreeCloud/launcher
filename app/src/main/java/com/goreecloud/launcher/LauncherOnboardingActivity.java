@@ -21,6 +21,7 @@ public final class LauncherOnboardingActivity extends Activity {
     private boolean swipeSearch=true, searchApps=true, searchWeb=true;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
         homeRows=prefs.getInt("home_rows",5);
         drawerRows=prefs.getInt("drawer_rows",5);
@@ -44,6 +45,7 @@ public final class LauncherOnboardingActivity extends Activity {
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(0xFF191B29);
         setContentView(scroll);
+        GoreeVisuals.useLightSystemBarIcons(this);
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(1);
         root.setPadding(dp(20),dp(44),dp(20),dp(20));

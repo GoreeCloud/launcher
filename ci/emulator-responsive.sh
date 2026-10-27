@@ -340,18 +340,23 @@ for attempt in 1 2 3 4 5 6; do
   adb shell input swipe 630 1670 630 410 600
   sleep 2
   dump_screen responsive-large-content
-  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/responsive-large-content.xml"; then
+  # Partial visibility is NOT accessibility acceptance: scroll until the
+  # actual two-line label is fully within its tile at 200% font scale.
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/responsive-large-content.xml" &&
+      assert_tile_label_bounds responsive-large-content 2.0; then
     large_fixture_reached=true
     break
   fi
 done
-test "$large_fixture_reached" = true || { echo "Home shortcut inaccessible at 200% font"; exit 1; }
+test "$large_fixture_reached" = true || {
+  echo "Home shortcut with readable label inaccessible after six 200%-font scrolls"
+  exit 1
+}
 assert_text responsive-large-content "Launcher QA Fixture"
-assert_tile_label_bounds responsive-large-content 2.0
 adb shell input swipe 630 1670 630 380 600
 sleep 1
 dump_screen responsive-large-dock
-assert_text responsive-large-dock "Search apps"
+assert_text responsive-large-dock "Phone"
 # Return default configuration; the fixture shortcut must survive.
 adb shell settings put system user_rotation 0
 adb shell settings put system font_scale 1.0

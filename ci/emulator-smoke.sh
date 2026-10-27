@@ -3,7 +3,7 @@ set -Eeuo pipefail
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
-trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true' ERR
+trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true; adb logcat -d -s AndroidRuntime:E > "$EVIDENCE/android-runtime-on-error.txt" || true' ERR
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
@@ -82,7 +82,7 @@ assert_text home-role "Edit Home screen"
 adb shell input swipe 540 1000 540 1580 420
 sleep 2
 dump_screen universal-search-from-home
-assert_text universal-search-from-home "Universal Search"
+assert_text universal-search-from-home "⌕   Universal Search"
 assert_text universal-search-from-home "Search only sources you enable in Launcher Settings"
 adb shell input keyevent 4
 sleep 2
@@ -312,7 +312,7 @@ PY
 # New gesture and dock settings lengthen the native ScrollView. Scroll
 # toward the document-picker controls without assuming one screen-height swipe.
 backup_visible=0
-for attempt in 1 2 3 4; do
+for attempt in $(seq 1 12); do
   adb shell input swipe 420 1750 420 500 460
   sleep 1
   dump_screen settings-backup

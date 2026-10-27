@@ -258,9 +258,29 @@ public final class SettingsActivity extends Activity {
         Button folder = backupButton("Choose searchable folder…", false);
         folder.setOnClickListener(v -> chooseSearchFolder());
         searchCard.addView(folder, new LinearLayout.LayoutParams(-1, dp(55)));
+        Button quick=backupButton("Configure AI quick answers",false);
+        quick.setOnClickListener(v->startActivity(new Intent(this,QuickAnswerSettingsActivity.class)));
+        searchCard.addView(quick,new LinearLayout.LayoutParams(-1,dp(55)));
         Button testSearch = backupButton("Open Universal Search", true);
         testSearch.setOnClickListener(v -> startActivity(new Intent(this, UniversalSearchActivity.class)));
         searchCard.addView(testSearch, new LinearLayout.LayoutParams(-1, dp(55)));
+
+        addSectionHeader(body, "APP LOCK");
+        LinearLayout lockCard=settingsCard(body);
+        lockCard.addView(text("PIN-protected app launches",20,true,TEXT));
+        lockCard.addView(text("Lock or unlock an app from its icon's long-press menu. "
+            +"A 4–6 digit PIN is required for launches through GoreeCloud Launcher. "
+            +"Android, notifications and other launchers can still open apps.",
+            14,false,MUTED));
+        lockCard.addView(text("Locked apps: "+LauncherAppLock.count(this),15,true,TEXT));
+        Button pinSettings=backupButton("Set or change App Lock PIN",true);
+        pinSettings.setOnClickListener(v->LauncherAppLock.setup(this,()->
+            Toast.makeText(this,"App Lock PIN saved",Toast.LENGTH_SHORT).show()));
+        lockCard.addView(pinSettings,new LinearLayout.LayoutParams(-1,dp(56)));
+        Button manageLocks=backupButton("Manage locked apps",false);
+        manageLocks.setContentDescription("Manage locked apps with PIN verification");
+        manageLocks.setOnClickListener(v->showLockedApps());
+        lockCard.addView(manageLocks,new LinearLayout.LayoutParams(-1,dp(56)));
 
         addSectionHeader(body, "ONBOARDING");
         LinearLayout setupCard = settingsCard(body);
@@ -417,6 +437,32 @@ public final class SettingsActivity extends Activity {
         button.setTextColor(primary ? 0xFFFFFFFF : 0xFF2C227C);
         button.setBackground(panel(primary ? IRIS : 0xFFE8E6FF, 18));
         return button;
+    }
+
+    private void showLockedApps() {
+        ArrayList<String> locked=new ArrayList<>(LauncherAppLock.lockedPackages(this));
+        java.util.Collections.sort(locked);
+        if(locked.isEmpty()){
+            new AlertDialog.Builder(this)
+                .setTitle("Manage locked apps")
+                .setMessage("No apps are locked. Long-press an app icon on Home or in the drawer and choose Lock.")
+                .setPositiveButton("OK",null).show();
+            return;
+        }
+        String[] labels=new String[locked.size()];
+        for(int i=0;i<locked.size();i++){
+            String pkg=locked.get(i);
+            try {
+                labels[i]=getPackageManager().getApplicationLabel(
+                    getPackageManager().getApplicationInfo(pkg,0))+" — Unlock";
+            }catch(android.content.pm.PackageManager.NameNotFoundException e){
+                labels[i]=pkg+" — Unlock";
+            }
+        }
+        new AlertDialog.Builder(this).setTitle("Manage locked apps")
+            .setItems(labels,(dialog,which)->LauncherAppLock.setLocked(this,
+                locked.get(which),false,()->recreate()))
+            .setNegativeButton("Cancel",null).show();
     }
 
     private void chooseSearchFolder() {
