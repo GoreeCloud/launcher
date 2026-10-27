@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -93,12 +94,12 @@ PY
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 4
 dump_screen legacy-home
-assert_text legacy-home "Home workspace"
-assert_text legacy-home "Page 1 / 1"
-tap_label legacy-home "All apps"
+assert_text legacy-home "Live Home clock and date"
+assert_text legacy-home "Home page 1 of 1"
+launcher_swipe_up
 sleep 2
 dump_screen legacy-drawer
-assert_text legacy-drawer "All applications"
+assert_text legacy-drawer "Search apps"
 # The fixture is alphabetically below the visible grid on API 28. Verify its
 # discovery using the real local search instead of assuming every app fits.
 python3 - "$EVIDENCE/legacy-drawer.xml" <<'PY'
@@ -144,7 +145,7 @@ assert_text legacy-menu "Add to current home page"
 tap_label legacy-menu "Add to current home page"
 sleep 2
 dump_screen legacy-drawer-after-add
-tap_label legacy-drawer-after-add "Home"
+launcher_swipe_down
 sleep 2
 dump_screen legacy-shortcut
 assert_text legacy-shortcut "Launcher QA Fixture"
@@ -156,9 +157,12 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 3
 dump_screen legacy-restart
-assert_text legacy-restart "Home workspace"
+assert_text legacy-restart "Live Home clock and date"
 assert_text legacy-restart "Launcher QA Fixture"
-tap_label legacy-restart "Settings"
+tap_label legacy-restart "Edit Home screen"
+sleep 1
+dump_screen legacy-edit
+tap_label legacy-edit "Settings"
 sleep 2
 # The new gesture, dock and drawer sections precede Android Home settings.
 # Keep testing the real fallback control after scrolling, not its initial
@@ -191,6 +195,6 @@ PY
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 2
 dump_screen legacy-final
-assert_text legacy-final "Home workspace"
+assert_text legacy-final "Live Home clock and date"
 assert_text legacy-final "Launcher QA Fixture"
 echo "PASS Android API $(adb shell getprop ro.build.version.sdk | tr -d '\r') native app discovery, launch, shortcut persistence and default Home fallback"
