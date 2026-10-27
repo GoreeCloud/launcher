@@ -102,7 +102,7 @@ assert_text keyboard-initial "Live Home clock and date"
 python3 - "$EVIDENCE/keyboard-initial.xml" <<'PYROLE'
 import sys,xml.etree.ElementTree as ET
 nodes=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()]
-for title in ("Edit Home screen"):
+for title in ("Edit Home screen",):
     matches=[n for n in nodes if n.get("text")==title or n.get("content-desc")==title]
     if not any(n.get("class")=="android.widget.Button"
                and n.get("clickable")=="true" and n.get("focusable")=="true"

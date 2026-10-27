@@ -46,6 +46,14 @@ public final class HomeDashboardView {
         // Wallpaper-first desktop: no widget, page or edit glyphs on Home.
         // The clock is an unobtrusive accessible way into the editor too.
         time.setContentDescription("Edit Home screen");
+        time.setFocusable(true);
+        time.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(
+                    View host, android.view.accessibility.AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(android.widget.Button.class.getName());
+            }
+        });
         time.setOnClickListener(v -> edit.run());
         time.setOnLongClickListener(v -> { edit.run(); return true; });
         return row;

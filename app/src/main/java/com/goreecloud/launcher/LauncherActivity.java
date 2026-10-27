@@ -94,6 +94,14 @@ public final class LauncherActivity extends Activity {
     private float gestureStartX;
     private float gestureStartY;
     private boolean gestureEligible;
+    private boolean blankHoldPending;
+    private final Handler blankHoldHandler = new Handler(Looper.getMainLooper());
+    private final Runnable blankHoldAction = () -> {
+        if (!blankHoldPending || drawerOpen) return;
+        blankHoldPending = false;
+        gestureEligible = false;
+        openHomeEditor();
+    };
     private EditText query;
     private TextView empty;
     private TextView emptyTitle;
@@ -179,8 +187,23 @@ public final class LauncherActivity extends Activity {
                 gestureStartX = event.getRawX();
                 gestureStartY = event.getRawY();
                 gestureEligible = gestureStartedInWorkspace(gestureStartX, gestureStartY);
+                blankHoldPending = !drawerOpen && isBlankWorkspacePoint(
+                        gestureStartX, gestureStartY);
+                blankHoldHandler.removeCallbacks(blankHoldAction);
+                if (blankHoldPending) blankHoldHandler.postDelayed(
+                        blankHoldAction, android.view.ViewConfiguration.getLongPressTimeout());
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (blankHoldPending &&
+                        (Math.abs(event.getRawX() - gestureStartX) > dp(14)
+                        || Math.abs(event.getRawY() - gestureStartY) > dp(14))) {
+                    blankHoldPending = false;
+                    blankHoldHandler.removeCallbacks(blankHoldAction);
+                }
                 break;
             case MotionEvent.ACTION_UP:
+                blankHoldPending = false;
+                blankHoldHandler.removeCallbacks(blankHoldAction);
                 if (gestureEligible && homeViewport != null) {
                     boolean atTop = (viewportScroll == null || viewportScroll.getScrollY() == 0)
                             && (fullPageScroll == null || fullPageScroll.getScrollY() == 0);
@@ -207,11 +230,22 @@ public final class LauncherActivity extends Activity {
                 break;
             case MotionEvent.ACTION_CANCEL:
                 gestureEligible = false;
+                blankHoldPending = false;
+                blankHoldHandler.removeCallbacks(blankHoldAction);
                 break;
             default:
                 break;
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    private boolean isBlankWorkspacePoint(float x, float y) {
+        if (!containsScreenPoint(homeViewport, x, y)) return false;
+        // A shortcut's own long press keeps its native context menu.
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            if (containsScreenPoint(grid.getChildAt(i), x, y)) return false;
+        }
+        return true;
     }
 
     private boolean gestureStartedInWorkspace(float x, float y) {
@@ -437,25 +471,17 @@ public final class LauncherActivity extends Activity {
         pageControls.addView(removePageAction, new LinearLayout.LayoutParams(dp(48), dp(48)));
 
         FrameLayout viewport = new FrameLayout(this);
-        View.OnLongClickListener editBlank = v -> {
-            if (drawerOpen) return false;
-            openHomeEditor();
-            return true;
-        };
-        viewport.setOnLongClickListener(editBlank);
         homeViewport = viewport;
         root.addView(viewport, compactLayout
                 ? new LinearLayout.LayoutParams(-1, -2)
                 : new LinearLayout.LayoutParams(-1, 0, 1));
         grid = new GridLayout(this);
-        grid.setOnLongClickListener(editBlank);
         if (compactLayout) {
             // One full-page scroller in landscape and enlarged-text mode.
             // Nested ScrollViews had intercepted gestures before the dock was reached.
             viewport.addView(grid, new FrameLayout.LayoutParams(-1, -2));
         } else {
             ScrollView scroll = new ScrollView(this);
-            scroll.setOnLongClickListener(editBlank);
             viewportScroll = scroll;
             scroll.setFillViewport(true);
             viewport.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
@@ -463,10 +489,8 @@ public final class LauncherActivity extends Activity {
             // instead of floating in the middle of an empty screen.
             LinearLayout canvasColumn = new LinearLayout(this);
             canvasColumn.setOrientation(LinearLayout.VERTICAL);
-            canvasColumn.setOnLongClickListener(editBlank);
             scroll.addView(canvasColumn, new ScrollView.LayoutParams(-1, -1));
             workspaceSpacer = new Space(this);
-            workspaceSpacer.setOnLongClickListener(editBlank);
             canvasColumn.addView(workspaceSpacer,
                     new LinearLayout.LayoutParams(-1, 0, 1));
             canvasColumn.addView(grid, new LinearLayout.LayoutParams(-1, -2));
@@ -915,7 +939,7 @@ public final class LauncherActivity extends Activity {
         dockTitle.setVisibility(View.GONE);
         // Space-first responsive Home: a decorative dashboard must not hide the
         // real workspace, shortcut recovery, or dock in landscape/large text.
-        dashboard.setVisibility(allApps || compactLayout ? View.GONE : View.VISIBLE);
+        dashboard.setVisibility(allApps ? View.GONE : View.VISIBLE);
         widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
         topHeading.setVisibility(View.GONE);
         applyAppearance(allApps);

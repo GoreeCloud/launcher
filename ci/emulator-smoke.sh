@@ -79,6 +79,11 @@ assert_text home-role "Live Home clock and date"
 assert_text home-role "Home page 1 of 1"
 assert_text home-role "Edit Home screen"
 assert_text home-role "Edit Home screen"
+# The fresh launcher has five preferred dock apps; free one using the actual
+# native context menu before testing fixture pinning later in this script.
+retry_longpress_menu starter-dock-space "Phone" "Remove from dock"
+tap_label starter-dock-space "Remove from dock"
+sleep 1
 # Assert a desktop rather than the previous tabbed settings-style workspace.
 python3 - "$EVIDENCE/home-role.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET

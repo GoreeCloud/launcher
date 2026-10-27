@@ -164,7 +164,7 @@ assert_text legacy-restart "Launcher QA Fixture"
 tap_label legacy-restart "Edit Home screen"
 sleep 1
 dump_screen legacy-edit
-tap_label legacy-edit "Settings"
+tap_label legacy-edit "Launcher Settings"
 sleep 2
 # The new gesture, dock and drawer sections precede Android Home settings.
 # Keep testing the real fallback control after scrolling, not its initial
