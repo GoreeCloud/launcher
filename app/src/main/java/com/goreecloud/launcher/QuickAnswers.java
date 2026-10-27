@@ -31,17 +31,17 @@ public final class QuickAnswers {
     final String provider=selected(a), id=code(provider);
     final String model=a.getSharedPreferences("launcher",Context.MODE_PRIVATE)
       .getString("model_"+id,"").trim();
-    final String apiKey=ApiKeyVault.load(a,id);
-    if("goreecloud".equals(id)){
-      callback.result("GoreeCloud Search quick-answer API isn't configured yet.");
-      return;
-    }
-    if(!model.matches("[a-zA-Z0-9._-]{2,100}") || apiKey.isEmpty()){
+    final boolean goreecloud = "goreecloud".equals(id);
+    final String apiKey=goreecloud ? "" : ApiKeyVault.load(a,id);
+    if(!goreecloud && (!model.matches("[a-zA-Z0-9._-]{2,100}") || apiKey.isEmpty())){
       callback.result("Configure the provider model and API key in Launcher Settings.");
       return;
     }
-    if(question.trim().length()<2 || question.length()>2400){
-      callback.result("Please enter a question under 2,400 characters.");
+    if(goreecloud ? !GoreeCloudSearchContract.validQuery(question)
+            : question.trim().length()<2 || question.length()>2400){
+      callback.result(goreecloud
+          ? "GoreeCloud Search requires a printable question of 2–500 characters."
+          : "Please enter a question under 2,400 characters.");
       return;
     }
     if(!BUSY.compareAndSet(false,true)){
@@ -49,7 +49,8 @@ public final class QuickAnswers {
     }
     WORK.execute(()->{
       String result;
-      try{result=fetch(id,model,apiKey,question.trim());}
+      try{result=goreecloud ? fetchGoreeCloud(question.trim())
+              : fetch(id,model,apiKey,question.trim());}
       catch(Exception ignored){result="Request failed. Check your provider settings or connection.";}
       finally{BUSY.set(false);}
       final String answer=result;
