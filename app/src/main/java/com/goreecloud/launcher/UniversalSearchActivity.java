@@ -75,6 +75,17 @@ public final class UniversalSearchActivity extends Activity {
             public void afterTextChanged(Editable e){}
         });
         render();
+        // Swipe-down Search is intended to be a one-gesture workflow.
+        // Put the caret in the search field without requiring a second tap.
+        search.requestFocus();
+        search.postDelayed(() -> {
+            if (isFinishing() || isDestroyed() || !search.hasFocus()) return;
+            android.view.inputmethod.InputMethodManager imm =
+                    (android.view.inputmethod.InputMethodManager)
+                    getSystemService(INPUT_METHOD_SERVICE);
+            if (imm != null) imm.showSoftInput(
+                    search, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT);
+        }, 250);
     }
     @Override public void onResume(){super.onResume();if(results!=null)render();}
     private void section(String title){TextView t=label(title,17,true);t.setPadding(0,dp(19),0,dp(9));results.addView(t);}
