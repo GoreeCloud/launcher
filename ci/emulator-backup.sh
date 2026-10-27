@@ -161,9 +161,18 @@ assert lines[2]=="columns=4"
 assert lines[3]=="labels=0"
 assert lines[-1]=="sha256="+hashlib.sha256(b"\n".join(s.splitlines()[:-1])+b"\n").hexdigest()
 ws=base64.urlsafe_b64decode(lines[4].split("=",1)[1]+"===")
-assert ws.startswith(b"|") and b"com.goreecloud.launcher.fixture" in ws or ws.startswith(b"|")
+# Home has real starter icons now: its first page is NOT empty.
+# Decode each actual component token instead of assuming workspace starts '|'.
+pages=ws.split(b"|")
+assert len(pages)==2, "Two-page workspace missing from backup"
+components=[
+    base64.urlsafe_b64decode(token+b"===")
+    for page in pages for token in page.split(b".") if token
+]
+assert any(b"com.goreecloud.launcher.fixture/" in component for component in components), (
+    "Fixture Home shortcut missing from backup")
 assert lines[5].startswith("pins=") and len(lines[5])>5
-open(sys.argv[1],"w").write("PASS synthetic SAF export: version 1, two pages, labels off, dock pin, valid checksum\n")
+open(sys.argv[1],"w").write("PASS synthetic SAF export: version 2, two pages, labels off, dock pin, valid checksum\n")
 print("PASS synthetic backup file created and validated")
 PY
 
