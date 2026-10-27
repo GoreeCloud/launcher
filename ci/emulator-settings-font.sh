@@ -100,7 +100,7 @@ dump_screen settings-large-restored
 check_header settings-large-restored
 # Test that both backup controls remain reachable by scrolling, without activating either.
 reached=false
-for attempt in 1 2 3 4 5 6; do
+for attempt in $(seq 1 16); do
   adb shell input swipe 650 1650 650 430 550
   sleep 1
   dump_screen settings-large-backup

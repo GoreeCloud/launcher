@@ -54,6 +54,19 @@ public final class WorkspaceState {
         pages.get(selected).add(id);
         return true;
     }
+    /** Places or reorders a shortcut in an exact grid slot on any existing page. */
+    public boolean placeAt(String id, int page, int slot) {
+        if (id == null || id.isEmpty() || id.length() > 256
+                || page < 0 || page >= pages.size()) return false;
+        List<String> target = pages.get(page);
+        int oldPage = pageFor(id);
+        if (oldPage != page && target.size() >= MAX_ITEMS_PER_PAGE) return false;
+        if (oldPage >= 0) pages.get(oldPage).remove(id);
+        target.add(Math.max(0, Math.min(slot, target.size())), id);
+        selected = page;
+        return true;
+    }
+
     public boolean remove(String id) {
         boolean removed = false;
         for (List<String> page : pages) removed |= page.remove(id);

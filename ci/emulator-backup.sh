@@ -162,7 +162,7 @@ s=open("/tmp/launcher-qa-export.txt","rb").read()
 assert len(s)<65536 and s.endswith(b"\n")
 lines=s.decode("utf8").splitlines()
 assert lines[0]=="GOREELAUNCHER/2" and len(lines)==7
-assert lines[1]=="page=1"
+assert lines[1]=="page=2"
 assert lines[2]=="columns=4"
 assert lines[3]=="labels=0"
 assert lines[-1]=="sha256="+hashlib.sha256(b"\n".join(s.splitlines()[:-1])+b"\n").hexdigest()

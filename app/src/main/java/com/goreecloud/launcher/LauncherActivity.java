@@ -89,6 +89,7 @@ public final class LauncherActivity extends Activity {
     private int pendingWidgetId = -1;
     private TextView dockTitle;
     private FrameLayout homeViewport;
+    private FrameLayout dragSurface;
     private ScrollView viewportScroll;
     private ScrollView fullPageScroll;
     private float gestureStartX;
@@ -367,7 +368,12 @@ public final class LauncherActivity extends Activity {
             view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right, dp(12) + bottom);
             return insets;
         });
-        setContentView(insetSurface);
+        FrameLayout activityFrame = new FrameLayout(this);
+        activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
+        dragSurface = new FrameLayout(this);
+        dragSurface.setVisibility(View.GONE);
+        activityFrame.addView(dragSurface, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(activityFrame);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
@@ -1114,6 +1120,7 @@ public final class LauncherActivity extends Activity {
             }
         });
         cell.setOnLongClickListener(v -> { showActions(cell, app); return true; });
+        attachDragAndContextGesture(cell, app, dockTile);
         // An external keyboard must not require a touch long-press to place,
         // reorder or pin apps. Android Menu and Shift+F10 expose the same menu.
         cell.setOnKeyListener((v, keyCode, event) -> {
@@ -1155,6 +1162,78 @@ public final class LauncherActivity extends Activity {
             blank.setBackground(background(0x57404758, 40));
             dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
         }
+    }
+
+    /** Hold then move a shortcut to start Android drag; a stationary hold opens its menu. */
+    private void attachDragAndContextGesture(View cell, Entry app, boolean dockTile) {
+        final float[] start = new float[2];
+        final long[] down = new long[1];
+        final boolean[] moved = new boolean[1], menu = new boolean[1], dragging = new boolean[1];
+        final Runnable openMenu = () -> {
+            if (!moved[0] && !dragging[0]) {
+                menu[0] = true;
+                showActions(cell, app);
+            }
+        };
+        cell.setOnTouchListener((v, event) -> {
+            long elapsed = android.os.SystemClock.uptimeMillis() - down[0];
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    start[0] = event.getRawX();
+                    start[1] = event.getRawY();
+                    down[0] = android.os.SystemClock.uptimeMillis();
+                    moved[0] = false;
+                    menu[0] = false;
+                    dragging[0] = false;
+                    cell.postDelayed(openMenu,
+                            android.view.ViewConfiguration.getLongPressTimeout() + 160L);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    if (Math.abs(event.getRawX() - start[0]) > dp(18)
+                            || Math.abs(event.getRawY() - start[1]) > dp(18)) {
+                        if (!moved[0] && !menu[0] && !dockTile
+                                && elapsed >= android.view.ViewConfiguration.getLongPressTimeout() - 70) {
+                            cell.removeCallbacks(openMenu);
+                            if (beginShortcutDrag(cell, app)) dragging[0] = true;
+                        }
+                        moved[0] = true;
+                        cell.removeCallbacks(openMenu);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    cell.removeCallbacks(openMenu);
+                    if (!moved[0] && !dragging[0] && !menu[0]) {
+                        if (elapsed >= android.view.ViewConfiguration.getLongPressTimeout())
+                            showActions(cell, app);
+                        else cell.performClick();
+                    }
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    cell.removeCallbacks(openMenu);
+                    return true;
+                default: return true;
+            }
+        });
+    }
+
+    private boolean beginShortcutDrag(View cell, Entry app) {
+        if (dragSurface == null) return false;
+        HomeDragOverlay.show(this, dragSurface, workspace, prefs.getInt("columns", 4),
+                (key, page, slot) -> {
+                    if (!workspace.placeAt(key, page, slot)) {
+                        Toast.makeText(this, "This Home page is full", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                    saveWorkspace();
+                    setMode(false);
+                    return true;
+                });
+        String key = app.component.flattenToString();
+        boolean started = cell.startDragAndDrop(
+                android.content.ClipData.newPlainText("GoreeCloud shortcut", key),
+                new View.DragShadowBuilder(cell), key, 0);
+        if (!started) dragSurface.setVisibility(View.GONE);
+        return started;
     }
 
     private void showDrawerSort() {

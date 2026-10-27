@@ -333,10 +333,19 @@ sleep 5
 dump_screen responsive-large-top
 assert_png_orientation responsive-large-top portrait
 assert_text responsive-large-top "Home page 1 of 2"
-adb shell input swipe 630 1670 630 410 600
-sleep 2
-dump_screen responsive-large-content
-# Home is scrollable at 200% font. Label and dock must be reachable.
+# At 200% font, the home grid may extend beyond one swipe.
+# Inspect fresh hierarchies at each scroll position rather than assuming one screen.
+large_fixture_reached=false
+for attempt in 1 2 3 4 5 6; do
+  adb shell input swipe 630 1670 630 410 600
+  sleep 2
+  dump_screen responsive-large-content
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/responsive-large-content.xml"; then
+    large_fixture_reached=true
+    break
+  fi
+done
+test "$large_fixture_reached" = true || { echo "Home shortcut inaccessible at 200% font"; exit 1; }
 assert_text responsive-large-content "Launcher QA Fixture"
 assert_tile_label_bounds responsive-large-content 2.0
 adb shell input swipe 630 1670 630 380 600

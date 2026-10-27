@@ -78,6 +78,16 @@ dump_screen home-role
 assert_text home-role "Live Home clock and date"
 assert_text home-role "Home page 1 of 2"
 assert_text home-role "Edit Home screen"
+# Swipe down on the desktop, not Android's status bar: native Universal Search.
+adb shell input swipe 540 1000 540 1580 420
+sleep 2
+dump_screen universal-search-from-home
+assert_text universal-search-from-home "Universal Search"
+assert_text universal-search-from-home "Search only sources you enable in Launcher Settings"
+adb shell input keyevent 4
+sleep 2
+dump_screen home-after-search
+assert_text home-after-search "Home page 1 of 2"
 assert_text home-role "Edit Home screen"
 # The fresh launcher has five preferred dock apps; free one using the actual
 # native context menu before testing fixture pinning later in this script.

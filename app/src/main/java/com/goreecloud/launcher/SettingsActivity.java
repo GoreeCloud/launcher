@@ -602,7 +602,10 @@ public final class SettingsActivity extends Activity {
     }
 
     private TextView section(String label) {
-        return text(label, 12, true, 0xFF5C5388);
+        TextView heading = text(label, 12, true, 0xFF2F6977);
+        heading.setLetterSpacing(0.09f);
+        heading.setContentDescription(label.toLowerCase(java.util.Locale.ROOT) + " settings section");
+        return heading;
     }
 
     private TextView text(String value, int sp, boolean bold, int color) {
