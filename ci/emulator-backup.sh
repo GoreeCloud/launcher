@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -88,24 +89,27 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen backup-home
-assert_text backup-home "Page 1 / 1"
+assert_text backup-home "Home page 1 of 1"
 
 # Create a nonempty second page; the backup must carry state, not only defaults.
-for attempt in 1 2 3; do
-  dump_screen "before-create-$attempt"
-  tap_label "before-create-$attempt" "Add home page"
-  sleep 2
-  dump_screen populated-page
-  if grep -Fq 'text="Page 2 / 2"' "$EVIDENCE/populated-page.xml"; then break; fi
-done
-assert_text populated-page "Page 2 / 2"
-tap_label populated-page "All apps"
+tap_label backup-home "Edit Home screen"
+sleep 1
+dump_screen before-create
+tap_label before-create "Add page +"
+sleep 1
+dump_screen editor-page-two
+assert_text editor-page-two "Home page 2 of 2"
+adb shell input keyevent 4
+sleep 2
+dump_screen populated-page
+assert_text populated-page "Home page 2 of 2"
+launcher_swipe_up
 sleep 1
 retry_longpress_menu backup-place-menu "Launcher QA Fixture" "Add to current home page"
 tap_label backup-place-menu "Add to current home page"
 sleep 1
 dump_screen backup-drawer-after-place
-tap_label backup-drawer-after-place "Home"
+launcher_swipe_down
 sleep 1
 retry_longpress_menu backup-pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label backup-pin-menu "Pin to dock"
@@ -114,7 +118,10 @@ dump_screen backup-pinned
 assert_shortcut_count backup-pinned 2
 
 # Save a synthetic two-page, one-shortcut, one-pin layout with labels disabled.
-tap_label backup-pinned "Settings"
+tap_label backup-pinned "Edit Home screen"
+sleep 1
+dump_screen backup-editor
+tap_label backup-editor "Settings"
 sleep 1
 dump_screen backup-settings
 tap_label backup-settings "Show application labels"
@@ -256,7 +263,10 @@ with open("/tmp/launcher-qa-unsupported.txt","wb") as output:
     output.write(original.replace(b"GOREELAUNCHER/2",b"GOREELAUNCHER/9",1))
 print("Prepared tampered, oversized and unsupported synthetic payloads")
 PY
-tap_label restored-after-restart "Settings"
+tap_label restored-after-restart "Edit Home screen"
+sleep 1
+dump_screen restored-editor
+tap_label restored-editor "Settings"
 sleep 1
 seek_setting "Import backup" negative-settings-start down
 
