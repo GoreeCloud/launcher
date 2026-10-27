@@ -86,5 +86,49 @@ tap lock-menu "Lock"
 sleep 2
 dump lock-pin-required
 found lock-pin-required "App Lock PIN"
+# Exercise one disposable test-only PIN. Never use or request a real user PIN.
+tap lock-pin-required "New PIN"
+adb shell input text 2468
+sleep 1
+dump pin-first-filled
+tap pin-first-filled "Confirm PIN"
+adb shell input text 2468
 adb shell input keyevent 4
-echo "PASS icon Lock action prompted for a local PIN"
+sleep 1
+dump pin-ready-to-save
+tap pin-ready-to-save "SAVE PIN"
+sleep 2
+dump app-locked-home
+found app-locked-home "Phone"
+tap app-locked-home "Phone"
+sleep 2
+dump pin-unlock-required
+found pin-unlock-required "Unlock app"
+found pin-unlock-required "UNLOCK"
+# Incorrect PIN must not launch the protected app.
+tap pin-unlock-required "4–6 digit PIN"
+adb shell input text 0000
+adb shell input keyevent 4
+sleep 1
+dump pin-wrong-ready
+tap pin-wrong-ready "UNLOCK"
+sleep 2
+dump pin-wrong-still-blocked
+found pin-wrong-still-blocked "Unlock app"
+# Correct PIN opens the selected app through the protected launcher path.
+tap pin-wrong-still-blocked "4–6 digit PIN"
+adb shell input text 2468
+adb shell input keyevent 4
+sleep 1
+dump pin-correct-ready
+tap pin-correct-ready "UNLOCK"
+sleep 2
+dump after-correct-unlock
+python3 - "$EVIDENCE/after-correct-unlock.xml" <<'PY'
+import sys,xml.etree.ElementTree as ET
+nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+if any(n.attrib.get("text")=="Unlock app" for n in nodes):
+    raise SystemExit("Correct PIN did not close the unlock gate")
+print("PASS test-only PIN rejected incorrect entry and accepted correct entry")
+PY
+echo "PASS launcher-originated App Lock smoke with disposable test PIN"
