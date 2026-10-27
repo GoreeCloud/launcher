@@ -94,6 +94,14 @@ public final class LauncherActivity extends Activity {
     private float gestureStartX;
     private float gestureStartY;
     private boolean gestureEligible;
+    private boolean blankHoldPending;
+    private final Handler blankHoldHandler = new Handler(Looper.getMainLooper());
+    private final Runnable blankHoldAction = () -> {
+        if (!blankHoldPending || drawerOpen) return;
+        blankHoldPending = false;
+        gestureEligible = false;
+        openHomeEditor();
+    };
     private EditText query;
     private TextView empty;
     private TextView emptyTitle;
@@ -158,6 +166,9 @@ public final class LauncherActivity extends Activity {
             if (!search.isEmpty()) query.setText(search);
         }
         refresh();
+        if (state == null && !prefs.getBoolean("onboarding_completed_v1", false)) {
+            startActivity(new Intent(this, LauncherOnboardingActivity.class));
+        }
     }
 
     @Override protected void onSaveInstanceState(Bundle outState) {
@@ -176,8 +187,23 @@ public final class LauncherActivity extends Activity {
                 gestureStartX = event.getRawX();
                 gestureStartY = event.getRawY();
                 gestureEligible = gestureStartedInWorkspace(gestureStartX, gestureStartY);
+                blankHoldPending = !drawerOpen && isBlankWorkspacePoint(
+                        gestureStartX, gestureStartY);
+                blankHoldHandler.removeCallbacks(blankHoldAction);
+                if (blankHoldPending) blankHoldHandler.postDelayed(
+                        blankHoldAction, android.view.ViewConfiguration.getLongPressTimeout());
+                break;
+            case MotionEvent.ACTION_MOVE:
+                if (blankHoldPending &&
+                        (Math.abs(event.getRawX() - gestureStartX) > dp(14)
+                        || Math.abs(event.getRawY() - gestureStartY) > dp(14))) {
+                    blankHoldPending = false;
+                    blankHoldHandler.removeCallbacks(blankHoldAction);
+                }
                 break;
             case MotionEvent.ACTION_UP:
+                blankHoldPending = false;
+                blankHoldHandler.removeCallbacks(blankHoldAction);
                 if (gestureEligible && homeViewport != null) {
                     boolean atTop = (viewportScroll == null || viewportScroll.getScrollY() == 0)
                             && (fullPageScroll == null || fullPageScroll.getScrollY() == 0);
@@ -204,11 +230,22 @@ public final class LauncherActivity extends Activity {
                 break;
             case MotionEvent.ACTION_CANCEL:
                 gestureEligible = false;
+                blankHoldPending = false;
+                blankHoldHandler.removeCallbacks(blankHoldAction);
                 break;
             default:
                 break;
         }
         return super.dispatchTouchEvent(event);
+    }
+
+    private boolean isBlankWorkspacePoint(float x, float y) {
+        if (!containsScreenPoint(homeViewport, x, y)) return false;
+        // A shortcut's own long press keeps its native context menu.
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            if (containsScreenPoint(grid.getChildAt(i), x, y)) return false;
+        }
+        return true;
     }
 
     private boolean gestureStartedInWorkspace(float x, float y) {
@@ -734,6 +771,36 @@ public final class LauncherActivity extends Activity {
 
     /** Seed a real, usable desktop ONLY for a new installation. Never overwrite
      * saved workspace pages, pinned apps or existing user's customization. */
+    private Entry preferredInstalledApp(String role) {
+        Intent candidate;
+        switch (role) {
+            case "Phone":
+                candidate = new Intent(Intent.ACTION_DIAL, Uri.parse("tel:"));
+                break;
+            case "Messages":
+                candidate = new Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"));
+                break;
+            case "Email":
+                candidate = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"));
+                break;
+            case "Browser":
+                candidate = new Intent(Intent.ACTION_VIEW, Uri.parse("https://example.org"));
+                break;
+            case "Camera":
+                candidate = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+                break;
+            default: return null;
+        }
+        ResolveInfo defaultActivity = getPackageManager().resolveActivity(
+                candidate, PackageManager.MATCH_DEFAULT_ONLY);
+        if (defaultActivity == null || defaultActivity.activityInfo == null) return null;
+        String preferredPackage = defaultActivity.activityInfo.packageName;
+        for (Entry app : catalog) {
+            if (app.component.getPackageName().equals(preferredPackage)) return app;
+        }
+        return null;
+    }
+
     private void initializeStarterHomeIfNew() {
         if (catalog.isEmpty() || prefs.getBoolean("starter_layout_initialized", false)) return;
         if (prefs.contains("workspace_pages_v1") || prefs.contains("dock_order_v1")
@@ -741,9 +808,7 @@ public final class LauncherActivity extends Activity {
             prefs.edit().putBoolean("starter_layout_initialized", true).apply();
             return;
         }
-        String[] homeApps = {"Play Store", "Gallery", "Chrome", "Clock",
-                "Camera", "Calendar", "Settings", "Gmail"};
-        String[] dockApps = {"Phone", "Messages", "Chrome", "Camera"};
+        String[] homeApps = {"Play Store", "Gallery", "Calendar", "Clock", "Settings"};
         for (String name : homeApps) {
             for (Entry app : catalog) {
                 if (app.name.equalsIgnoreCase(name)) {
@@ -752,10 +817,20 @@ public final class LauncherActivity extends Activity {
                 }
             }
         }
-        for (String name : dockApps) {
-            for (Entry app : catalog) {
-                if (app.name.equalsIgnoreCase(name) && pins.size() < 5) {
-                    String id = app.component.flattenToString();
+        for (String role : StarterAppPolicy.ROLES) {
+            Entry systemDefault = preferredInstalledApp(role);
+            if (systemDefault != null) {
+                String id = systemDefault.component.flattenToString();
+                if (pins.add(id)) dockOrder.add(id);
+                continue;
+            }
+            for (String alias : StarterAppPolicy.aliases(role)) {
+                Entry chosen = null;
+                for (Entry app : catalog) {
+                    if (app.name.equalsIgnoreCase(alias)) { chosen = app; break; }
+                }
+                if (chosen != null) {
+                    String id = chosen.component.flattenToString();
                     if (pins.add(id)) dockOrder.add(id);
                     break;
                 }
@@ -864,7 +939,7 @@ public final class LauncherActivity extends Activity {
         dockTitle.setVisibility(View.GONE);
         // Space-first responsive Home: a decorative dashboard must not hide the
         // real workspace, shortcut recovery, or dock in landscape/large text.
-        dashboard.setVisibility(allApps || compactLayout ? View.GONE : View.VISIBLE);
+        dashboard.setVisibility(allApps ? View.GONE : View.VISIBLE);
         widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
         topHeading.setVisibility(View.GONE);
         applyAppearance(allApps);
@@ -919,33 +994,23 @@ public final class LauncherActivity extends Activity {
                 (availableWidth - dp(4) * columns) / columns));
         int iconSize = Math.min(dp(Math.max(36, Math.min(60, prefs.getInt("icon_size", 48)))),
                 Math.max(dp(22), slotWidth - dp(12)));
+        int preferredRows = StarterAppPolicy.boundedRows(
+                prefs.getInt(drawerMode ? "drawer_rows" : "home_rows", 5));
+        int rowHeight = compactLayout
+                ? dp(ResponsiveHomePolicy.shortcutHeightDp(names, true, systemFontScale))
+                : Math.max(dp(88), Math.min(dp(150),
+                    (getResources().getDisplayMetrics().heightPixels
+                        - dp(drawerMode ? 146 : 300)) / preferredRows));
         for (int i = 0; i < shown.size(); i++) {
             View tile = tile(shown.get(i), names, iconSize, false);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
                     GridLayout.spec(i / columns), GridLayout.spec(i % columns));
             params.width = slotWidth;
-            params.height = dp(ResponsiveHomePolicy.shortcutHeightDp(
-                    names, compactLayout, systemFontScale));
+            params.height = rowHeight;
             params.setMargins(dp(2), dp(2), dp(2), dp(2));
             grid.addView(tile, params);
         }
-        if (!allApps && !shown.isEmpty()
-                && workspace.currentItems().size() < WorkspaceState.MAX_ITEMS_PER_PAGE) {
-            TextView addHome = action("+", this::beginHomePicker);
-            addHome.setContentDescription("Add app to Home");
-            addHome.setTextSize(22);
-            addHome.setTextColor(0xFFFFFFFF);
-            addHome.setBackground(background(0x8A263342, 50));
-            int slot = shown.size();
-            GridLayout.LayoutParams addParams = new GridLayout.LayoutParams(
-                    GridLayout.spec(slot / columns), GridLayout.spec(slot % columns));
-            // This is a small desktop affordance, never a full app-sized
-            // lavender card that dominates the wallpaper or the adjacent icons.
-            addParams.width = Math.min(slotWidth - dp(12), dp(52));
-            addParams.height = dp(52);
-            addParams.setMargins(dp(8), dp(12), dp(8), dp(12));
-            grid.addView(addHome, addParams);
-        }
+        // No plus widgets or page buttons on the desktop. Edit via long-press.
         if (shown.isEmpty()) {
             if (!allApps) {
                 if (workspace.currentItems().isEmpty()) {
@@ -960,8 +1025,8 @@ public final class LauncherActivity extends Activity {
                 empty.setText(catalog.isEmpty() ? getString(R.string.empty)
                     : "Try another application name.");
             }
-            emptyAction.setVisibility(allApps ? View.GONE : View.VISIBLE);
-            emptyPanel.setVisibility(View.VISIBLE);
+            emptyAction.setVisibility(View.GONE);
+            emptyPanel.setVisibility(allApps ? View.VISIBLE : View.GONE);
         } else {
             emptyPanel.setVisibility(View.GONE);
         }
@@ -1049,25 +1114,16 @@ public final class LauncherActivity extends Activity {
             dock.addView(tile(app, prefs.getBoolean("dock_labels", false), dp(44), true), params);
         }
         int occupied = dock.getChildCount();
-        // Five visible tappable slots, even on a fresh install. This is a real
-        // dock surface rather than a paragraph whose meaning must be guessed.
         for (int i = occupied; i < 5; i++) {
-            TextView add = action("+", () -> {
+            TextView blank = action(" ", () -> {
                 choosingDockApp = true;
                 choosingHomeApp = false;
                 setMode(true);
                 showApps();
-                Toast.makeText(this, "Tap an app to add it to the dock",
-                        Toast.LENGTH_SHORT).show();
             });
-            add.setContentDescription("Add app to dock");
-            add.setTextSize(23);
-            add.setTextColor(0xFFE0E5F3);
-            add.setTextSize(18);
-            add.setBackground(background(0x70404758, 50));
-            LinearLayout.LayoutParams slot = new LinearLayout.LayoutParams(0, dp(56), 1);
-            slot.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(add, slot);
+            blank.setContentDescription("Add app to dock");
+            blank.setBackground(background(0x57404758, 40));
+            dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
         }
     }
 

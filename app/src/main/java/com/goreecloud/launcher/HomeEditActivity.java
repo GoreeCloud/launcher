@@ -47,10 +47,12 @@ public final class HomeEditActivity extends Activity {
                     insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(),
                     insets.getSystemWindowInsetBottom());
             v.setPadding(dp(18) + bars.left, dp(12) + bars.top,
-                    dp(18) + bars.right, dp(24) + bars.bottom);
+                    dp(18) + bars.right, dp(120) + bars.bottom);
             return insets;
         });
-        setContentView(scroll);
+        android.widget.FrameLayout frame = new android.widget.FrameLayout(this);
+        frame.addView(scroll, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        setContentView(frame);
         getWindow().setStatusBarColor(0xFF242341);
         getWindow().setNavigationBarColor(0xFF191A32);
         if (android.os.Build.VERSION.SDK_INT >= 30) {
@@ -122,18 +124,6 @@ public final class HomeEditActivity extends Activity {
         settingsParams.topMargin = dp(14);
         content.addView(settings, settingsParams);
         settings.addView(text("Home screen settings", 17, 0xFFFFFFFF, true));
-        LinearLayout actions = new LinearLayout(this);
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(-1, dp(58));
-        actionsParams.topMargin = dp(10);
-        actionsParams.bottomMargin = dp(10);
-        settings.addView(actions, actionsParams);
-        addFlexButton(actions, "Wallpapers", this::chooseWallpaper);
-        addFlexButton(actions, "Widgets", () -> {
-            setResult(RESULT_OK, new Intent().putExtra(REQUEST_WIDGET, true));
-            finish();
-        });
-        addFlexButton(actions, "Themes", this::chooseTheme);
-        addFlexButton(actions, "Settings", () -> startActivity(new Intent(this, SettingsActivity.class)));
         TextView grid = text("Home screen grid: " + prefs.getInt("columns", 4) + " columns",
                 14, 0xFFE5E4FF, false);
         settings.addView(grid);
@@ -156,6 +146,34 @@ public final class HomeEditActivity extends Activity {
         toggle(settings, "Animate drawer", "drawer_animation", true);
         settings.addView(text("Settings apply when you return Home. Wallpaper is handled by Android.",
                 12, 0xFFCDCCEA, false));
+        // Fixed bottom glyph toolbar, matching the founder's Home Screen Editor.
+        LinearLayout toolbar = new LinearLayout(this);
+        toolbar.setGravity(Gravity.CENTER);
+        toolbar.setPadding(dp(6), dp(9), dp(6), dp(9));
+        toolbar.setBackground(GoreeVisuals.card(getResources(), 0xFA283343, 22));
+        android.widget.FrameLayout.LayoutParams barParams =
+                new android.widget.FrameLayout.LayoutParams(-1, dp(82), Gravity.BOTTOM);
+        barParams.setMargins(dp(12), 0, dp(12), dp(18));
+        frame.addView(toolbar, barParams);
+        toolbar.setOnApplyWindowInsetsListener((v, insets) -> {
+            int bottom = android.os.Build.VERSION.SDK_INT >= 30
+                    ? insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                    : insets.getSystemWindowInsetBottom();
+            android.widget.FrameLayout.LayoutParams lp =
+                    (android.widget.FrameLayout.LayoutParams) v.getLayoutParams();
+            if (lp.bottomMargin != dp(12) + bottom) {
+                lp.bottomMargin = dp(12) + bottom;
+                v.setLayoutParams(lp);
+            }
+            return insets;
+        });
+        glyph(toolbar, "▦", "Widgets", () -> {
+            setResult(RESULT_OK, new Intent().putExtra(REQUEST_WIDGET, true));
+            finish();
+        });
+        glyph(toolbar, "▧", "Wallpapers", this::chooseWallpaper);
+        glyph(toolbar, "⚙", "Launcher Settings", () ->
+                startActivity(new Intent(this, SettingsActivity.class)));
     }
 
     private void renderPreview() {
@@ -248,6 +266,17 @@ public final class HomeEditActivity extends Activity {
         panel.setPadding(dp(15), dp(15), dp(15), dp(17));
         panel.setBackground(GoreeVisuals.card(getResources(), color, 24));
         return panel;
+    }
+
+    private void glyph(LinearLayout row, String icon, String title, Runnable click) {
+        Button item = button(icon + "\n" + title, click);
+        item.setTextSize(13);
+        item.setContentDescription(title);
+        item.setTextColor(0xFFFFFFFF);
+        item.setBackground(GoreeVisuals.card(getResources(), 0xFF364355, 16));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1);
+        params.setMargins(dp(3), 0, dp(3), 0);
+        row.addView(item, params);
     }
 
     private void addFlexButton(LinearLayout row, String caption, Runnable click) {

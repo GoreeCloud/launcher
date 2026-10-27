@@ -93,6 +93,8 @@ PY
 # Open the Activity explicitly and never alter another launcher on this AVD.
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen legacy-home
 assert_text legacy-home "Live Home clock and date"
 assert_text legacy-home "Home page 1 of 1"
@@ -162,7 +164,7 @@ assert_text legacy-restart "Launcher QA Fixture"
 tap_label legacy-restart "Edit Home screen"
 sleep 1
 dump_screen legacy-edit
-tap_label legacy-edit "Settings"
+tap_label legacy-edit "Launcher Settings"
 sleep 2
 # The new gesture, dock and drawer sections precede Android Home settings.
 # Keep testing the real fallback control after scrolling, not its initial

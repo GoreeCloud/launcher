@@ -10,6 +10,8 @@ adb install -r /tmp/goree-fixture-red.apk
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent KEYCODE_HOME
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 
 dump_screen() {
   local name="$1" xml="$EVIDENCE/$1.xml" png="$EVIDENCE/$1.png"

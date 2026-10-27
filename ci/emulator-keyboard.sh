@@ -94,13 +94,15 @@ PY
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent KEYCODE_HOME
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen keyboard-initial
 assert_text keyboard-initial "Live Home clock and date"
 # Button-looking text actions must expose the actual native button role.
 python3 - "$EVIDENCE/keyboard-initial.xml" <<'PYROLE'
 import sys,xml.etree.ElementTree as ET
 nodes=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()]
-for title in ("Edit Home screen","Add Android widget","Add app to dock"):
+for title in ("Edit Home screen",):
     matches=[n for n in nodes if n.get("text")==title or n.get("content-desc")==title]
     if not any(n.get("class")=="android.widget.Button"
                and n.get("clickable")=="true" and n.get("focusable")=="true"

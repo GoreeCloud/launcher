@@ -69,6 +69,8 @@ PY
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen availability-start
 assert_text availability-start "Live Home clock and date"
 

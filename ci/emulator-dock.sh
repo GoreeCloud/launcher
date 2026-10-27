@@ -69,12 +69,14 @@ PY
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen dock-start
 assert_text dock-start "Live Home clock and date"
 # The redesigned launcher deliberately provides starter dock apps. Remove
 # ONLY their pins through native accessible menus before testing five fixture
 # slots and capacity, without editing app private storage or bypassing UI.
-for target in Phone Messages Chrome Camera; do
+for target in Phone Dialer Messages Messaging Gmail Email Outlook Browser Chrome Firefox Internet Camera; do
   key=${target,,}
   dump_screen "starter-$key"
   if grep -Fq "content-desc=\"$target\"" "$EVIDENCE/starter-$key.xml"; then

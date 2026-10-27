@@ -88,6 +88,8 @@ PY
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen backup-home
 assert_text backup-home "Home page 1 of 1"
 
@@ -121,7 +123,7 @@ assert_shortcut_count backup-pinned 2
 tap_label backup-pinned "Edit Home screen"
 sleep 1
 dump_screen backup-editor
-tap_label backup-editor "Settings"
+tap_label backup-editor "Launcher Settings"
 sleep 1
 dump_screen backup-settings
 tap_label backup-settings "Show application labels"
@@ -275,7 +277,7 @@ PY
 tap_label restored-after-restart "Edit Home screen"
 sleep 1
 dump_screen restored-editor
-tap_label restored-editor "Settings"
+tap_label restored-editor "Launcher Settings"
 sleep 1
 seek_setting "Import backup" negative-settings-start down
 

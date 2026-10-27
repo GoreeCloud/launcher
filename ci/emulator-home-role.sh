@@ -87,7 +87,7 @@ assert_text home-before-consent "Live Home clock and date"
 tap_label home-before-consent "Edit Home screen"
 sleep 1
 dump_screen pre-consent-editor
-tap_label pre-consent-editor "Settings"
+tap_label pre-consent-editor "Launcher Settings"
 sleep 2
 adb shell input swipe 445 1680 445 640 520
 sleep 2
@@ -135,12 +135,14 @@ dump_screen after-role-consent
 # Returning to our Settings component reports the actual RoleManager state.
 adb shell input keyevent 3
 sleep 2
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen home-selected
 assert_text home-selected "Live Home clock and date"
 tap_label home-selected "Edit Home screen"
 sleep 1
 dump_screen selected-home-editor
-tap_label selected-home-editor "Settings"
+tap_label selected-home-editor "Launcher Settings"
 sleep 2
 adb shell input swipe 445 1680 445 640 520
 sleep 1
