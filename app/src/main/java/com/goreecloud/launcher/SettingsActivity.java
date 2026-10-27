@@ -35,13 +35,16 @@ import android.widget.Toast;
 
 /** Native GC UI-inspired, permission-free launcher settings. */
 public final class SettingsActivity extends Activity {
-    private static final int CANVAS = 0xFFF4F3FC;
-    private static final int TEXT = 0xFF211F30;
-    private static final int MUTED = 0xFF5C596B;
-    private static final int IRIS = 0xFF5145D9;
+    private static final int CANVAS = 0xFFF2F6F8;
+    private static final int TEXT = 0xFF182738;
+    private static final int MUTED = 0xFF546778;
+    private static final int IRIS = 0xFF126979;
     private static final int EXPORT_FILE = 701;
     private static final int IMPORT_FILE = 702;
     private static final int SELECT_HOME_ROLE = 703;
+    private static final int SEARCH_FOLDER = 704;
+    private static final int CONTACT_PERMISSION = 705;
+    private static final int CALL_PERMISSION = 706;
     private SharedPreferences prefs;
     private TextView homeRoleStatus;
     private Button homeRoleAction;
@@ -232,6 +235,33 @@ public final class SettingsActivity extends Activity {
                 + "Reorder pinned apps through their long-press actions.",
                 13, false, MUTED));
 
+        addSectionHeader(body, "UNIVERSAL SEARCH");
+        LinearLayout searchCard = settingsCard(body);
+        searchCard.addView(text("Search your digital world", 20, true, TEXT));
+        searchCard.addView(text("Swipe down on an empty Home space. All sources are local or user-initiated. Contacts and calls need explicit Android permission; files require a folder that you choose.",
+                14, false, MUTED));
+        searchCard.addView(settingToggle("Search installed apps", "search_apps", true));
+        searchCard.addView(settingToggle("Search contacts", "search_contacts", false));
+        searchCard.addView(settingToggle("Search call history", "search_calls", false));
+        searchCard.addView(settingToggle("Search selected files", "search_files", false));
+        searchCard.addView(settingToggle("Offer web searches", "search_web", true));
+        searchCard.addView(settingToggle("Swipe down for Universal Search", "swipe_down_search", true));
+        TextView permissionInfo = text("Permissions are never requested automatically. Calls are restricted by Android to eligible dialer apps; the launcher does not claim dialer privileges.", 13, false, MUTED);
+        searchCard.addView(permissionInfo);
+        Button grantContacts = backupButton("Allow Contacts access…", false);
+        grantContacts.setOnClickListener(v -> requestPermissions(
+                new String[]{android.Manifest.permission.READ_CONTACTS}, CONTACT_PERMISSION));
+        searchCard.addView(grantContacts, new LinearLayout.LayoutParams(-1, dp(55)));
+        Button calls = backupButton("Call history permission…", false);
+        calls.setOnClickListener(v -> requestCallHistoryIfEligible());
+        searchCard.addView(calls, new LinearLayout.LayoutParams(-1, dp(55)));
+        Button folder = backupButton("Choose searchable folder…", false);
+        folder.setOnClickListener(v -> chooseSearchFolder());
+        searchCard.addView(folder, new LinearLayout.LayoutParams(-1, dp(55)));
+        Button testSearch = backupButton("Open Universal Search", true);
+        testSearch.setOnClickListener(v -> startActivity(new Intent(this, UniversalSearchActivity.class)));
+        searchCard.addView(testSearch, new LinearLayout.LayoutParams(-1, dp(55)));
+
         addSectionHeader(body, "ONBOARDING");
         LinearLayout setupCard = settingsCard(body);
         setupCard.addView(text("First-run setup", 20, true, TEXT));
@@ -389,6 +419,31 @@ public final class SettingsActivity extends Activity {
         return button;
     }
 
+    private void chooseSearchFolder() {
+        try {
+            Intent picker = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+            startActivityForResult(picker, SEARCH_FOLDER);
+        } catch (ActivityNotFoundException | SecurityException ex) {
+            Toast.makeText(this, "Folder picker unavailable", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void requestCallHistoryIfEligible() {
+        boolean eligible = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            RoleManager role = getSystemService(RoleManager.class);
+            eligible = role != null && role.isRoleHeld(RoleManager.ROLE_DIALER);
+        } else {
+            android.telecom.TelecomManager tel = (android.telecom.TelecomManager) getSystemService(TELECOM_SERVICE);
+            eligible = tel != null && getPackageName().equals(tel.getDefaultDialerPackage());
+        }
+        if (eligible) requestPermissions(new String[]{android.Manifest.permission.READ_CALL_LOG}, CALL_PERMISSION);
+        else new AlertDialog.Builder(this).setTitle("Android call history")
+            .setMessage("Android restricts call logs to eligible default dialers. GoreeCloud Launcher will not bypass that privileged role.")
+            .setPositiveButton("OK", null).show();
+    }
+
     private void chooseExport() {
         try {
             Intent picker = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -421,6 +476,17 @@ public final class SettingsActivity extends Activity {
         }
         if (result != RESULT_OK || data == null || data.getData() == null) return;
         Uri chosen = data.getData();
+        if (request == SEARCH_FOLDER) {
+            try {
+                getContentResolver().takePersistableUriPermission(chosen,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                prefs.edit().putString("search_files_tree_uri", chosen.toString()).apply();
+                Toast.makeText(this, "Search limited to your selected folder", Toast.LENGTH_LONG).show();
+            } catch (SecurityException ex) {
+                Toast.makeText(this, "Folder access not granted", Toast.LENGTH_LONG).show();
+            }
+            return;
+        }
         if (request == EXPORT_FILE) exportTo(chosen);
         if (request == IMPORT_FILE) importFrom(chosen);
     }

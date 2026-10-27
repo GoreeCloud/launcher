@@ -103,6 +103,8 @@ public final class LauncherActivity extends Activity {
         openHomeEditor();
     };
     private EditText query;
+    private TextView drawerSettingsAction;
+    private TextView drawerSortAction;
     private TextView empty;
     private TextView emptyTitle;
     private TextView emptyAction;
@@ -211,7 +213,7 @@ public final class LauncherActivity extends Activity {
                         event.getRawX() - gestureStartX, event.getRawY() - gestureStartY,
                         dp(96), drawerOpen,
                         prefs.getBoolean("swipe_up_drawer", true),
-                        prefs.getBoolean("swipe_down_close", true), atTop);
+                        prefs.getBoolean(drawerOpen ? "swipe_down_close" : "swipe_down_search", true), atTop);
                     gestureEligible = false;
                     if (gesture != HomeGesturePolicy.Action.NONE) {
                         // Cancel the child's pending click/long-press rather than
@@ -222,6 +224,8 @@ public final class LauncherActivity extends Activity {
                         cancel.recycle();
                         if (gesture == HomeGesturePolicy.Action.OPEN_DRAWER) setMode(true);
                         else if (gesture == HomeGesturePolicy.Action.CLOSE_DRAWER) setMode(false);
+                        else if (gesture == HomeGesturePolicy.Action.OPEN_SEARCH)
+                            startActivity(new Intent(this, UniversalSearchActivity.class));
                         else if (gesture == HomeGesturePolicy.Action.PREVIOUS_PAGE) switchPage(-1);
                         else if (gesture == HomeGesturePolicy.Action.NEXT_PAGE) switchPage(1);
                         return true;
@@ -437,7 +441,19 @@ public final class LauncherActivity extends Activity {
         });
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
         search.topMargin = dp(8);
-        root.addView(query, search);
+        LinearLayout searchRow = new LinearLayout(this);
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        root.addView(searchRow, search);
+        searchRow.addView(query, new LinearLayout.LayoutParams(0, -1, 1));
+        drawerSettingsAction = action("⚙", () ->
+                startActivity(new Intent(this, SettingsActivity.class)));
+        drawerSettingsAction.setContentDescription("Launcher Settings");
+        drawerSettingsAction.setBackground(background(0xC7EFF4F5, 18));
+        searchRow.addView(drawerSettingsAction, new LinearLayout.LayoutParams(dp(46), -1));
+        drawerSortAction = action("⇅", this::showDrawerSort);
+        drawerSortAction.setContentDescription("Sort apps");
+        drawerSortAction.setBackground(background(0xC7EFF4F5, 18));
+        searchRow.addView(drawerSortAction, new LinearLayout.LayoutParams(dp(46), -1));
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) { showApps(); }
@@ -836,6 +852,11 @@ public final class LauncherActivity extends Activity {
                 }
             }
         }
+        // Two Home pages by default; only seed clean installations.
+        if (workspace.pageCount() < 2) {
+            workspace.addPage();
+            workspace.selectPage(0);
+        }
         // Seed markers are persistent. Do not repeatedly reshuffle an empty
         // or deliberately cleared desktop during later app catalog changes.
         prefs.edit().putBoolean("starter_layout_initialized", true).apply();
@@ -882,7 +903,12 @@ public final class LauncherActivity extends Activity {
     private void switchPage(int offset) {
         if (workspace.selectPage(workspace.currentPage() + offset)) {
             saveWorkspace();
+            grid.animate().cancel();
             showApps();
+            grid.setTranslationX(dp(offset > 0 ? 65 : -65));
+            grid.setAlpha(0.58f);
+            grid.animate().translationX(0f).alpha(1f).setDuration(220)
+                    .setInterpolator(new DecelerateInterpolator()).start();
         }
     }
 
@@ -934,6 +960,8 @@ public final class LauncherActivity extends Activity {
         // Home is a desktop, not a two-tab workspace settings app.
         topHeading.setVisibility(View.GONE);
         modeTabs.setVisibility(View.GONE);
+        drawerSettingsAction.setVisibility(allApps ? View.VISIBLE : View.GONE);
+        drawerSortAction.setVisibility(allApps ? View.VISIBLE : View.GONE);
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(View.GONE);
@@ -980,6 +1008,8 @@ public final class LauncherActivity extends Activity {
         List<Entry> shown = new ArrayList<>();
         if (allApps) {
             shown.addAll(AppNameFilter.filter(catalog, text, e -> e.name));
+            if ("za".equals(prefs.getString("drawer_sort", "az")))
+                Collections.reverse(shown);
         } else {
             for (String key : workspace.currentItems()) {
                 Entry item = find(key);
@@ -1127,6 +1157,19 @@ public final class LauncherActivity extends Activity {
         }
     }
 
+    private void showDrawerSort() {
+        PopupMenu sorting = new PopupMenu(this, drawerSortAction);
+        sorting.getMenu().add("Name A–Z").setOnMenuItemClickListener(item -> {
+            prefs.edit().putString("drawer_sort", "az").apply();
+            showApps(); return true;
+        });
+        sorting.getMenu().add("Name Z–A").setOnMenuItemClickListener(item -> {
+            prefs.edit().putString("drawer_sort", "za").apply();
+            showApps(); return true;
+        });
+        sorting.show();
+    }
+
     private void showActions(View target, Entry app) {
         PopupMenu menu = new PopupMenu(this, target);
         String id = app.component.flattenToString();
@@ -1219,6 +1262,21 @@ public final class LauncherActivity extends Activity {
                 showDock();
                 return true;
             });
+        try {
+            android.content.pm.ApplicationInfo info = getPackageManager()
+                    .getApplicationInfo(app.component.getPackageName(), 0);
+            if ((info.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0) {
+                menu.getMenu().add("Uninstall…").setOnMenuItemClickListener(item -> {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_DELETE,
+                                Uri.parse("package:" + app.component.getPackageName())));
+                    } catch (ActivityNotFoundException | SecurityException ex) {
+                        Toast.makeText(this, "Uninstall unavailable", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                });
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {}
         menu.getMenu().add(R.string.app_info).setOnMenuItemClickListener(item -> {
             try {
                 startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,

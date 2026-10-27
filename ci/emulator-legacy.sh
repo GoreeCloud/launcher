@@ -97,7 +97,7 @@ sleep 4
 accept_onboarding_if_present
 dump_screen legacy-home
 assert_text legacy-home "Live Home clock and date"
-assert_text legacy-home "Home page 1 of 1"
+assert_text legacy-home "Home page 1 of 2"
 launcher_swipe_up
 sleep 2
 dump_screen legacy-drawer

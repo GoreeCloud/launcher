@@ -99,7 +99,7 @@ sleep 4
 accept_onboarding_if_present
 dump_screen responsive-initial
 assert_text responsive-initial "Live Home clock and date"
-assert_text responsive-initial "Home page 1 of 1"
+assert_text responsive-initial "Home page 1 of 2"
 launcher_swipe_up
 # The first tap after emulator HOME startup can be ignored while focus settles.
 # Require the visible selected state and retry with freshly captured bounds.
@@ -277,7 +277,7 @@ adb shell input keyevent 3
 sleep 5
 dump_screen responsive-landscape-top
 assert_png_orientation responsive-landscape-top landscape
-assert_text responsive-landscape-top "Home page 1 of 1"
+assert_text responsive-landscape-top "Home page 1 of 2"
 # Landscape has a vertically scrolling Home surface. A single swipe is not
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
@@ -332,7 +332,7 @@ adb shell input keyevent 3
 sleep 5
 dump_screen responsive-large-top
 assert_png_orientation responsive-large-top portrait
-assert_text responsive-large-top "Home page 1 of 1"
+assert_text responsive-large-top "Home page 1 of 2"
 adb shell input swipe 630 1670 630 410 600
 sleep 2
 dump_screen responsive-large-content

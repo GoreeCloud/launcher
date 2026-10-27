@@ -9,6 +9,10 @@ public final class HomeGesturePolicyTest {
     @Test public void swipingUpFromHomeOpensDrawer() {
         assertEquals(Action.OPEN_DRAWER, resolve(4, -160, 96, false, true, true, true));
     }
+    @Test public void swipingDownOnHomeOpensUniversalSearch() {
+        assertEquals(Action.OPEN_SEARCH, resolve(4, 180, 96, false, true, true, true));
+        assertEquals(Action.NONE, resolve(4, 180, 96, false, true, false, true));
+    }
     @Test public void swipingDownFromTopClosesDrawer() {
         assertEquals(Action.CLOSE_DRAWER, resolve(1, 180, 96, true, true, true, true));
     }

@@ -73,6 +73,10 @@ sleep 4
 accept_onboarding_if_present
 dump_screen availability-start
 assert_text availability-start "Live Home clock and date"
+# Five-role starter dock is intentionally full: free one slot through Home UI.
+retry_longpress_menu availability-free-slot "Phone" "Remove from dock"
+tap_label availability-free-slot "Remove from dock"
+sleep 1
 
 launcher_swipe_up
 # Emulator focus and insets may settle after the first tap. Re-read current
