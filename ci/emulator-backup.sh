@@ -54,7 +54,7 @@ longpress_label() { act_on "$1" "$2" long; }
 # actual target control instead of assuming a single fixed-height scroll.
 seek_setting() {
   local target="$1" snapshot="$2" direction="$3" attempt
-  for attempt in 1 2 3 4 5 6; do
+  for attempt in $(seq 1 18); do
     dump_screen "$snapshot"
     if grep -Fq "text=\"$target\"" "$EVIDENCE/$snapshot.xml"; then
       assert_text "$snapshot" "$target"
