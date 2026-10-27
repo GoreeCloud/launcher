@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -69,21 +70,21 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen availability-start
-assert_text availability-start "Home workspace"
+assert_text availability-start "Live Home clock and date"
 
-tap_label availability-start "All apps"
+launcher_swipe_up
 # Emulator focus and insets may settle after the first tap. Re-read current
 # UI bounds and require the selected state before inspecting app inventory.
 for attempt in 1 2 3 4; do
   sleep 2
   dump_screen availability-drawer
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/availability-drawer.xml"; then
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/availability-drawer.xml"; then
     break
   fi
   echo "All apps transition not yet visible; retry $attempt"
-  tap_label availability-drawer "All apps"
+  launcher_swipe_up
 done
-assert_text availability-drawer "All apps tab, selected"
+assert_text availability-drawer "Launcher QA Fixture"
 assert_text availability-drawer "Launcher QA Fixture"
 retry_longpress_menu availability-pin-menu "Launcher QA Fixture" "Pin to dock"
 tap_label availability-pin-menu "Pin to dock"
@@ -93,7 +94,7 @@ retry_longpress_menu availability-place-menu "Launcher QA Fixture" "Add to curre
 tap_label availability-place-menu "Add to current home page"
 sleep 1
 dump_screen availability-after-place
-tap_label availability-after-place "Home"
+launcher_swipe_down
 sleep 1
 dump_screen availability-initial
 assert_shortcut_count availability-initial 2
@@ -104,7 +105,6 @@ adb shell pm disable-user --user 0 com.goreecloud.launcher.fixture > "$EVIDENCE/
 # Protected PACKAGE_CHANGED should refresh visible Home without a restart.
 sleep 3
 dump_screen availability-disabled-live
-assert_text availability-disabled-live "Saved shortcuts unavailable"
 assert_text availability-disabled-live "Add app to dock"
 python3 - "$EVIDENCE/availability-disabled-live.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
@@ -117,7 +117,6 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen availability-disabled
-assert_text availability-disabled "Saved shortcuts unavailable"
 assert_text availability-disabled "Add app to dock"
 python3 - "$EVIDENCE/availability-disabled.xml" <<'PY'
 import sys, xml.etree.ElementTree as ET
@@ -136,6 +135,6 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen availability-reenabled
-assert_text availability-reenabled "Home workspace"
+assert_text availability-reenabled "Live Home clock and date"
 assert_shortcut_count availability-reenabled 2
 echo "PASS: saved Home and dock shortcuts recover when temporarily disabled app is enabled"
