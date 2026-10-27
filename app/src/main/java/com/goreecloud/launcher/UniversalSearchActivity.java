@@ -38,12 +38,13 @@ public final class UniversalSearchActivity extends Activity {
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
         getWindow().setStatusBarColor(0xFF191B29);
         getWindow().setNavigationBarColor(0xFF191B29);
-        GoreeVisuals.useLightSystemBarIcons(this);
+
         ScrollView scroll=new ScrollView(this);
         scroll.setBackgroundColor(0xFF191B29);
         scroll.setFillViewport(true);
         scroll.setPadding(dp(20),dp(44),dp(20),dp(24));
         setContentView(scroll);
+        GoreeVisuals.useLightSystemBarIcons(this);
         LinearLayout page=new LinearLayout(this);
         page.setOrientation(1);scroll.addView(page);
         TextView header=label("⌕   Universal Search",25,true);

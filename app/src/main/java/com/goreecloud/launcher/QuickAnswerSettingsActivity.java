@@ -13,7 +13,7 @@ public final class QuickAnswerSettingsActivity extends Activity {
   @Override public void onCreate(Bundle state){
     super.onCreate(state);
     getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
-        GoreeVisuals.useLightSystemBarIcons(this);
+
     settings=getSharedPreferences("launcher",MODE_PRIVATE);
     selected=QuickAnswers.selected(this);
     render();
@@ -31,6 +31,7 @@ public final class QuickAnswerSettingsActivity extends Activity {
     ScrollView scroll=new ScrollView(this);
     scroll.setBackgroundColor(0xFF192737);
     setContentView(scroll);
+        GoreeVisuals.useLightSystemBarIcons(this);
     content=new LinearLayout(this);
     content.setOrientation(LinearLayout.VERTICAL);
     content.setPadding(20,48,20,36);

@@ -3,6 +3,7 @@ set -Eeuo pipefail
 # Disposable emulator. No API keys, PIN writes, or changes to personal devices.
 EVIDENCE=build/security-evidence
 mkdir -p "$EVIDENCE"
+trap 'adb logcat -d -s AndroidRuntime:E > "$EVIDENCE/android-runtime-on-error.txt" || true' ERR
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 3
