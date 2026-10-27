@@ -13,6 +13,8 @@ printf '%s\n' "$result" | grep -Fq 'PASS custom accessibility actions in both di
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 . ci/emulator-hierarchy-retry.sh
 capture_hierarchy_with_retries dock-a11y-restart "$EVIDENCE/dock-a11y-restart.xml"
 python3 - "$EVIDENCE/dock-a11y-restart.xml" <<'PY'

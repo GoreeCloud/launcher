@@ -95,6 +95,8 @@ PY
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen responsive-initial
 assert_text responsive-initial "Live Home clock and date"
 assert_text responsive-initial "Home page 1 of 1"
@@ -290,7 +292,7 @@ import re,struct,sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 img=open(sys.argv[2],"rb").read(24)
 width,height=struct.unpack(">II",img[16:24])
-for name,attr,minimum in (("Add app to dock","content-desc",1),):
+for name,attr,minimum in (("Search apps","text",1),):
     matches=[n.attrib for n in root.iter() if n.attrib.get(attr)==name]
     if len(matches)<minimum: raise SystemExit("Dock element not yet visible "+name)
     for item in matches:
@@ -340,7 +342,7 @@ assert_tile_label_bounds responsive-large-content 2.0
 adb shell input swipe 630 1670 630 380 600
 sleep 1
 dump_screen responsive-large-dock
-assert_text responsive-large-dock "Add app to dock"
+assert_text responsive-large-dock "Search apps"
 # Return default configuration; the fixture shortcut must survive.
 adb shell settings put system user_rotation 0
 adb shell settings put system font_scale 1.0

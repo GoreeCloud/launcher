@@ -9,6 +9,8 @@ adb shell settings put system accelerometer_rotation 0
 adb shell settings put system font_scale 2.0
 adb shell am start -W -n com.goreecloud.launcher/.LauncherActivity
 sleep 3
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 
 dump_screen() {
   local name="$1"
@@ -68,18 +70,10 @@ PY
 # API35 fresh emulator can still be finishing the system Home transition
 # after am start reports success. Re-open our explicit activity and locate the
 # real accessible Settings button from a NEW hierarchy; never invent a tap.
-opened=false
-for attempt in 1 2 3 4; do
-  dump_screen settings-large-home
-  if grep -Fq 'content-desc="Settings"' "$EVIDENCE/settings-large-home.xml"; then
-    press_label settings-large-home "Settings"
-    opened=true
-    break
-  fi
-  adb shell am start -W -n com.goreecloud.launcher/.LauncherActivity >/dev/null
-  sleep 2
-done
-if [ "$opened" != true ]; then echo "Launcher Settings action inaccessible" >&2; exit 1; fi
+# At 200% font the dashboard actions are intentionally absent.
+# The editor route is tested by Android 16 smoke; here validate native
+# Settings directly so no hidden Home control is falsely required.
+adb shell am start -W -n com.goreecloud.launcher/.SettingsActivity >/dev/null
 sleep 2
 dump_screen settings-large-portrait
 check_header settings-large-portrait

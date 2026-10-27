@@ -72,10 +72,12 @@ adb shell cmd role get-role-holders --user 0 android.app.role.HOME | tee "$EVIDE
 grep -F 'com.goreecloud.launcher' "$EVIDENCE/home-role.txt"
 adb shell input keyevent 3
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen home-role
 assert_text home-role "Live Home clock and date"
 assert_text home-role "Home page 1 of 1"
-assert_text home-role "Add app to dock"
+assert_text home-role "Edit Home screen"
 assert_text home-role "Edit Home screen"
 # Assert a desktop rather than the previous tabbed settings-style workspace.
 python3 - "$EVIDENCE/home-role.xml" <<'PY'
@@ -240,7 +242,7 @@ assert_shortcut_count home-after-launch 2
 tap_label home-after-launch "Edit Home screen"
 sleep 1
 dump_screen editor-before-settings
-tap_label editor-before-settings "Settings"
+tap_label editor-before-settings "Launcher Settings"
 sleep 1
 dump_screen settings-before
 assert_text settings-before "Home settings"
@@ -270,7 +272,7 @@ assert_shortcut_count after-restart 2
 tap_label after-restart "Edit Home screen"
 sleep 1
 dump_screen editor-restored
-tap_label editor-restored "Settings"
+tap_label editor-restored "Launcher Settings"
 sleep 1
 dump_screen settings-restored
 python3 - "$EVIDENCE/settings-restored.xml" <<'PY'

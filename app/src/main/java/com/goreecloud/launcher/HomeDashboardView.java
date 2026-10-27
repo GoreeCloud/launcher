@@ -43,33 +43,11 @@ public final class HomeDashboardView {
         time.addView(day);
         time.setOnLongClickListener(v -> { edit.run(); return true; });
 
-        TextView customize = new TextView(context);
-        customize.setText("✎");
-        customize.setTextSize(23);
-        customize.setTextColor(0xFFFFFFFF);
-        customize.setGravity(Gravity.CENTER);
-        customize.setBackground(GoreeVisuals.card(context.getResources(), 0x65121D2D, 20));
-        customize.setContentDescription("Edit Home screen");
-        customize.setFocusable(true);
-        markButton(customize);
-        customize.setOnClickListener(v -> edit.run());
-        LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(dp(context, 52), dp(context, 52));
-        ep.leftMargin = dp(context, 12);
-        row.addView(customize, ep);
-
-        TextView widgets = new TextView(context);
-        widgets.setText("+");
-        widgets.setTextSize(25);
-        widgets.setTextColor(0xFFFFFFFF);
-        widgets.setGravity(Gravity.CENTER);
-        widgets.setBackground(GoreeVisuals.card(context.getResources(), 0x65121D2D, 20));
-        widgets.setContentDescription("Add Android widget");
-        widgets.setFocusable(true);
-        markButton(widgets);
-        widgets.setOnClickListener(v -> addWidget.run());
-        LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(dp(context, 52), dp(context, 52));
-        wp.leftMargin = dp(context, 8);
-        row.addView(widgets, wp);
+        // Wallpaper-first desktop: no widget, page or edit glyphs on Home.
+        // The clock is an unobtrusive accessible way into the editor too.
+        time.setContentDescription("Edit Home screen");
+        time.setOnClickListener(v -> edit.run());
+        time.setOnLongClickListener(v -> { edit.run(); return true; });
         return row;
     }
 

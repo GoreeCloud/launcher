@@ -93,6 +93,8 @@ PY
 # Open the Activity explicitly and never alter another launcher on this AVD.
 adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 4
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
 dump_screen legacy-home
 assert_text legacy-home "Live Home clock and date"
 assert_text legacy-home "Home page 1 of 1"

@@ -149,6 +149,7 @@ public final class SettingsActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
         surface.addView(slider, new LinearLayout.LayoutParams(-1, dp(56)));
+        addRowsSetting(surface, "Home grid rows", "home_rows");
 
         View divider = new View(this);
         divider.setBackgroundColor(0xFFE9E7F3);
@@ -210,6 +211,7 @@ public final class SettingsActivity extends Activity {
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
         drawerCard.addView(drawerGrid, new LinearLayout.LayoutParams(-1, dp(56)));
+        addRowsSetting(drawerCard, "App drawer rows", "drawer_rows");
         drawerCard.addView(settingToggle("Animate opening drawer", "drawer_animation", true));
 
         addSectionHeader(body, "GESTURES");
@@ -226,9 +228,21 @@ public final class SettingsActivity extends Activity {
         dockCard.addView(text("Persistent Home dock", 20, true, TEXT));
         dockCard.addView(settingToggle("Show app dock", "dock_enabled", true));
         dockCard.addView(settingToggle("Show dock icon labels", "dock_labels", false));
-        dockCard.addView(text("Tap an empty dock slot, then tap an app to pin it. "
+        dockCard.addView(text("Long-press an app in the drawer to pin it. "
                 + "Reorder pinned apps through their long-press actions.",
                 13, false, MUTED));
+
+        addSectionHeader(body, "ONBOARDING");
+        LinearLayout setupCard = settingsCard(body);
+        setupCard.addView(text("First-run setup", 20, true, TEXT));
+        TextView review = text("Review setup options", 16, true, TEXT);
+        review.setMinHeight(dp(55));
+        review.setGravity(Gravity.CENTER);
+        review.setContentDescription("Review launcher onboarding");
+        review.setOnClickListener(v -> startActivity(
+                new Intent(this, LauncherOnboardingActivity.class)
+                        .putExtra("review_setup", true)));
+        setupCard.addView(review);
 
         LinearLayout.LayoutParams defaultHeaderParams = new LinearLayout.LayoutParams(-1, -2);
         defaultHeaderParams.topMargin = dp(28);
@@ -472,6 +486,25 @@ public final class SettingsActivity extends Activity {
         } catch (IOException | IllegalArgumentException | SecurityException ex) {
             Toast.makeText(this, "Invalid, unsupported or unreadable backup", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void addRowsSetting(LinearLayout section, String title, String key) {
+        int current = StarterAppPolicy.boundedRows(prefs.getInt(key, 5));
+        TextView label = text(title + ": " + current, 15, true, TEXT);
+        section.addView(label);
+        SeekBar bar = new SeekBar(this);
+        bar.setMax(3);
+        bar.setProgress(current - 4);
+        bar.setContentDescription(title);
+        bar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar b, int value, boolean fromUser) {
+                label.setText(title + ": " + (value + 4));
+                if (fromUser) prefs.edit().putInt(key, value + 4).apply();
+            }
+            @Override public void onStartTrackingTouch(SeekBar b) {}
+            @Override public void onStopTrackingTouch(SeekBar b) {}
+        });
+        section.addView(bar, new LinearLayout.LayoutParams(-1, dp(56)));
     }
 
     private void addSectionHeader(LinearLayout body, String title) {
