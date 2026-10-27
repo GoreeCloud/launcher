@@ -92,12 +92,12 @@ public final class QuickAnswers {
         String url=item.optString("url","");
         if(!GoreeCloudSearchContract.safeResultUrl(url))continue;
         shown++;
-        answer.append("\\n\\n").append(shown).append(". ")
+        answer.append("\n\n").append(shown).append(". ")
           .append(item.optString("title","Result").replaceAll("[\\r\\n]"," ").substring(0,
             Math.min(140,item.optString("title","Result").length())))
-          .append("\\n").append(item.optString("description","").replaceAll("[\\r\\n]"," ").substring(0,
+          .append("\n").append(item.optString("description","").replaceAll("[\\r\\n]"," ").substring(0,
             Math.min(240,item.optString("description","").length())))
-          .append("\\n").append(url);
+          .append("\n").append(url);
       }
       return shown==0?"No matching safe GoreeCloud Search results.":answer.toString();
     }finally{c.disconnect();}
