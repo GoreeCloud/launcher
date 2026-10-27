@@ -3,6 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'ci/prepare-emulator.sh'
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
       - 'ci/emulator-dock-accessibility.sh'
@@ -16,6 +17,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'ci/prepare-emulator.sh'
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
       - 'ci/emulator-dock-accessibility.sh'
@@ -55,6 +57,8 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Prepare Android emulator and host libraries
+        run: bash ci/prepare-emulator.sh
       - name: Verify dock capacity, order and persistence
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d
         with:
