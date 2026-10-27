@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -69,18 +70,30 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen dock-start
-assert_text dock-start "Home workspace"
-tap_label dock-start "All apps"
+assert_text dock-start "Live Home clock and date"
+# The redesigned launcher deliberately provides starter dock apps. Remove
+# ONLY their pins through native accessible menus before testing five fixture
+# slots and capacity, without editing app private storage or bypassing UI.
+for target in Phone Messages Chrome Camera; do
+  key=${target,,}
+  dump_screen "starter-$key"
+  if grep -Fq "content-desc=\"$target\"" "$EVIDENCE/starter-$key.xml"; then
+    retry_longpress_menu "clear-starter-$key" "$target" "Remove from dock"
+    tap_label "clear-starter-$key" "Remove from dock"
+    sleep 1
+  fi
+done
+launcher_swipe_up
 # Fresh AVD startup can swallow the initial tap while the task regains focus.
 # Require selected-tab semantics, retrying from the current hierarchy bounds.
 for attempt in 1 2 3 4; do
   sleep 2
   dump_screen dock-drawer
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/dock-drawer.xml"; then break; fi
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/dock-drawer.xml"; then break; fi
   echo "All apps not yet active; retry $attempt"
-  tap_label dock-drawer "All apps"
+  launcher_swipe_up
 done
-assert_text dock-drawer "All apps tab, selected"
+assert_text dock-drawer "Launcher QA Fixture"
 assert_text dock-drawer "Launcher QA Fixture"
 assert_text dock-drawer "Launcher Fixture Notes"
 for app in "Launcher QA Fixture" "Launcher Fixture Notes" \
@@ -91,7 +104,7 @@ for app in "Launcher QA Fixture" "Launcher Fixture Notes" \
 done
 dump_screen five-pinned-drawer
 # Return Home: only the dock contains these fixture tiles.
-tap_label five-pinned-drawer "Home"
+launcher_swipe_down
 sleep 1
 dump_screen dock-at-capacity
 python3 - "$EVIDENCE/dock-at-capacity.xml" <<'PY'
@@ -106,13 +119,13 @@ print("PASS five accessible Button dock pins",counts)
 PY
 
 # Attempt a sixth and ensure the full-dock guard refuses mutation.
-tap_label dock-at-capacity "All apps"
+launcher_swipe_up
 sleep 1
 retry_longpress_menu sixth-context "Launcher Fixture Delta" "Pin to dock"
 tap_label sixth-context "Pin to dock"
 sleep 1
 dump_screen full-drawer
-tap_label full-drawer "Home"
+launcher_swipe_down
 sleep 1
 dump_screen after-full-attempt
 python3 - "$EVIDENCE/after-full-attempt.xml" <<'PY'
@@ -142,13 +155,13 @@ if sum(aliases.count(n) for n in
     raise SystemExit("Unpin disturbed other dock slots")
 print("PASS unpin removed exactly one dock entry")
 PY
-tap_label after-unpin "All apps"
+launcher_swipe_up
 sleep 1
 retry_longpress_menu repin-menu "Launcher Fixture Delta" "Pin to dock"
 tap_label repin-menu "Pin to dock"
 sleep 1
 dump_screen before-home-final
-tap_label before-home-final "Home"
+launcher_swipe_down
 sleep 1
 dump_screen dock-replaced
 python3 - "$EVIDENCE/dock-replaced.xml" <<'PY'
