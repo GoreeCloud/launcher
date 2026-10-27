@@ -232,16 +232,16 @@ seek_setting "Show application labels" after-restore-apply up
 assert_checked after-restore-apply false
 
 # Confirm shortcut+pin, page selection and label preference survive process restart.
-adb shell input keyevent 4
-sleep 1
+adb shell input keyevent 3
+sleep 2
 dump_screen restored-home
-assert_text restored-home "Page 2 / 2"
+assert_text restored-home "Home page 2 of 2"
 assert_shortcut_count restored-home 2
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen restored-after-restart
-assert_text restored-after-restart "Page 2 / 2"
+assert_text restored-after-restart "Home page 2 of 2"
 assert_shortcut_count restored-after-restart 2
 python3 - "$EVIDENCE/restored-after-restart.xml" <<'PY'
 import re,subprocess,sys,xml.etree.ElementTree as ET
@@ -320,7 +320,7 @@ sleep 1
 adb shell input keyevent 3
 sleep 1
 dump_screen negative-final-home
-assert_text negative-final-home "Page 2 / 2"
+assert_text negative-final-home "Home page 2 of 2"
 assert_shortcut_count negative-final-home 2
 echo "PASS: corrupt, overlimit and unsupported backups rejected without changing workspace"
 echo "PASS: SAF create/write/read, restore-cancel, restore-apply and process persistence"
