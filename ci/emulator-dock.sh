@@ -44,9 +44,12 @@ matching = [n for n in root.iter()
     if n.attrib.get("text") == target or n.attrib.get("content-desc") == target]
 matching.sort(key=lambda n: n.attrib.get("clickable")!="true")
 for n in matching:
-    m = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]", n.attrib.get("bounds",""))
-    if not m: continue
-    x1,y1,x2,y2=map(int,m.groups())
+    # UiAutomator emits on-screen coordinates as [x1,y1][x2,y2].
+    # Parse numeric bounds directly; never discard an otherwise clickable
+    # node because of a brittle full-string formatting assumption.
+    coords = re.findall(r"[0-9]+", n.attrib.get("bounds",""))
+    if len(coords) != 4: continue
+    x1,y1,x2,y2=map(int,coords)
     x,y=(x1+x2)//2,(y1+y2)//2
     if x<0 or y<0 or x2<=x1 or y2<=y1: continue
     cmd=["adb","shell","input"]
@@ -55,7 +58,7 @@ for n in matching:
     subprocess.run(cmd,check=True)
     print("PASS",mode,target,"at",x,y,"bounds",n.attrib.get("bounds"))
     sys.exit(0)
-raise SystemExit("UI element not found: "+target)
+raise SystemExit("UI element not found: "+target + " (matching nodes: " + str(len(matching)) + ")")
 PY
 }
 tap_label() { act_on "$1" "$2" tap; }

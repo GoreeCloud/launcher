@@ -438,7 +438,7 @@ public final class LauncherActivity extends Activity {
         query.setSingleLine(true);
         query.setHint("Search apps");
         query.setTextSize(16);
-        query.setPadding(dp(16), dp(9), dp(16), dp(9));
+        query.setPadding(dp(16), dp(9), dp(4), dp(9));
         query.setTextColor(0xFF232243);
         query.setHintTextColor(0xFF68677C);
         query.setBackground(background(0xE9FFFFFF, 28));
