@@ -1353,12 +1353,18 @@ public final class LauncherActivity extends Activity {
                     .getApplicationInfo(app.component.getPackageName(), 0);
             if ((info.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0) {
                 menu.getMenu().add("Uninstall…").setOnMenuItemClickListener(item -> {
-                    try {
-                        startActivity(new Intent(Intent.ACTION_DELETE,
-                                Uri.parse("package:" + app.component.getPackageName())));
-                    } catch (ActivityNotFoundException | SecurityException ex) {
-                        Toast.makeText(this, "Uninstall unavailable", Toast.LENGTH_SHORT).show();
-                    }
+                    // An app protected by the launcher also requires its PIN
+                    // before *this launcher* opens the system uninstall flow.
+                    // Android Settings remains outside our security boundary.
+                    LauncherAppLock.guard(this, app.component.getPackageName(), () -> {
+                        try {
+                            startActivity(new Intent(Intent.ACTION_DELETE,
+                                    Uri.parse("package:" + app.component.getPackageName())));
+                        } catch (ActivityNotFoundException | SecurityException ex) {
+                            Toast.makeText(this, "Uninstall unavailable",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
                     return true;
                 });
             }
