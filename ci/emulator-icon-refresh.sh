@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+. ci/launcher-gestures.sh
 # Operate only on disposable GitHub-hosted emulator fixture packages.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
@@ -58,12 +59,11 @@ PY
 }
 # Create a stable Home shortcut to observe one app icon before and after update.
 dump_screen icon-home
-act_on icon-home "All apps" tap
+launcher_swipe_up
 for attempt in 1 2 3 4 5; do
   sleep 2
   dump_screen icon-all-apps
-  if grep -Fq 'content-desc="All apps tab, selected"' "$EVIDENCE/icon-all-apps.xml" \
-     && grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/icon-all-apps.xml"; then
+  if grep -Fq 'content-desc="Launcher QA Fixture"' "$EVIDENCE/icon-all-apps.xml"; then
     break
   fi
   echo "Waiting for fixture in All apps ($attempt)"
@@ -80,7 +80,7 @@ grep -Fq 'text="Add to current home page"' "$EVIDENCE/icon-shortcut-menu.xml"
 act_on icon-shortcut-menu "Add to current home page" tap
 sleep 1
 dump_screen icon-after-placement
-act_on icon-after-placement "Home" tap
+launcher_swipe_down
 sleep 2
 dump_screen icon-before-upgrade
 python3 ci/check-fixture-icon.py "$EVIDENCE/icon-before-upgrade.xml" "$EVIDENCE/icon-before-upgrade.png" red
