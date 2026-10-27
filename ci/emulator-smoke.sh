@@ -256,9 +256,8 @@ if not matching or matching[0].attrib.get("checked")!="false":
     raise SystemExit("Application label switch was not disabled")
 print("PASS labels setting disabled")
 PY
-adb shell input keyevent 4
-adb shell input keyevent 4
-sleep 1
+adb shell input keyevent 3
+sleep 2
 dump_screen home-hidden-labels
 assert_shortcut_count home-hidden-labels 2
 
