@@ -3,6 +3,8 @@ package com.goreecloud.launcher;
 import android.content.Context;
 import android.graphics.Typeface;
 import android.view.Gravity;
+import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Button;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextClock;
@@ -49,6 +51,7 @@ public final class HomeDashboardView {
         customize.setBackground(GoreeVisuals.card(context.getResources(), 0x65121D2D, 20));
         customize.setContentDescription("Edit Home screen");
         customize.setFocusable(true);
+        markButton(customize);
         customize.setOnClickListener(v -> edit.run());
         LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(dp(context, 52), dp(context, 52));
         ep.leftMargin = dp(context, 12);
@@ -62,11 +65,22 @@ public final class HomeDashboardView {
         widgets.setBackground(GoreeVisuals.card(context.getResources(), 0x65121D2D, 20));
         widgets.setContentDescription("Add Android widget");
         widgets.setFocusable(true);
+        markButton(widgets);
         widgets.setOnClickListener(v -> addWidget.run());
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(dp(context, 52), dp(context, 52));
         wp.leftMargin = dp(context, 8);
         row.addView(widgets, wp);
         return row;
+    }
+
+    private static void markButton(TextView control) {
+        control.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(
+                    View host, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(host, info);
+                info.setClassName(Button.class.getName());
+            }
+        });
     }
 
     private static int dp(Context c, int v) {
