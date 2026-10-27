@@ -91,7 +91,11 @@ sleep 4
 . ci/emulator-onboarding.sh
 accept_onboarding_if_present
 dump_screen backup-home
-assert_text backup-home "Home page 1 of 1"
+assert_text backup-home "Home page 1 of 2"
+# Default five-role dock is full; use the native UI to reserve one QA fixture slot.
+retry_longpress_menu backup-free-slot "Phone" "Remove from dock"
+tap_label backup-free-slot "Remove from dock"
+sleep 1
 
 # Create a nonempty second page; the backup must carry state, not only defaults.
 tap_label backup-home "Edit Home screen"
@@ -100,11 +104,11 @@ dump_screen before-create
 tap_label before-create "Add page +"
 sleep 1
 dump_screen editor-page-two
-assert_text editor-page-two "Home page 2 of 2"
+assert_text editor-page-two "Home page 3 of 3"
 adb shell input keyevent 4
 sleep 2
 dump_screen populated-page
-assert_text populated-page "Home page 2 of 2"
+assert_text populated-page "Home page 3 of 3"
 launcher_swipe_up
 sleep 1
 retry_longpress_menu backup-place-menu "Launcher QA Fixture" "Add to current home page"
@@ -158,7 +162,7 @@ s=open("/tmp/launcher-qa-export.txt","rb").read()
 assert len(s)<65536 and s.endswith(b"\n")
 lines=s.decode("utf8").splitlines()
 assert lines[0]=="GOREELAUNCHER/2" and len(lines)==7
-assert lines[1]=="page=1"
+assert lines[1]=="page=2"
 assert lines[2]=="columns=4"
 assert lines[3]=="labels=0"
 assert lines[-1]=="sha256="+hashlib.sha256(b"\n".join(s.splitlines()[:-1])+b"\n").hexdigest()
@@ -166,7 +170,7 @@ ws=base64.urlsafe_b64decode(lines[4].split("=",1)[1]+"===")
 # Home has real starter icons now: its first page is NOT empty.
 # Decode each actual component token instead of assuming workspace starts '|'.
 pages=ws.split(b"|")
-assert len(pages)==2, "Two-page workspace missing from backup"
+assert len(pages)==3, "Three-page workspace missing from backup"
 components=[
     base64.urlsafe_b64decode(token+b"===")
     for page in pages for token in page.split(b".") if token
@@ -174,7 +178,7 @@ components=[
 assert any(b"com.goreecloud.launcher.fixture/" in component for component in components), (
     "Fixture Home shortcut missing from backup")
 assert lines[5].startswith("pins=") and len(lines[5])>5
-open(sys.argv[1],"w").write("PASS synthetic SAF export: version 2, two pages, labels off, dock pin, valid checksum\n")
+open(sys.argv[1],"w").write("PASS synthetic SAF export: version 2, three pages, labels off, dock pin, valid checksum\n")
 print("PASS synthetic backup file created and validated")
 PY
 
@@ -237,13 +241,13 @@ assert_checked after-restore-apply false
 adb shell input keyevent 3
 sleep 2
 dump_screen restored-home
-assert_text restored-home "Home page 2 of 2"
+assert_text restored-home "Home page 3 of 3"
 assert_shortcut_count restored-home 2
 adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen restored-after-restart
-assert_text restored-after-restart "Home page 2 of 2"
+assert_text restored-after-restart "Home page 3 of 3"
 assert_shortcut_count restored-after-restart 2
 python3 - "$EVIDENCE/restored-after-restart.xml" <<'PY'
 import re,subprocess,sys,xml.etree.ElementTree as ET
@@ -322,7 +326,7 @@ sleep 1
 adb shell input keyevent 3
 sleep 1
 dump_screen negative-final-home
-assert_text negative-final-home "Home page 2 of 2"
+assert_text negative-final-home "Home page 3 of 3"
 assert_shortcut_count negative-final-home 2
 echo "PASS: corrupt, overlimit and unsupported backups rejected without changing workspace"
 echo "PASS: SAF create/write/read, restore-cancel, restore-apply and process persistence"

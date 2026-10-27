@@ -89,6 +89,7 @@ public final class LauncherActivity extends Activity {
     private int pendingWidgetId = -1;
     private TextView dockTitle;
     private FrameLayout homeViewport;
+    private FrameLayout dragSurface;
     private ScrollView viewportScroll;
     private ScrollView fullPageScroll;
     private float gestureStartX;
@@ -103,6 +104,8 @@ public final class LauncherActivity extends Activity {
         openHomeEditor();
     };
     private EditText query;
+    private TextView drawerSettingsAction;
+    private TextView drawerSortAction;
     private TextView empty;
     private TextView emptyTitle;
     private TextView emptyAction;
@@ -211,7 +214,7 @@ public final class LauncherActivity extends Activity {
                         event.getRawX() - gestureStartX, event.getRawY() - gestureStartY,
                         dp(96), drawerOpen,
                         prefs.getBoolean("swipe_up_drawer", true),
-                        prefs.getBoolean("swipe_down_close", true), atTop);
+                        prefs.getBoolean(drawerOpen ? "swipe_down_close" : "swipe_down_search", true), atTop);
                     gestureEligible = false;
                     if (gesture != HomeGesturePolicy.Action.NONE) {
                         // Cancel the child's pending click/long-press rather than
@@ -222,6 +225,8 @@ public final class LauncherActivity extends Activity {
                         cancel.recycle();
                         if (gesture == HomeGesturePolicy.Action.OPEN_DRAWER) setMode(true);
                         else if (gesture == HomeGesturePolicy.Action.CLOSE_DRAWER) setMode(false);
+                        else if (gesture == HomeGesturePolicy.Action.OPEN_SEARCH)
+                            startActivity(new Intent(this, UniversalSearchActivity.class));
                         else if (gesture == HomeGesturePolicy.Action.PREVIOUS_PAGE) switchPage(-1);
                         else if (gesture == HomeGesturePolicy.Action.NEXT_PAGE) switchPage(1);
                         return true;
@@ -363,7 +368,12 @@ public final class LauncherActivity extends Activity {
             view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right, dp(12) + bottom);
             return insets;
         });
-        setContentView(insetSurface);
+        FrameLayout activityFrame = new FrameLayout(this);
+        activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
+        dragSurface = new FrameLayout(this);
+        dragSurface.setVisibility(View.GONE);
+        activityFrame.addView(dragSurface, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(activityFrame);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
@@ -437,7 +447,19 @@ public final class LauncherActivity extends Activity {
         });
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
         search.topMargin = dp(8);
-        root.addView(query, search);
+        LinearLayout searchRow = new LinearLayout(this);
+        searchRow.setGravity(Gravity.CENTER_VERTICAL);
+        root.addView(searchRow, search);
+        searchRow.addView(query, new LinearLayout.LayoutParams(0, -1, 1));
+        drawerSettingsAction = action("⚙", () ->
+                startActivity(new Intent(this, SettingsActivity.class)));
+        drawerSettingsAction.setContentDescription("Launcher Settings");
+        drawerSettingsAction.setBackground(background(0xC7EFF4F5, 18));
+        searchRow.addView(drawerSettingsAction, new LinearLayout.LayoutParams(dp(46), -1));
+        drawerSortAction = action("⇅", this::showDrawerSort);
+        drawerSortAction.setContentDescription("Sort apps");
+        drawerSortAction.setBackground(background(0xC7EFF4F5, 18));
+        searchRow.addView(drawerSortAction, new LinearLayout.LayoutParams(dp(46), -1));
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) { showApps(); }
@@ -836,6 +858,11 @@ public final class LauncherActivity extends Activity {
                 }
             }
         }
+        // Two Home pages by default; only seed clean installations.
+        if (workspace.pageCount() < 2) {
+            workspace.addPage();
+            workspace.selectPage(0);
+        }
         // Seed markers are persistent. Do not repeatedly reshuffle an empty
         // or deliberately cleared desktop during later app catalog changes.
         prefs.edit().putBoolean("starter_layout_initialized", true).apply();
@@ -882,7 +909,12 @@ public final class LauncherActivity extends Activity {
     private void switchPage(int offset) {
         if (workspace.selectPage(workspace.currentPage() + offset)) {
             saveWorkspace();
+            grid.animate().cancel();
             showApps();
+            grid.setTranslationX(dp(offset > 0 ? 65 : -65));
+            grid.setAlpha(0.58f);
+            grid.animate().translationX(0f).alpha(1f).setDuration(220)
+                    .setInterpolator(new DecelerateInterpolator()).start();
         }
     }
 
@@ -934,6 +966,8 @@ public final class LauncherActivity extends Activity {
         // Home is a desktop, not a two-tab workspace settings app.
         topHeading.setVisibility(View.GONE);
         modeTabs.setVisibility(View.GONE);
+        drawerSettingsAction.setVisibility(allApps ? View.VISIBLE : View.GONE);
+        drawerSortAction.setVisibility(allApps ? View.VISIBLE : View.GONE);
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(View.GONE);
@@ -980,6 +1014,8 @@ public final class LauncherActivity extends Activity {
         List<Entry> shown = new ArrayList<>();
         if (allApps) {
             shown.addAll(AppNameFilter.filter(catalog, text, e -> e.name));
+            if ("za".equals(prefs.getString("drawer_sort", "az")))
+                Collections.reverse(shown);
         } else {
             for (String key : workspace.currentItems()) {
                 Entry item = find(key);
@@ -1084,6 +1120,7 @@ public final class LauncherActivity extends Activity {
             }
         });
         cell.setOnLongClickListener(v -> { showActions(cell, app); return true; });
+        attachDragAndContextGesture(cell, app, dockTile);
         // An external keyboard must not require a touch long-press to place,
         // reorder or pin apps. Android Menu and Shift+F10 expose the same menu.
         cell.setOnKeyListener((v, keyCode, event) -> {
@@ -1125,6 +1162,91 @@ public final class LauncherActivity extends Activity {
             blank.setBackground(background(0x57404758, 40));
             dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
         }
+    }
+
+    /** Hold then move a shortcut to start Android drag; a stationary hold opens its menu. */
+    private void attachDragAndContextGesture(View cell, Entry app, boolean dockTile) {
+        final float[] start = new float[2];
+        final long[] down = new long[1];
+        final boolean[] moved = new boolean[1], menu = new boolean[1], dragging = new boolean[1];
+        final Runnable openMenu = () -> {
+            if (!moved[0] && !dragging[0]) {
+                menu[0] = true;
+                showActions(cell, app);
+            }
+        };
+        cell.setOnTouchListener((v, event) -> {
+            long elapsed = android.os.SystemClock.uptimeMillis() - down[0];
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    start[0] = event.getRawX();
+                    start[1] = event.getRawY();
+                    down[0] = android.os.SystemClock.uptimeMillis();
+                    moved[0] = false;
+                    menu[0] = false;
+                    dragging[0] = false;
+                    cell.postDelayed(openMenu,
+                            android.view.ViewConfiguration.getLongPressTimeout() + 160L);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    if (Math.abs(event.getRawX() - start[0]) > dp(18)
+                            || Math.abs(event.getRawY() - start[1]) > dp(18)) {
+                        if (!moved[0] && !menu[0] && !dockTile
+                                && elapsed >= android.view.ViewConfiguration.getLongPressTimeout() - 70) {
+                            cell.removeCallbacks(openMenu);
+                            if (beginShortcutDrag(cell, app)) dragging[0] = true;
+                        }
+                        moved[0] = true;
+                        cell.removeCallbacks(openMenu);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    cell.removeCallbacks(openMenu);
+                    if (!moved[0] && !dragging[0] && !menu[0]) {
+                        if (elapsed >= android.view.ViewConfiguration.getLongPressTimeout())
+                            showActions(cell, app);
+                        else cell.performClick();
+                    }
+                    return true;
+                case MotionEvent.ACTION_CANCEL:
+                    cell.removeCallbacks(openMenu);
+                    return true;
+                default: return true;
+            }
+        });
+    }
+
+    private boolean beginShortcutDrag(View cell, Entry app) {
+        if (dragSurface == null) return false;
+        HomeDragOverlay.show(this, dragSurface, workspace, prefs.getInt("columns", 4),
+                (key, page, slot) -> {
+                    if (!workspace.placeAt(key, page, slot)) {
+                        Toast.makeText(this, "This Home page is full", Toast.LENGTH_SHORT).show();
+                        return false;
+                    }
+                    saveWorkspace();
+                    setMode(false);
+                    return true;
+                });
+        String key = app.component.flattenToString();
+        boolean started = cell.startDragAndDrop(
+                android.content.ClipData.newPlainText("GoreeCloud shortcut", key),
+                new View.DragShadowBuilder(cell), key, 0);
+        if (!started) dragSurface.setVisibility(View.GONE);
+        return started;
+    }
+
+    private void showDrawerSort() {
+        PopupMenu sorting = new PopupMenu(this, drawerSortAction);
+        sorting.getMenu().add("Name A–Z").setOnMenuItemClickListener(item -> {
+            prefs.edit().putString("drawer_sort", "az").apply();
+            showApps(); return true;
+        });
+        sorting.getMenu().add("Name Z–A").setOnMenuItemClickListener(item -> {
+            prefs.edit().putString("drawer_sort", "za").apply();
+            showApps(); return true;
+        });
+        sorting.show();
     }
 
     private void showActions(View target, Entry app) {
@@ -1219,6 +1341,21 @@ public final class LauncherActivity extends Activity {
                 showDock();
                 return true;
             });
+        try {
+            android.content.pm.ApplicationInfo info = getPackageManager()
+                    .getApplicationInfo(app.component.getPackageName(), 0);
+            if ((info.flags & android.content.pm.ApplicationInfo.FLAG_SYSTEM) == 0) {
+                menu.getMenu().add("Uninstall…").setOnMenuItemClickListener(item -> {
+                    try {
+                        startActivity(new Intent(Intent.ACTION_DELETE,
+                                Uri.parse("package:" + app.component.getPackageName())));
+                    } catch (ActivityNotFoundException | SecurityException ex) {
+                        Toast.makeText(this, "Uninstall unavailable", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                });
+            }
+        } catch (PackageManager.NameNotFoundException ignored) {}
         menu.getMenu().add(R.string.app_info).setOnMenuItemClickListener(item -> {
             try {
                 startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,

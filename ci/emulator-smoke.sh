@@ -76,14 +76,35 @@ sleep 4
 accept_onboarding_if_present
 dump_screen home-role
 assert_text home-role "Live Home clock and date"
-assert_text home-role "Home page 1 of 1"
+assert_text home-role "Home page 1 of 2"
 assert_text home-role "Edit Home screen"
+# Swipe down on the desktop, not Android's status bar: native Universal Search.
+adb shell input swipe 540 1000 540 1580 420
+sleep 2
+dump_screen universal-search-from-home
+assert_text universal-search-from-home "Universal Search"
+assert_text universal-search-from-home "Search only sources you enable in Launcher Settings"
+adb shell input keyevent 4
+sleep 2
+dump_screen home-after-search
+assert_text home-after-search "Home page 1 of 2"
 assert_text home-role "Edit Home screen"
 # The fresh launcher has five preferred dock apps; free one using the actual
 # native context menu before testing fixture pinning later in this script.
 retry_longpress_menu starter-dock-space "Phone" "Remove from dock"
 tap_label starter-dock-space "Remove from dock"
 sleep 1
+# Prove the native empty-space long press really opens the editor.
+read -r WW HH < <(adb shell wm size | sed -n 's/.*: \([0-9]*\)x\([0-9]*\).*/\1 \2/p' | head -1)
+adb shell input swipe "$((WW/2))" "$((HH*40/100))" "$((WW/2))" "$((HH*40/100))" 1100
+sleep 2
+dump_screen editor-from-empty-hold
+assert_text editor-from-empty-hold "Edit Home"
+assert_text editor-from-empty-hold "Widgets"
+assert_text editor-from-empty-hold "Wallpapers"
+assert_text editor-from-empty-hold "Launcher Settings"
+adb shell input keyevent 4
+sleep 2
 # Assert a desktop rather than the previous tabbed settings-style workspace.
 python3 - "$EVIDENCE/home-role.xml" <<'PY'
 import sys,xml.etree.ElementTree as ET
@@ -132,11 +153,11 @@ assert_text editor-before-page "Edit Home"
 tap_label editor-before-page "Add page +"
 sleep 1
 dump_screen editor-page-two
-assert_text editor-page-two "Home page 2 of 2"
+assert_text editor-page-two "Home page 3 of 3"
 adb shell input keyevent 4
 sleep 2
 dump_screen page-two
-assert_text page-two "Home page 2 of 2"
+assert_text page-two "Home page 3 of 3"
 # A real swipe from the wallpaper desktop opens the drawer.
 adb shell input swipe "$X" "$((H*70/100))" "$X" "$((H*41/100))" 420
 sleep 2
@@ -218,13 +239,13 @@ retry_longpress_menu cross-page-menu "Launcher QA Fixture" "Move to previous pag
 tap_label cross-page-menu "Move to previous page"
 sleep 1
 dump_screen moved-page-one
-assert_text moved-page-one "Home page 1 of 2"
+assert_text moved-page-one "Home page 2 of 3"
 assert_shortcut_count moved-page-one 2
 retry_longpress_menu return-menu "Launcher QA Fixture" "Move to next page"
 tap_label return-menu "Move to next page"
 sleep 1
 dump_screen moved-page-two
-assert_text moved-page-two "Home page 2 of 2"
+assert_text moved-page-two "Home page 3 of 3"
 assert_shortcut_count moved-page-two 2
 # The page reflows from one full-width tile to two columns after moving.
 # Re-read settled bounds before launching instead of tapping a stale hit region.
@@ -240,7 +261,7 @@ assert_text launched-fixture "QA target running"
 adb shell input keyevent 3
 sleep 2
 dump_screen home-after-launch
-assert_text home-after-launch "Home page 2 of 2"
+assert_text home-after-launch "Home page 3 of 3"
 assert_shortcut_count home-after-launch 2
 
 # Verify the native setting changes on device and persists after activity recreation.
@@ -272,7 +293,7 @@ adb shell am force-stop com.goreecloud.launcher
 adb shell input keyevent 3
 sleep 3
 dump_screen after-restart
-assert_text after-restart "Home page 2 of 2"
+assert_text after-restart "Home page 3 of 3"
 assert_shortcut_count after-restart 2
 tap_label after-restart "Edit Home screen"
 sleep 1

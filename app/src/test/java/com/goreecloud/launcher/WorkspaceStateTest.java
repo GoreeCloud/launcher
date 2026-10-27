@@ -19,6 +19,23 @@ public final class WorkspaceStateTest {
         assertEquals("org.other/.Gamma", restored.currentItems().get(0));
     }
 
+    @Test public void dragPlacementPersistsAndNeverDuplicates() {
+        WorkspaceState state = new WorkspaceState();
+        assertTrue(state.place("goree/.Phone"));
+        assertTrue(state.place("goree/.Messages"));
+        assertTrue(state.addPage());
+        assertTrue(state.placeAt("goree/.Phone", 1, 0));
+        assertEquals(1, state.pageFor("goree/.Phone"));
+        assertTrue(state.selectPage(0));
+        assertEquals(1, state.currentItems().size());
+        assertTrue(state.placeAt("goree/.Messages", 0, 0));
+        assertEquals("goree/.Messages", state.currentItems().get(0));
+        assertTrue(state.placeAt("goree/.Phone", 0, 0));
+        assertEquals("goree/.Phone", WorkspaceState.decode(state.encode()).currentItems().get(0));
+        assertEquals(0, state.pageFor("goree/.Phone"));
+        assertFalse(state.placeAt("goree/.Phone", 99, 0));
+    }
+
     @Test public void movesAppWithoutDuplication() {
         WorkspaceState state = new WorkspaceState();
         assertTrue(state.place("one/.One"));

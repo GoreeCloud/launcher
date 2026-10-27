@@ -227,12 +227,7 @@ public final class HomeEditActivity extends Activity {
     }
 
     private void chooseWallpaper() {
-        try {
-            startActivity(new Intent(Intent.ACTION_SET_WALLPAPER));
-        } catch (ActivityNotFoundException | SecurityException e) {
-            Toast.makeText(this, "No wallpaper picker available on this device",
-                    Toast.LENGTH_SHORT).show();
-        }
+        startActivity(new Intent(this, WallpaperGalleryActivity.class));
     }
 
     private void chooseTheme() {

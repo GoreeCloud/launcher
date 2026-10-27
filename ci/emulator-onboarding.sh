@@ -15,7 +15,16 @@ accept_onboarding_if_present() {
   for step in 1 2 3; do
     adb shell uiautomator dump /sdcard/goreecloud-onboarding.xml >/dev/null 2>&1
     adb pull /sdcard/goreecloud-onboarding.xml "$f" >/dev/null 2>&1
-    grep -Fq "text=\"Setup $step of 3\"" "$f"
+    for retry in 1 2 3 4 5 6 7 8; do
+      if grep -Fq "text=\"Setup $step of 3\"" "$f"; then break; fi
+      sleep 2
+      adb shell uiautomator dump /sdcard/goreecloud-onboarding.xml >/dev/null 2>&1 || true
+      adb pull /sdcard/goreecloud-onboarding.xml "$f" >/dev/null 2>&1 || true
+    done
+    grep -Fq "text=\"Setup $step of 3\"" "$f" || {
+      echo "Onboarding step $step did not appear" >&2
+      return 1
+    }
     label=Next
     [ "$step" = 3 ] && label=Finish
     point=$(python3 - "$f" "$label" <<'PY'

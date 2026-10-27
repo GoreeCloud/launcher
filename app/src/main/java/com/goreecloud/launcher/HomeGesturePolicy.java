@@ -2,7 +2,7 @@ package com.goreecloud.launcher;
 
 /** Pure, deterministic home/drawer swipe routing. Android coordinates grow downward. */
 public final class HomeGesturePolicy {
-    public enum Action { NONE, OPEN_DRAWER, CLOSE_DRAWER, PREVIOUS_PAGE, NEXT_PAGE }
+    public enum Action { NONE, OPEN_DRAWER, CLOSE_DRAWER, OPEN_SEARCH, PREVIOUS_PAGE, NEXT_PAGE }
 
     private HomeGesturePolicy() {}
 
@@ -16,6 +16,7 @@ public final class HomeGesturePolicy {
         float y = Math.abs(deltaY);
         if (y >= threshold && y > x * 1.35f) {
             if (!drawerOpen && deltaY < 0f && swipeUpEnabled) return Action.OPEN_DRAWER;
+            if (!drawerOpen && deltaY > 0f && swipeDownEnabled) return Action.OPEN_SEARCH;
             if (drawerOpen && deltaY > 0f && swipeDownEnabled && drawerAtTop)
                 return Action.CLOSE_DRAWER;
         }

@@ -18,6 +18,7 @@ public final class LauncherOnboardingActivity extends Activity {
     private LinearLayout body;
     private int step, homeRows=5, drawerRows=5, columns=4;
     private boolean labels=true, dock=true, swipe=true, wallpaper=true;
+    private boolean swipeSearch=true, searchApps=true, searchWeb=true;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
@@ -27,6 +28,9 @@ public final class LauncherOnboardingActivity extends Activity {
         labels=prefs.getBoolean("labels",true);
         dock=prefs.getBoolean("dock_enabled",true);
         swipe=prefs.getBoolean("swipe_up_drawer",true);
+        swipeSearch=prefs.getBoolean("swipe_down_search",true);
+        searchApps=prefs.getBoolean("search_apps",true);
+        searchWeb=prefs.getBoolean("search_web",true);
         wallpaper=!"night".equals(prefs.getString("launcher_skin","wallpaper"));
         if(state!=null) step=state.getInt("step",0);
         showStep();
@@ -64,7 +68,10 @@ public final class LauncherOnboardingActivity extends Activity {
         } else {
             heading("Gestures and editing");
             toggle("Swipe up to open apps",swipe,v->swipe=v);
-            body.addView(label("Long-press empty Home space to open the editor. Widgets, wallpapers and settings are available there.",15));
+            toggle("Swipe down for Universal Search",swipeSearch,v->swipeSearch=v);
+            toggle("Search installed apps",searchApps,v->searchApps=v);
+            toggle("Offer web search actions",searchWeb,v->searchWeb=v);
+            body.addView(label("Long-press an empty Home space for Widgets, original GoreeCloud wallpapers and Launcher Settings. Hold then drag app icons to a Home page.",15));
             body.addView(label("Nothing is uploaded. You can change these options later.",13));
         }
         LinearLayout actions=new LinearLayout(this);
@@ -102,6 +109,8 @@ public final class LauncherOnboardingActivity extends Activity {
             .putInt("home_rows",homeRows).putInt("drawer_rows",drawerRows)
             .putInt("columns",columns).putBoolean("labels",labels)
             .putBoolean("dock_enabled",dock).putBoolean("swipe_up_drawer",swipe)
+            .putBoolean("swipe_down_search",swipeSearch)
+            .putBoolean("search_apps",searchApps).putBoolean("search_web",searchWeb)
             .putString("launcher_skin",wallpaper?"wallpaper":"night").apply();
         finish();
     }
