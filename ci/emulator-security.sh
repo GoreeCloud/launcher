@@ -4,12 +4,12 @@ set -Eeuo pipefail
 EVIDENCE=build/security-evidence
 mkdir -p "$EVIDENCE"
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.goreecloud.launcher/.SettingsActivity
+adb shell am start -n com.goreecloud.launcher/.LauncherActivity
 sleep 3
+. ci/emulator-hierarchy-retry.sh
 dump() {
   local name="$1"
-  adb shell uiautomator dump /sdcard/security-ui.xml >/dev/null
-  adb pull /sdcard/security-ui.xml "$EVIDENCE/$name.xml" >/dev/null
+  capture_hierarchy_with_retries "$name" "$EVIDENCE/$name.xml"
 }
 found() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
@@ -45,6 +45,15 @@ seek() {
   done
   echo "Missing settings control $label" >&2; exit 1
 }
+# Access private Settings through the exported launcher, never via adb.
+. ci/emulator-onboarding.sh
+accept_onboarding_if_present
+dump launcher-home
+tap launcher-home "Edit Home screen"
+sleep 2
+dump home-editor
+tap home-editor "Launcher Settings"
+sleep 2
 seek "Configure AI quick answers"
 tap current "Configure AI quick answers"
 sleep 2
