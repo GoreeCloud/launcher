@@ -83,8 +83,11 @@ for attempt in 1 2 3; do
   fi
 done
 dump_screen home-before-consent
-assert_text home-before-consent "Home workspace"
-tap_label home-before-consent "Settings"
+assert_text home-before-consent "Live Home clock and date"
+tap_label home-before-consent "Edit Home screen"
+sleep 1
+dump_screen pre-consent-editor
+tap_label pre-consent-editor "Settings"
 sleep 2
 adb shell input swipe 445 1680 445 640 520
 sleep 2
@@ -133,8 +136,11 @@ dump_screen after-role-consent
 adb shell input keyevent 3
 sleep 2
 dump_screen home-selected
-assert_text home-selected "Home workspace"
-tap_label home-selected "Settings"
+assert_text home-selected "Live Home clock and date"
+tap_label home-selected "Edit Home screen"
+sleep 1
+dump_screen selected-home-editor
+tap_label selected-home-editor "Settings"
 sleep 2
 adb shell input swipe 445 1680 445 640 520
 sleep 1
@@ -144,5 +150,5 @@ assert_text settings-home-held "Manage default Home apps"
 adb shell input keyevent 3
 sleep 2
 dump_screen home-after-consent
-assert_text home-after-consent "Home workspace"
+assert_text home-after-consent "Live Home clock and date"
 echo "PASS: cancelled Home selection unchanged, then consent granted role and Home returned"
