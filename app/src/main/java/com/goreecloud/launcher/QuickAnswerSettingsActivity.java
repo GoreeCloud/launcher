@@ -12,6 +12,7 @@ public final class QuickAnswerSettingsActivity extends Activity {
   private String selected;
   @Override public void onCreate(Bundle state){
     super.onCreate(state);
+    getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     settings=getSharedPreferences("launcher",MODE_PRIVATE);
     selected=QuickAnswers.selected(this);
     render();

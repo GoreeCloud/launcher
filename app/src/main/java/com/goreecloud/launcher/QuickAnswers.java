@@ -13,6 +13,7 @@ public final class QuickAnswers {
   public interface Callback{void result(String text);}
   public static final String[] PROVIDERS={"GoreeCloud Search","OpenAI","Claude","Gemini"};
   private static final ExecutorService WORK=Executors.newSingleThreadExecutor();
+  private static final java.util.concurrent.atomic.AtomicBoolean BUSY=new java.util.concurrent.atomic.AtomicBoolean();
   private QuickAnswers(){}
   public static String code(String provider){
     switch(provider){
@@ -43,10 +44,14 @@ public final class QuickAnswers {
       callback.result("Please enter a question under 2,400 characters.");
       return;
     }
+    if(!BUSY.compareAndSet(false,true)){
+      callback.result("A quick-answer request is already running.");return;
+    }
     WORK.execute(()->{
       String result;
       try{result=fetch(id,model,apiKey,question.trim());}
       catch(Exception ignored){result="Request failed. Check your provider settings or connection.";}
+      finally{BUSY.set(false);}
       final String answer=result;
       new Handler(Looper.getMainLooper()).post(()->{
         if(!a.isFinishing()&&!a.isDestroyed())callback.result(answer);
@@ -74,6 +79,7 @@ public final class QuickAnswers {
     HttpURLConnection conn=(HttpURLConnection)new URL(endpoint).openConnection();
     conn.setRequestMethod("POST");conn.setConnectTimeout(12000);
     conn.setReadTimeout(20000);conn.setDoOutput(true);
+    conn.setInstanceFollowRedirects(false);
     conn.setRequestProperty("Content-Type","application/json");
     if("openai".equals(id))conn.setRequestProperty("Authorization","Bearer "+key);
     if("claude".equals(id)){

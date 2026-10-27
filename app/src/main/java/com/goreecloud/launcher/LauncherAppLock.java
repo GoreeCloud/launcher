@@ -76,6 +76,7 @@ public final class LauncherAppLock {
     AlertDialog dlg=new AlertDialog.Builder(a)
       .setTitle(reason).setView(pin)
       .setNegativeButton("Cancel",null).setPositiveButton("Unlock",null).create();
+    dlg.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     dlg.setOnShowListener(v->dlg.getButton(AlertDialog.BUTTON_POSITIVE)
       .setOnClickListener(button->{
         String attempt=pin.getText().toString();pin.setText("");
@@ -85,7 +86,7 @@ public final class LauncherAppLock {
         }
         int n=p.getInt("failures",0)+1;
         long until=n>=5?System.currentTimeMillis()+60000L*Math.min(30,n-4):0;
-        p.edit().putInt("failures",n).putLong("cooldown",until).apply();
+        p.edit().putInt("failures",n).putLong("cooldown",until).commit();
         toast(a,until>0?"Temporarily locked":"Incorrect PIN");
         if(until>0)dlg.dismiss();
       }));
@@ -106,6 +107,7 @@ public final class LauncherAppLock {
       .setMessage("Launcher-only protection; Android can still open apps outside GoreeCloud.")
       .setView(fields).setNegativeButton("Cancel",null)
       .setPositiveButton("Save PIN",null).create();
+    dlg.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);
     dlg.setOnShowListener(v->dlg.getButton(AlertDialog.BUTTON_POSITIVE)
       .setOnClickListener(button->{
         String aPin=first.getText().toString(),bPin=second.getText().toString();
