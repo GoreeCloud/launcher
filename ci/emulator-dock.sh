@@ -8,12 +8,22 @@ trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" 
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
-dump_screen() {
+dump_screen_once() {
   local name="$1"
   adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
   adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
   adb shell screencap -p /sdcard/launcher-screen.png
   adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
+}
+dump_screen() {
+  for attempt in 1 2 3 4 5; do
+    rm -f "$EVIDENCE/$1.xml" "$EVIDENCE/$1.png"
+    adb shell rm -f /sdcard/launcher-hierarchy.xml /sdcard/launcher-screen.png >/dev/null 2>&1 || true
+    if dump_screen_once "$1" && grep -q "<hierarchy" "$EVIDENCE/$1.xml" \
+       && file "$EVIDENCE/$1.png" | grep -q "PNG image data"; then return 0; fi
+    sleep 2
+  done
+  return 1
 }
 assert_text() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
