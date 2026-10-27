@@ -84,8 +84,23 @@ sleep 2
 dump_screen universal-search-from-home
 assert_text universal-search-from-home "⌕   Universal Search"
 assert_text universal-search-from-home "Search only sources you enable in Launcher Settings"
+python3 - "$EVIDENCE/universal-search-from-home.xml" <<'PY'
+import sys,xml.etree.ElementTree as ET
+nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+editors=[n for n in nodes if n.attrib.get("class")=="android.widget.EditText"
+         and "Search apps" in n.attrib.get("text","")]
+if not editors or editors[0].attrib.get("focused")!="true":
+    raise SystemExit("Universal Search did not focus its search input on entry")
+print("PASS Universal Search accepts immediate typing after Home swipe-down")
+PY
+# Back may first dismiss the software keyboard, then close Search.
 adb shell input keyevent 4
-sleep 2
+sleep 1
+dump_screen search-after-first-back
+if grep -Fq 'text="⌕   Universal Search"' "$EVIDENCE/search-after-first-back.xml"; then
+  adb shell input keyevent 4
+  sleep 1
+fi
 dump_screen home-after-search
 assert_text home-after-search "Home page 1 of 2"
 assert_text home-role "Edit Home screen"
