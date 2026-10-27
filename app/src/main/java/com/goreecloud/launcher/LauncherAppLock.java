@@ -105,9 +105,19 @@ public final class LauncherAppLock {
       }));
     dlg.show();
   }
+  /** Never permit PIN re-creation while protected packages remain on a damaged store.
+   * Otherwise deletion of only the verifier would reset every app lock. */
+  public static boolean permitsFreshPin(boolean configured,int lockedCount){
+    return !configured && lockedCount==0;
+  }
   public static void setup(Activity a,Runnable done){
-    if(configured(a)) require(a,"Verify current PIN",()->create(a,done));
-    else create(a,done);
+    if(configured(a)){
+      require(a,"Verify current PIN",()->create(a,done));
+    }else if(!permitsFreshPin(false,count(a))){
+      toast(a,"App Lock PIN data unavailable. Locked apps remain protected.");
+    }else{
+      create(a,done);
+    }
   }
   private static void create(Activity a,Runnable done){
     EditText first=entry(a,"New PIN");
