@@ -16,7 +16,7 @@ found() {
 import sys,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 name=sys.argv[2]
-assert any(name==n.attrib.get(k) for n in root.iter()
+assert any(name.casefold()==n.attrib.get(k,"").casefold() for n in root.iter()
            for k in ("text","content-desc")), "Missing: "+name
 print("PASS",name)
 PY

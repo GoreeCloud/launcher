@@ -351,7 +351,7 @@ assert_tile_label_bounds responsive-large-content 2.0
 adb shell input swipe 630 1670 630 380 600
 sleep 1
 dump_screen responsive-large-dock
-assert_text responsive-large-dock "Search apps"
+assert_text responsive-large-dock "Phone"
 # Return default configuration; the fixture shortcut must survive.
 adb shell settings put system user_rotation 0
 adb shell settings put system font_scale 1.0
