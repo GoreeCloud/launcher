@@ -8,4 +8,11 @@ public class LauncherSecurityPolicyTest {
   assertFalse(LauncherAppLock.validPin("123"));
   assertFalse(LauncherAppLock.validPin("12a4"));
  }
+ @Test public void retryCooldownStartsAtFiveAndCapsAtThirtyMinutes(){
+  assertEquals(0L,LauncherAppLock.cooldownDurationMillis(0));
+  assertEquals(0L,LauncherAppLock.cooldownDurationMillis(4));
+  assertEquals(60000L,LauncherAppLock.cooldownDurationMillis(5));
+  assertEquals(120000L,LauncherAppLock.cooldownDurationMillis(6));
+  assertEquals(1800000L,LauncherAppLock.cooldownDurationMillis(50));
+ }
 }

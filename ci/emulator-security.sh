@@ -132,3 +132,25 @@ if any(n.attrib.get("text")=="Unlock app" for n in nodes):
 print("PASS test-only PIN rejected incorrect entry and accepted correct entry")
 PY
 echo "PASS launcher-originated App Lock smoke with disposable test PIN"
+# A locked app must also appear in the dedicated Settings manager.
+adb shell am start -n com.goreecloud.launcher/.LauncherActivity
+sleep 2
+dump app-lock-manager-home
+tap app-lock-manager-home "Edit Home screen"
+sleep 2
+dump app-lock-manager-editor
+tap app-lock-manager-editor "Launcher Settings"
+sleep 2
+seek "Manage locked apps"
+tap current "Manage locked apps"
+sleep 2
+dump app-lock-manager-dialog
+found app-lock-manager-dialog "Manage locked apps"
+python3 - "$EVIDENCE/app-lock-manager-dialog.xml" <<'PY'
+import sys,xml.etree.ElementTree as ET
+root=ET.parse(sys.argv[1]).getroot()
+items=[n.attrib.get("text","") for n in root.iter()]
+if not any(x.endswith(" — Unlock") for x in items):
+    raise SystemExit("Locked app missing from App Lock manager")
+print("PASS Settings lists locked app with an unlock action")
+PY

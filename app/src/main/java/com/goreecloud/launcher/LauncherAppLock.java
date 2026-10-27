@@ -24,6 +24,15 @@ public final class LauncherAppLock {
   public static int count(Context c){
     return prefs(c).getStringSet("locked",Collections.emptySet()).size();
   }
+  /** Snapshot only; never return SharedPreferences' mutable backing set. */
+  public static Set<String> lockedPackages(Context c){
+    return Collections.unmodifiableSet(new HashSet<>(
+      prefs(c).getStringSet("locked",Collections.emptySet())));
+  }
+  /** Five failures trigger cooldown, increasing up to 30 minutes. */
+  public static long cooldownDurationMillis(int failures){
+    return failures<5 ? 0L : 60000L*Math.min(30, failures-4);
+  }
   private static byte[] hash(String pin,byte[] salt)throws Exception{
     PBEKeySpec spec=new PBEKeySpec(pin.toCharArray(),salt,ROUNDS,256);
     try{return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
@@ -88,7 +97,8 @@ public final class LauncherAppLock {
           dlg.dismiss();onVerified.run();return;
         }
         int n=p.getInt("failures",0)+1;
-        long until=n>=5?System.currentTimeMillis()+60000L*Math.min(30,n-4):0;
+        long duration=cooldownDurationMillis(n);
+        long until=duration>0 ? System.currentTimeMillis()+duration : 0L;
         p.edit().putInt("failures",n).putLong("cooldown",until).commit();
         toast(a,until>0?"Temporarily locked":"Incorrect PIN");
         if(until>0)dlg.dismiss();
