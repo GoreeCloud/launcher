@@ -14,6 +14,7 @@ public final class WallpaperGalleryActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().setStatusBarColor(0xFF171B29);
+        GoreeVisuals.useLightSystemBarIcons(this);
         ScrollView scroll = new ScrollView(this);
         scroll.setBackgroundColor(0xFF171B29);
         scroll.setPadding(dp(18),dp(45),dp(18),dp(32));

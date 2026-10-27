@@ -38,6 +38,7 @@ public final class UniversalSearchActivity extends Activity {
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
         getWindow().setStatusBarColor(0xFF191B29);
         getWindow().setNavigationBarColor(0xFF191B29);
+        GoreeVisuals.useLightSystemBarIcons(this);
         ScrollView scroll=new ScrollView(this);
         scroll.setBackgroundColor(0xFF191B29);
         scroll.setFillViewport(true);

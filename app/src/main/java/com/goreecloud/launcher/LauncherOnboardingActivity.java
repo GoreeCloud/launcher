@@ -21,6 +21,7 @@ public final class LauncherOnboardingActivity extends Activity {
     private boolean swipeSearch=true, searchApps=true, searchWeb=true;
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        GoreeVisuals.useLightSystemBarIcons(this);
         prefs=getSharedPreferences("launcher",MODE_PRIVATE);
         homeRows=prefs.getInt("home_rows",5);
         drawerRows=prefs.getInt("drawer_rows",5);
