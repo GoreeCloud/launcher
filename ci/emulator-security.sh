@@ -63,7 +63,7 @@ tap current "Configure AI quick answers"
 sleep 2
 dump quick-providers
 found quick-providers "‹   Quick answers"
-found quick-providers "GoreeCloud Search quick answers are unavailable until a supported service API is published. No endpoint or credential has been assumed."
+found quick-providers "GoreeCloud Search uses the official HTTPS gateway. Authorized NetBird access is required. Requests are explicit; results are sourced search snippets, not generated AI answers."
 # Select a real provider using only the UI. No request is sent to an API.
 tap quick-providers "GoreeCloud Search"
 sleep 1
