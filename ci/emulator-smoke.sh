@@ -82,7 +82,7 @@ assert_text home-role "Edit Home screen"
 adb shell input swipe 540 1000 540 1580 420
 sleep 2
 dump_screen universal-search-from-home
-assert_text universal-search-from-home "Universal Search"
+assert_text universal-search-from-home "⌕   Universal Search"
 assert_text universal-search-from-home "Search only sources you enable in Launcher Settings"
 adb shell input keyevent 4
 sleep 2
