@@ -312,7 +312,7 @@ PY
 # New gesture and dock settings lengthen the native ScrollView. Scroll
 # toward the document-picker controls without assuming one screen-height swipe.
 backup_visible=0
-for attempt in 1 2 3 4; do
+for attempt in $(seq 1 12); do
   adb shell input swipe 420 1750 420 500 460
   sleep 1
   dump_screen settings-backup

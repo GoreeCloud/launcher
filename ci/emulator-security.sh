@@ -22,7 +22,7 @@ print("PASS",name)
 PY
 }
 tap() {
-  python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
+  python3 - "$EVIDENCE/$1.xml" "$2" "${3:-tap}" <<'PY'
 import sys,re,subprocess,xml.etree.ElementTree as ET
 root=ET.parse(sys.argv[1]).getroot()
 for n in root.iter():
@@ -30,8 +30,11 @@ for n in root.iter():
     m=re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",n.attrib.get("bounds",""))
     if m:
         x1,y1,x2,y2=map(int,m.groups())
-        subprocess.run(["adb","shell","input","tap",str((x1+x2)//2),str((y1+y2)//2)],check=True)
-        print("PASS tapped",sys.argv[2]);break
+        x,y=str((x1+x2)//2),str((y1+y2)//2)
+        cmd=(["adb","shell","input","swipe",x,y,x,y,"1100"]
+             if sys.argv[3]=="long" else ["adb","shell","input","tap",x,y])
+        subprocess.run(cmd,check=True)
+        print("PASS",sys.argv[3],sys.argv[2]);break
 else: raise SystemExit("Missing control: "+sys.argv[2])
 PY
 }
@@ -72,3 +75,16 @@ found pin-dialog "Save PIN"
 found pin-dialog "Cancel"
 adb shell input keyevent 4
 echo "PASS provider Settings and PIN setup affordances; no credentials were created"
+adb shell am start -n com.goreecloud.launcher/.LauncherActivity
+sleep 2
+dump lock-home
+tap lock-home "Phone" long
+sleep 2
+dump lock-menu
+found lock-menu "Lock"
+tap lock-menu "Lock"
+sleep 2
+dump lock-pin-required
+found lock-pin-required "App Lock PIN"
+adb shell input keyevent 4
+echo "PASS icon Lock action prompted for a local PIN"
