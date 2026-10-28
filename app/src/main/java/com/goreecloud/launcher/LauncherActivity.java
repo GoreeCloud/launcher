@@ -335,6 +335,9 @@ public final class LauncherActivity extends Activity {
             workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
             workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
             refresh();
+            // Settings may have changed the translucent material while Home paused.
+            dock.setBackground(GoreeVisuals.translucentDock(getResources(),
+                DockMaterial.normalize(prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED))));
             renderWidgets();
         }
     }
@@ -604,7 +607,7 @@ public final class LauncherActivity extends Activity {
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(8), dp(5), dp(8), dp(5));
-        dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
+        dock.setBackground(GoreeVisuals.translucentDock(getResources(), DockMaterial.normalize(prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED)))); // GC Lens
         LinearLayout.LayoutParams dockParams = new LinearLayout.LayoutParams(-1, dp(68));
         dockParams.bottomMargin = dp(6);
         root.addView(dock, dockParams);
@@ -1128,7 +1131,11 @@ public final class LauncherActivity extends Activity {
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
             TextView text = label(app.name, 12, false);
-            text.setTextColor(0xFFFFFFFF);
+            // Light glass requires dark label ink; Solid preserves white ink.
+            String material = DockMaterial.normalize(
+                prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED));
+            text.setTextColor(dockTile && !DockMaterial.SOLID.equals(material)
+                ? 0xFF182738 : 0xFFFFFFFF);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -1186,12 +1193,20 @@ public final class LauncherActivity extends Activity {
 
     private void showDock() {
         dock.removeAllViews();
+        boolean showLabels = prefs.getBoolean("dock_labels", false);
+        int heightDp = ResponsiveHomePolicy.dockHeightDp(showLabels, systemFontScale);
+        android.view.ViewGroup.LayoutParams frame = dock.getLayoutParams();
+        if (frame != null && frame.height != dp(heightDp)) {
+            frame.height = dp(heightDp);
+            dock.setLayoutParams(frame);
+        }
+        int tileHeight = dp(heightDp - 10); // Lens has 5dp top/bottom padding.
         for (String key : dockOrder) {
             Entry app = find(key);
             if (app == null) continue;
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, tileHeight, 1);
             params.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(tile(app, prefs.getBoolean("dock_labels", false), dp(44), true), params);
+            dock.addView(tile(app, showLabels, dp(44), true), params);
         }
         int occupied = dock.getChildCount();
         for (int i = occupied; i < 5; i++) {
@@ -1202,8 +1217,11 @@ public final class LauncherActivity extends Activity {
                 showApps();
             });
             blank.setContentDescription("Add app to dock");
-            blank.setBackground(background(0x57404758, 40));
-            dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
+            String material = DockMaterial.normalize(
+                prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED));
+            blank.setBackground(background(DockMaterial.SOLID.equals(material)
+                ? 0x57404758 : 0x4CFFFFFF, 40));
+            dock.addView(blank, new LinearLayout.LayoutParams(0, tileHeight, 1));
         }
     }
 

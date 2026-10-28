@@ -44,8 +44,25 @@ public final class GoreeVisuals {
         return drawable;
     }
 
-    /** Subtle dark-glass dock rather than five rectangular empty buttons. */
+    /** Native layered Lens: translucent but no capture or live wallpaper blur. */
     public static GradientDrawable translucentDock(Resources resources) {
-        return card(resources, 0xAD1E2632, 30);
+        return translucentDock(resources, DockMaterial.FROSTED);
+    }
+
+    public static GradientDrawable translucentDock(Resources resources, String requested) {
+        String mode = DockMaterial.normalize(requested);
+        int[] stops = DockMaterial.SOLID.equals(mode)
+            ? new int[]{0xFF253744, 0xFF1B2D3A}
+            : DockMaterial.CLEAR.equals(mode)
+            ? new int[]{0xC2F5FBFF, 0xB5D5E9F2}
+            : new int[]{0xEBFBFDFF, 0xCAE9F3F8, 0xB6DAE8EF};
+        GradientDrawable surface = new GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM, stops);
+        float density = resources.getDisplayMetrics().density;
+        surface.setCornerRadius(30f * density);
+        surface.setStroke(Math.max(1, Math.round(density)),
+            DockMaterial.SOLID.equals(mode) ? 0xFF546A76 : 0xB8FFFFFF);
+        surface.setDither(true);
+        return surface;
     }
 }

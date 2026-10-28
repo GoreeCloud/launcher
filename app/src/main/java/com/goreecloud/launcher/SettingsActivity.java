@@ -232,6 +232,28 @@ public final class SettingsActivity extends Activity {
         dockCard.addView(text("Persistent Home dock", 20, true, TEXT));
         dockCard.addView(settingToggle("Show app dock", "dock_enabled", true));
         dockCard.addView(settingToggle("Show dock icon labels", "dock_labels", false));
+        dockCard.addView(text("Dock appearance", 15, true, TEXT));
+        String initial = DockMaterial.normalize(
+            prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED));
+        Button materialButton = backupButton(DockMaterial.label(initial), false);
+        materialButton.setContentDescription("Dock appearance: " + DockMaterial.label(initial));
+        addCompactAction(dockCard, materialButton);
+        materialButton.setOnClickListener(v -> new AlertDialog.Builder(this)
+            .setTitle("Dock appearance")
+            .setSingleChoiceItems(new String[]{"Frosted Glass", "Clear Glass", "Solid"},
+                DockMaterial.index(prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED)),
+                (dialog, selection) -> {
+                    String material = DockMaterial.fromIndex(selection);
+                    prefs.edit().putString(DockMaterial.KEY, material).apply();
+                    materialButton.setText(DockMaterial.label(material));
+                    materialButton.setContentDescription("Dock appearance: "
+                        + DockMaterial.label(material));
+                    dialog.dismiss();
+                })
+            .setNegativeButton("Cancel", null)
+            .show());
+        dockCard.addView(text("Translucent glass shows wallpaper color through the dock. "
+            + "It is a native layered surface, not live background blur.", 13, false, MUTED));
         dockCard.addView(text("Long-press an app in the drawer to pin it. "
                 + "Reorder pinned apps through their long-press actions.",
                 13, false, MUTED));

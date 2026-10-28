@@ -246,3 +246,117 @@ ordered=[name for _,name in sorted(tiles)]
 if ordered != expected: raise SystemExit("Dock order not persisted: "+str(ordered))
 print("PASS custom dock order survives process restart")
 PY
+
+
+# Glass Lens integration: actual Settings taps and Home screenshots, not only
+# parsing a saved string. Every change must survive returning to Home.
+open_dock_appearance() {
+  local context="$1" attempt screenshot
+  dump_screen "glass-home-before-$context"
+  launcher_swipe_up
+  sleep 1
+  dump_screen "glass-drawer-$context"
+  tap_label "glass-drawer-$context" "Launcher Settings"
+  sleep 1
+  for attempt in 1 2 3 4 5 6; do
+    screenshot="glass-settings-$context-$attempt"
+    dump_screen "$screenshot"
+    if grep -Fq 'content-desc="Dock appearance:' "$EVIDENCE/$screenshot.xml"; then
+      tap_label "$screenshot" "Dock appearance: $context"
+      sleep 1
+      dump_screen "glass-choices-$context"
+      assert_text "glass-choices-$context" "Frosted Glass"
+      assert_text "glass-choices-$context" "Clear Glass"
+      assert_text "glass-choices-$context" "Solid"
+      return 0
+    fi
+    adb shell input swipe 450 1640 450 610 380
+    sleep 1
+  done
+  echo "Dock appearance setting unreachable on Android emulator" >&2
+  return 1
+}
+choose_dock_material() {
+  local before="$1" selected="$2"
+  open_dock_appearance "$before"
+  tap_label "glass-choices-$before" "$selected"
+  sleep 1
+  adb shell input keyevent 4
+  sleep 1
+  dump_screen "glass-return-$selected"
+  assert_text "glass-return-$selected" "Search apps"
+  launcher_swipe_down
+  sleep 1
+  dump_screen "glass-dock-$selected"
+  assert_text "glass-dock-$selected" "Live Home clock and date"
+  python3 - "$EVIDENCE/glass-dock-$selected.xml" <<'PYGLASS'
+import sys, xml.etree.ElementTree as ET
+expected={"Launcher QA Fixture", "Launcher Fixture Notes",
+          "Launcher Fixture Beta", "Launcher Fixture Delta",
+          "Launcher Fixture Gamma"}
+visible={n.attrib.get("content-desc") for n in
+         ET.parse(sys.argv[1]).getroot().iter()}
+missing=expected-visible
+if missing: raise SystemExit("Glass dock lost pinned fixtures: "+str(sorted(missing)))
+print("PASS glass dock kept all five pinned launchable apps")
+PYGLASS
+}
+choose_dock_material "Frosted Glass" "Clear Glass"
+choose_dock_material "Clear Glass" "Solid"
+choose_dock_material "Solid" "Frosted Glass"
+echo "PASS Frosted/Clear/Solid selection, persistence and Home dock capture"
+
+# Optional labels must remain legible on the default light glass material.
+launcher_swipe_up
+sleep 1
+dump_screen glass-labels-drawer
+tap_label glass-labels-drawer "Launcher Settings"
+sleep 1
+found_labels=false
+for attempt in 1 2 3 4 5 6; do
+  dump_screen "glass-labels-settings-$attempt"
+  # Use the actual Android UI hierarchy and visible bounds, not a brittle
+  # textual grep of a one-line XML dump. Avoid taps behind system bars.
+  if python3 - "$EVIDENCE/glass-labels-settings-$attempt.xml" <<'PYLABEL'
+import re, sys, xml.etree.ElementTree as ET
+for node in ET.parse(sys.argv[1]).getroot().iter():
+    if node.attrib.get("text") != "Show dock icon labels": continue
+    if node.attrib.get("class") != "android.widget.Switch": continue
+    coords = re.findall(r"[0-9]+", node.attrib.get("bounds", ""))
+    if len(coords) != 4: continue
+    x1, y1, x2, y2 = map(int, coords)
+    if x2 > x1 and 150 <= y1 < y2 <= 2240:
+        print("PASS dock-label switch accessible at", (x1, y1, x2, y2))
+        sys.exit(0)
+sys.exit(1)
+PYLABEL
+  then
+    tap_label "glass-labels-settings-$attempt" "Show dock icon labels"
+    sleep 1
+    dump_screen glass-labels-enabled-settings
+    python3 - "$EVIDENCE/glass-labels-enabled-settings.xml" <<'PYENABLED'
+import sys, xml.etree.ElementTree as ET
+switches=[node for node in ET.parse(sys.argv[1]).getroot().iter()
+          if node.attrib.get("text") == "Show dock icon labels"]
+if len(switches) != 1 or switches[0].attrib.get("checked") != "true":
+    raise SystemExit("Dock icon labels switch did not become checked")
+print("PASS icon-label preference visually checked")
+PYENABLED
+    found_labels=true
+    break
+  fi
+  adb shell input swipe 450 1640 450 610 380
+  sleep 1
+done
+if [ "$found_labels" != true ]; then
+  echo "Dock icon label toggle unreachable" >&2
+  exit 1
+fi
+adb shell input keyevent 4
+sleep 1
+launcher_swipe_down
+sleep 1
+dump_screen glass-frosted-with-labels
+assert_text glass-frosted-with-labels "Launcher QA Fixture"
+assert_text glass-frosted-with-labels "Launcher Fixture Notes"
+echo "PASS native glass dock labels are visible with Frosted material"
