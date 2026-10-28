@@ -66,6 +66,23 @@ print("PASS fixture icon count",count)
 PY
 }
 
+# UiAutomator occasionally omits Home shortcut nodes for one fresh hierarchy
+# even while the following screenshot shows them. Do not reuse stale captures.
+wait_for_shortcut_count() {
+  local snapshot="$1" required="$2" attempt
+  for attempt in 1 2 3 4; do
+    dump_screen "$snapshot"
+    if assert_shortcut_count "$snapshot" "$required"; then
+      echo "PASS Home shortcut hierarchy settled (attempt $attempt of 4)"
+      return 0
+    fi
+    echo "Home shortcut nodes not visible (attempt $attempt of 4)" >&2
+    sleep 2
+  done
+  echo "FAIL missing Home shortcut nodes after 4 fresh snapshots" >&2
+  return 1
+}
+
 # Role manipulation is confined to this disposable emulator, not user hardware.
 adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud.launcher
 adb shell cmd role get-role-holders --user 0 android.app.role.HOME | tee "$EVIDENCE/home-role.txt"
@@ -265,8 +282,7 @@ assert_shortcut_count moved-page-two 2
 # The page reflows from one full-width tile to two columns after moving.
 # Re-read settled bounds before launching instead of tapping a stale hit region.
 sleep 3
-dump_screen launch-ready
-assert_shortcut_count launch-ready 2
+wait_for_shortcut_count launch-ready 2
 
 # Verify the launcher opens the fixture, then Android HOME returns to our selected Home.
 tap_label launch-ready "Launcher QA Fixture"

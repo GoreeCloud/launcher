@@ -15,9 +15,36 @@ public final class GoreeCloudSearchContract {
         if (q.length() < 2 || q.length() > MAX_QUERY_LENGTH) return false;
         for (int i = 0; i < q.length(); i++) {
             char ch = q.charAt(i);
-            if (ch < 0x20 || ch == 0x7f) return false;
+            if (Character.isISOControl(ch) || Character.getType(ch) == Character.FORMAT) return false;
         }
         return true;
+    }
+
+
+    /** Sanitize untrusted snippets before bounding by Unicode code points. */
+    public static String safePreviewText(String value, int maxCodePoints) {
+        if (value == null || maxCodePoints <= 0) return "";
+        StringBuilder result = new StringBuilder();
+        int count = 0;
+        boolean space = false;
+        for (int i = 0; i < value.length() && count < maxCodePoints;) {
+            int cp = value.codePointAt(i);
+            i += Character.charCount(cp);
+            if (Character.getType(cp) == Character.FORMAT) continue;
+            if (Character.isWhitespace(cp) || Character.isISOControl(cp)) {
+                if (result.length() > 0) space = true;
+                continue;
+            }
+            if (space) {
+                result.append(' ');
+                count++;
+                space = false;
+                if (count >= maxCodePoints) break;
+            }
+            result.appendCodePoint(cp);
+            count++;
+        }
+        return result.toString();
     }
 
     /** Filter upstream links before exposing them inside the Launcher. */
