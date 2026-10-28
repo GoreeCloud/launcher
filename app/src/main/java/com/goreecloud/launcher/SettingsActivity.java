@@ -168,7 +168,8 @@ public final class SettingsActivity extends Activity {
         labels.setChecked(prefs.getBoolean("labels", true));
         labels.setOnCheckedChangeListener((button, checked) ->
             prefs.edit().putBoolean("labels", checked).apply());
-        surface.addView(labels, new LinearLayout.LayoutParams(-1, dp(52)));
+        labels.setMinHeight(dp(52));
+        surface.addView(labels, new LinearLayout.LayoutParams(-1, -2));
         surface.addView(text("Show app names beneath Home and drawer shortcuts.", 13, false, MUTED));
 
         TextView iconSizeLabel = text("Home icon size: " + prefs.getInt("icon_size", 48) + " dp",
