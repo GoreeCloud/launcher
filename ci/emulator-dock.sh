@@ -289,7 +289,17 @@ choose_dock_material() {
   sleep 1
   dump_screen "glass-dock-$selected"
   assert_text "glass-dock-$selected" "Live Home clock and date"
-  assert_shortcut_count "glass-dock-$selected" 5
+  python3 - "$EVIDENCE/glass-dock-$selected.xml" <<'PYGLASS'
+import sys, xml.etree.ElementTree as ET
+expected={"Launcher QA Fixture", "Launcher Fixture Notes",
+          "Launcher Fixture Beta", "Launcher Fixture Delta",
+          "Launcher Fixture Gamma"}
+visible={n.attrib.get("content-desc") for n in
+         ET.parse(sys.argv[1]).getroot().iter()}
+missing=expected-visible
+if missing: raise SystemExit("Glass dock lost pinned fixtures: "+str(sorted(missing)))
+print("PASS glass dock kept all five pinned launchable apps")
+PYGLASS
 }
 choose_dock_material "Frosted Glass" "Clear Glass"
 choose_dock_material "Clear Glass" "Solid"
