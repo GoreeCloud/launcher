@@ -70,7 +70,7 @@ PYBOUNDS
       adb pull /sdcard/goreecloud-onboarding-scrolled.png \
         build/emulator-evidence/onboarding-step-3-scrolled.png >/dev/null
       python3 - build/emulator-evidence/onboarding-step-3-scrolled.xml <<'PYNOTE'
-import re,sys,xml.etree.ElementTree as ET
+import re,subprocess,sys,xml.etree.ElementTree as ET
 nodes=list(ET.parse(sys.argv[1]).getroot().iter())
 def rect(n):
     m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get("bounds",""))
@@ -84,7 +84,17 @@ if rect(note)[3]>rect(scroll)[3] or rect(note)[1]<rect(scroll)[1]:
     raise SystemExit("Final onboarding privacy note not fully reachable above footer")
 if rect(finish)[1]<rect(scroll)[3]:
     raise SystemExit("Finish overlays the scroll viewport")
-print("PASS onboarding final note readable with pinned Finish at 200% text")
+density_text=subprocess.check_output(["adb","shell","wm","density"],text=True)
+density=int(re.search(r'\d+',density_text).group())/160
+safe_top=round(18*density)
+for node in nodes:
+    if node.attrib.get("class")!="android.widget.TextView": continue
+    if not node.attrib.get("text","").strip(): continue
+    b=rect(node)
+    if b[3]>0 and b[1]<safe_top:
+        raise SystemExit("Scrolled onboarding text under Android status bar: "
+                         +node.attrib.get("text","")[:50])
+print("PASS onboarding final note readable, status bar clear, Finish pinned")
 PYNOTE
       # Use the freshly captured hierarchy for the Finish tap after scrolling.
       cp build/emulator-evidence/onboarding-step-3-scrolled.xml "$f"
