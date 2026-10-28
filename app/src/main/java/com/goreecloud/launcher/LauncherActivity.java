@@ -1131,7 +1131,11 @@ public final class LauncherActivity extends Activity {
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
             TextView text = label(app.name, 12, false);
-            text.setTextColor(0xFFFFFFFF);
+            // Light glass requires dark label ink; Solid preserves white ink.
+            String material = DockMaterial.normalize(
+                prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED));
+            text.setTextColor(dockTile && !DockMaterial.SOLID.equals(material)
+                ? 0xFF182738 : 0xFFFFFFFF);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
