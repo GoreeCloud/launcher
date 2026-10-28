@@ -4,6 +4,14 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public final class ResponsiveHomePolicyTest {
+    @Test public void drawerIconRowsAreCompactAndScaleForAccessibility() {
+        assertEquals(108, ResponsiveHomePolicy.drawerTileHeightDp(true, 1f));
+        assertEquals(126, ResponsiveHomePolicy.drawerTileHeightDp(true, 1.45f));
+        assertEquals(148, ResponsiveHomePolicy.drawerTileHeightDp(true, 2f));
+        assertEquals(176, ResponsiveHomePolicy.drawerTileHeightDp(true, 4f));
+        assertEquals(80, ResponsiveHomePolicy.drawerTileHeightDp(false, 1f));
+    }
+
     @Test public void portraitDefaultKeepsDockVisibleInFixedLayout() {
         assertFalse(ResponsiveHomePolicy.shouldScroll(false, 1.0f));
         assertFalse(ResponsiveHomePolicy.shouldScroll(false, 1.29f));
