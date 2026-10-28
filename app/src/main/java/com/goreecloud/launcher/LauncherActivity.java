@@ -731,7 +731,11 @@ public final class LauncherActivity extends Activity {
             if (fullPageScroll != null) fullPageScroll.setBackground(
                     GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
         }
-        getWindow().setStatusBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
+        // Older Android versions may not lay out app views behind the status
+        // bar, so use an opaque dark platform bar when the overlay is outside
+        // its drawing area. On modern edge-to-edge devices the vignette handles it.
+        getWindow().setStatusBarColor(drawer || (deviceWallpaper && Build.VERSION.SDK_INT < 35)
+                ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         // Edge-to-edge Home uses a native dark scrim; drawer/night are already
         // opaque and dark. White system icons remain readable without querying
