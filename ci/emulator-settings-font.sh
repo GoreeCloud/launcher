@@ -81,6 +81,31 @@ press_label settings-large-editor "Launcher Settings"
 sleep 2
 dump_screen settings-large-portrait
 check_header settings-large-portrait
+# At 200% text, "Show application labels" spans two lines. The native
+# Switch must actually grow instead of clipping its second line at 52dp.
+python3 - "$EVIDENCE/settings-large-portrait.xml" <<'PYSWITCH'
+import re,subprocess,sys,xml.etree.ElementTree as ET
+nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+def rect(n):
+    match=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get("bounds",""))
+    if not match: raise SystemExit("Missing settings switch bounds")
+    return tuple(map(int,match.groups()))
+controls=[n for n in nodes if n.attrib.get("class")=="android.widget.Switch"
+          and n.attrib.get("text")=="Show application labels"]
+notes=[n for n in nodes if n.attrib.get("text")==
+       "Show app names beneath Home and drawer shortcuts."]
+if len(controls)!=1 or len(notes)!=1:
+    raise SystemExit("Settings switch or helper text missing")
+density_text=subprocess.check_output(["adb","shell","wm","density"],text=True)
+density=int(re.search(r'\d+',density_text).group())/160
+switch=rect(controls[0])
+note=rect(notes[0])
+if switch[3]-switch[1] < round(60*density):
+    raise SystemExit("Two-line Settings switch label clipped at 200% font")
+if note[1] < switch[3]:
+    raise SystemExit("Settings switch overlaps helper text")
+print("PASS wrapped Settings switch has measured height and no overlap")
+PYSWITCH
 python3 - "$EVIDENCE/settings-large-portrait.xml" <<'PYROLE'
 import sys,xml.etree.ElementTree as ET
 matches=[n.attrib for n in ET.parse(sys.argv[1]).getroot().iter()
