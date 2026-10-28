@@ -1070,11 +1070,12 @@ public final class LauncherActivity extends Activity {
                 Math.max(dp(22), slotWidth - dp(12)));
         int preferredRows = StarterAppPolicy.boundedRows(
                 prefs.getInt(drawerMode ? "drawer_rows" : "home_rows", 5));
-        int rowHeight = compactLayout
-                ? dp(ResponsiveHomePolicy.shortcutHeightDp(names, true, systemFontScale))
-                : Math.max(dp(88), Math.min(dp(150),
-                    (getResources().getDisplayMetrics().heightPixels
-                        - dp(drawerMode ? 146 : 300)) / preferredRows));
+        int rowHeight = drawerMode
+                ? dp(ResponsiveHomePolicy.drawerTileHeightDp(names, systemFontScale))
+                : compactLayout
+                    ? dp(ResponsiveHomePolicy.shortcutHeightDp(names, true, systemFontScale))
+                    : Math.max(dp(88), Math.min(dp(150),
+                        (getResources().getDisplayMetrics().heightPixels - dp(300)) / preferredRows));
         for (int i = 0; i < shown.size(); i++) {
             View tile = tile(shown.get(i), names, iconSize, false);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
