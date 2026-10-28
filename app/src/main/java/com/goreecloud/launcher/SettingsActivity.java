@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.content.SharedPreferences;
 import android.graphics.Typeface;
+import android.content.res.ColorStateList;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -38,7 +39,10 @@ public final class SettingsActivity extends Activity {
     private static final int CANVAS = 0xFFF2F6F8;
     private static final int TEXT = 0xFF182738;
     private static final int MUTED = 0xFF546778;
-    private static final int IRIS = 0xFF126979;
+    // GC UI semantic Lagoon tokens: authoritative tokens/gc.tokens.json.
+    private static final int LAGOON = 0xFF087C8D;
+    private static final int LAGOON_CONTAINER = 0xFFD1F4F5;
+    private static final int LAGOON_INK = 0xFF07565D;
     private static final int EXPORT_FILE = 701;
     private static final int IMPORT_FILE = 702;
     private static final int SELECT_HOME_ROLE = 703;
@@ -133,12 +137,13 @@ public final class SettingsActivity extends Activity {
         descriptionParams.topMargin = dp(6);
         surface.addView(description, descriptionParams);
 
-        TextView gridLabel = text("", 15, true, 0xFF2C227C);
+        TextView gridLabel = text("", 15, true, LAGOON_INK);
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2);
         gp.topMargin = dp(14);
         surface.addView(gridLabel, gp);
 
         SeekBar slider = new SeekBar(this);
+        tintSlider(slider);
         slider.setMax(3);
         slider.setProgress(Math.max(0, Math.min(3, prefs.getInt("columns", 4) - 3)));
         gridLabel.setText("Grid columns: " + (slider.getProgress() + 3));
@@ -155,13 +160,14 @@ public final class SettingsActivity extends Activity {
         addRowsSetting(surface, "Home grid rows", "home_rows");
 
         View divider = new View(this);
-        divider.setBackgroundColor(0xFFE9E7F3);
+        divider.setBackgroundColor(0xFFDDE9ED);
         LinearLayout.LayoutParams dv = new LinearLayout.LayoutParams(-1, dp(1));
         dv.topMargin = dp(8);
         dv.bottomMargin = dp(12);
         surface.addView(divider, dv);
 
         Switch labels = new Switch(this);
+        tintSwitch(labels);
         labels.setText("Show application labels");
         labels.setTextSize(16);
         labels.setTextColor(TEXT);
@@ -173,11 +179,12 @@ public final class SettingsActivity extends Activity {
         surface.addView(text("Show app names beneath Home and drawer shortcuts.", 13, false, MUTED));
 
         TextView iconSizeLabel = text("Home icon size: " + prefs.getInt("icon_size", 48) + " dp",
-                15, true, 0xFF2C227C);
+                15, true, LAGOON_INK);
         LinearLayout.LayoutParams iconLabelParams = new LinearLayout.LayoutParams(-1, -2);
         iconLabelParams.topMargin = dp(18);
         surface.addView(iconSizeLabel, iconLabelParams);
         SeekBar iconSize = new SeekBar(this);
+        tintSlider(iconSize);
         iconSize.setMax(6);
         iconSize.setProgress((Math.max(36, Math.min(60, prefs.getInt("icon_size", 48))) - 36) / 4);
         iconSize.setContentDescription("Home icon size");
@@ -198,11 +205,12 @@ public final class SettingsActivity extends Activity {
         drawerCard.addView(text("Swipe up on Home or select All apps to browse everything.",
                 14, false, MUTED));
         TextView drawerGridLabel = text("Drawer grid columns: "
-                + prefs.getInt("drawer_columns", 4), 15, true, 0xFF2C227C);
+                + prefs.getInt("drawer_columns", 4), 15, true, LAGOON_INK);
         LinearLayout.LayoutParams drawerGridParams = new LinearLayout.LayoutParams(-1, -2);
         drawerGridParams.topMargin = dp(14);
         drawerCard.addView(drawerGridLabel, drawerGridParams);
         SeekBar drawerGrid = new SeekBar(this);
+        tintSlider(drawerGrid);
         drawerGrid.setMax(3);
         drawerGrid.setProgress(Math.max(0, Math.min(3, prefs.getInt("drawer_columns", 4) - 3)));
         drawerGrid.setContentDescription("Drawer grid columns");
@@ -303,14 +311,14 @@ public final class SettingsActivity extends Activity {
         LinearLayout homeCard = new LinearLayout(this);
         homeCard.setOrientation(LinearLayout.VERTICAL);
         homeCard.setPadding(dp(20), dp(22), dp(20), dp(20));
-        homeCard.setBackground(panel(0xFFE8E6FF, 26));
+        homeCard.setBackground(panel(LAGOON_CONTAINER, 26));
         body.addView(homeCard, new LinearLayout.LayoutParams(-1, -2));
-        homeCard.addView(text("Open with GoreeCloud", 20, true, 0xFF2C227C));
-        TextView homeHint = text("Choose which launcher opens when you press the Android Home button.", 14, false, 0xFF514A76);
+        homeCard.addView(text("Open with GoreeCloud", 20, true, LAGOON_INK));
+        TextView homeHint = text("Choose which launcher opens when you press the Android Home button.", 14, false, 0xFF325E63);
         LinearLayout.LayoutParams hnt = new LinearLayout.LayoutParams(-1, -2);
         hnt.topMargin = dp(8);
         homeCard.addView(homeHint, hnt);
-        homeRoleStatus = text("", 13, true, 0xFF2C227C);
+        homeRoleStatus = text("", 13, true, LAGOON_INK);
         homeCard.addView(homeRoleStatus);
         updateHomeRoleStatus();
 
@@ -320,7 +328,7 @@ public final class SettingsActivity extends Activity {
         home.setAllCaps(false);
         home.setTextSize(16);
         home.setTextColor(0xFFFFFFFF);
-        home.setBackground(panel(IRIS, 18));
+        home.setBackground(panel(LAGOON, 18));
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, dp(56));
         hp.topMargin = dp(22);
         homeCard.addView(home, hp);
@@ -435,8 +443,8 @@ public final class SettingsActivity extends Activity {
         button.setText(caption);
         button.setAllCaps(false);
         button.setTextSize(15);
-        button.setTextColor(primary ? 0xFFFFFFFF : IRIS);
-        GradientDrawable shape = panel(primary ? IRIS : 0xFFF8FAFB, 14);
+        button.setTextColor(primary ? 0xFFFFFFFF : LAGOON);
+        GradientDrawable shape = panel(primary ? LAGOON : 0xFFF8FAFB, 14);
         if (!primary) shape.setStroke(dp(1), 0xFFC8D9DE);
         button.setBackground(shape);
         return button;
@@ -617,6 +625,7 @@ public final class SettingsActivity extends Activity {
         TextView label = text(title + ": " + current, 15, true, TEXT);
         section.addView(label);
         SeekBar bar = new SeekBar(this);
+        tintSlider(bar);
         bar.setMax(3);
         bar.setProgress(current - 4);
         bar.setContentDescription(title);
@@ -649,6 +658,7 @@ public final class SettingsActivity extends Activity {
 
     private Switch settingToggle(String title, String key, boolean defaultValue) {
         Switch control = new Switch(this);
+        tintSwitch(control);
         control.setText(title);
         control.setTextSize(15);
         control.setTextColor(TEXT);
@@ -657,6 +667,24 @@ public final class SettingsActivity extends Activity {
         control.setOnCheckedChangeListener((button, checked) ->
                 prefs.edit().putBoolean(key, checked).apply());
         return control;
+    }
+
+    /** Native checked/unchecked states, not a theme-dependent violet default. */
+    private void tintSwitch(Switch control) {
+        int[][] states = {
+            new int[]{android.R.attr.state_checked},
+            new int[]{}
+        };
+        control.setThumbTintList(new ColorStateList(states,
+            new int[]{LAGOON, 0xFFF8FAFB}));
+        control.setTrackTintList(new ColorStateList(states,
+            new int[]{0xFFB6E2E6, 0xFFB4C4C9}));
+    }
+
+    private void tintSlider(SeekBar slider) {
+        slider.setProgressTintList(ColorStateList.valueOf(LAGOON));
+        slider.setThumbTintList(ColorStateList.valueOf(LAGOON));
+        slider.setProgressBackgroundTintList(ColorStateList.valueOf(0xFFD2E2E5));
     }
 
     private TextView section(String label) {
