@@ -335,6 +335,9 @@ public final class LauncherActivity extends Activity {
             workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
             workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
             refresh();
+            // Settings may have changed the translucent material while Home paused.
+            dock.setBackground(GoreeVisuals.translucentDock(getResources(),
+                DockMaterial.normalize(prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED))));
             renderWidgets();
         }
     }
