@@ -152,7 +152,7 @@ public final class LauncherOnboardingActivity extends Activity {
         // entire setup content to scroll underneath it.
         if (getResources().getConfiguration().fontScale >= 1.6f) {
             root.removeView(actions);
-            root.setPadding(dp(20),dp(44),dp(20),dp(140));
+            root.setPadding(dp(20),dp(44),dp(20),dp(24));
             LinearLayout actionSurface = new LinearLayout(this);
             actionSurface.setOrientation(LinearLayout.VERTICAL);
             actionSurface.setPadding(dp(12),dp(10),dp(12),dp(10));
@@ -162,6 +162,20 @@ public final class LauncherOnboardingActivity extends Activity {
                     -1,-2,Gravity.BOTTOM);
             floating.setMargins(dp(12),0,dp(12),dp(16));
             page.addView(actionSurface,floating);
+            // The pinned footer must occupy its own layout space rather than
+            // covering scrollable help text. Recalculate when font size,
+            // navigation insets or screen orientation changes its bounds.
+            actionSurface.addOnLayoutChangeListener(
+                (view,left,top,right,bottom,oldLeft,oldTop,oldRight,oldBottom)->{
+                    if (page.getHeight() <= 0) return;
+                    FrameLayout.LayoutParams viewport =
+                        (FrameLayout.LayoutParams) scroll.getLayoutParams();
+                    int reserved = Math.max(0, page.getHeight() - top + dp(8));
+                    if (viewport.bottomMargin != reserved) {
+                        viewport.bottomMargin = reserved;
+                        scroll.setLayoutParams(viewport);
+                    }
+                });
             actionSurface.setOnApplyWindowInsetsListener((view,insets)->{
                 int bottom = Build.VERSION.SDK_INT >= 30
                     ? insets.getInsets(WindowInsets.Type.navigationBars()).bottom
