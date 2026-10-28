@@ -24,6 +24,11 @@ public final class ResponsiveHomePolicy {
         return Math.max(108, Math.min(176, 68 + labelHeightDp(fontScale)));
     }
 
+    /** Dock container must fit its icon, label, tile padding and Lens gutters. */
+    public static int dockHeightDp(boolean hasLabels, float fontScale) {
+        return hasLabels ? Math.max(108, 66 + labelHeightDp(fontScale)) : 68;
+    }
+
     public static int shortcutHeightDp(boolean hasLabels, boolean scrollableHome) {
         return shortcutHeightDp(hasLabels, scrollableHome, 1.0f);
     }
