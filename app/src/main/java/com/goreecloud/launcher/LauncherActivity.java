@@ -168,6 +168,15 @@ public final class LauncherActivity extends Activity {
             if (!search.isEmpty()) query.setText(search);
         }
         refresh();
+        // A process restart can inherit a compact ScrollView's previous
+        // position from the Android task. A newly opened HOME should display
+        // the full clock rather than begin under the status bar; rotation with
+        // a saved Activity state still preserves the user's scroll position.
+        if (state == null && fullPageScroll != null) {
+            fullPageScroll.post(() -> {
+                if (!isFinishing() && !isDestroyed()) fullPageScroll.scrollTo(0, 0);
+            });
+        }
         if (state == null && !prefs.getBoolean("onboarding_completed_v1", false)) {
             startActivity(new Intent(this, LauncherOnboardingActivity.class));
         }
@@ -279,6 +288,11 @@ public final class LauncherActivity extends Activity {
         if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())
                 && intent.hasCategory(Intent.CATEGORY_HOME) && grid != null) {
             setMode(false);
+            // Returning HOME is a fresh top-of-desktop gesture, not a request
+            // to restore an offscreen landscape scroll offset.
+            if (fullPageScroll != null) {
+                fullPageScroll.post(() -> fullPageScroll.scrollTo(0, 0));
+            }
         }
     }
 
@@ -368,7 +382,9 @@ public final class LauncherActivity extends Activity {
             return insets;
         });
         FrameLayout activityFrame = new FrameLayout(this);
-        activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
+        // Paint the wallpaper vignette BELOW the content. A foreground vignette
+        // could obscure the Home clock when a scroll position crosses the
+        // system-bar region, especially in landscape or with large type.
         // A native top vignette protects status glyph contrast on bright
         // wallpaper patches even when the wallpaper-wide color hint is dark.
         View contrast = new View(this);
@@ -392,6 +408,7 @@ public final class LauncherActivity extends Activity {
         });
         activityFrame.addView(contrast,
                 new FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP));
+        activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
         dragSurface = new FrameLayout(this);
         dragSurface.setVisibility(View.GONE);
         activityFrame.addView(dragSurface, new FrameLayout.LayoutParams(-1, -1));

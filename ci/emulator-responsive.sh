@@ -278,6 +278,26 @@ sleep 5
 dump_screen responsive-landscape-top
 assert_png_orientation responsive-landscape-top landscape
 assert_text responsive-landscape-top "Home page 1 of 2"
+# Confirm first-entry clock text is not initially hidden by system-bar chrome.
+python3 - "$EVIDENCE/responsive-landscape-top.xml" "$EVIDENCE/responsive-landscape-top.png" <<'PY'
+import re, struct, sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+with open(sys.argv[2], "rb") as image:
+    data = image.read(24)
+height = struct.unpack(">II", data[16:24])[1]
+time = next((n for n in root.iter()
+    if re.fullmatch(r"\\d{1,2}:\\d{2}", n.attrib.get("text", ""))), None)
+if time is None:
+    raise SystemExit("No live Home time node in landscape screenshot")
+bounds = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",
+    time.attrib.get("bounds", ""))
+if not bounds:
+    raise SystemExit("Landscape Home time has no valid bounds")
+top = int(bounds.group(2))
+if top < int(height * .07):
+    raise SystemExit("Home time overlaps landscape system bar: " + str(top))
+print("PASS landscape Home clock clear of system bar", top)
+PY
 # Landscape has a vertically scrolling Home surface. A single swipe is not
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
