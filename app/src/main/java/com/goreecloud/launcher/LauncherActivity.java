@@ -2,8 +2,6 @@ package com.goreecloud.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.WallpaperManager;
-import android.app.WallpaperColors;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
@@ -70,6 +68,7 @@ public final class LauncherActivity extends Activity {
     private float systemFontScale;
     private GridLayout grid;
     private LinearLayout rootSurface;
+    private View homeStatusContrast; // Decorative, never interactive
     private LinearLayout pageControls;
     private TextView pageLabel;
     private TextView sectionLabel;
@@ -370,6 +369,29 @@ public final class LauncherActivity extends Activity {
         });
         FrameLayout activityFrame = new FrameLayout(this);
         activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
+        // A native top vignette protects status glyph contrast on bright
+        // wallpaper patches even when the wallpaper-wide color hint is dark.
+        View contrast = new View(this);
+        homeStatusContrast = contrast;
+        contrast.setClickable(false);
+        contrast.setFocusable(false);
+        contrast.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        contrast.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xC0000000, 0x88000000, 0x00000000}));
+        contrast.setOnApplyWindowInsetsListener((v, insets) -> {
+            int top = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? insets.getInsets(WindowInsets.Type.statusBars()).top
+                    : insets.getSystemWindowInsetTop();
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+            int height = Math.max(dp(48), top + dp(40));
+            if (lp.height != height) {
+                lp.height = height;
+                v.setLayoutParams(lp);
+            }
+            return insets;
+        });
+        activityFrame.addView(contrast,
+                new FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP));
         dragSurface = new FrameLayout(this);
         dragSurface.setVisibility(View.GONE);
         activityFrame.addView(dragSurface, new FrameLayout.LayoutParams(-1, -1));
@@ -709,32 +731,31 @@ public final class LauncherActivity extends Activity {
             if (fullPageScroll != null) fullPageScroll.setBackground(
                     GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
         }
-        getWindow().setStatusBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
+        // Older Android versions may not lay out app views behind the status
+        // bar, so use an opaque dark platform bar when the overlay is outside
+        // its drawing area. On modern edge-to-edge devices the vignette handles it.
+        getWindow().setStatusBarColor(drawer || (deviceWallpaper && Build.VERSION.SDK_INT < 35)
+                ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
-        // On a light user's wallpaper, white system status icons become unreadable.
-        // Follow Android's wallpaper contrast hint without requesting wallpaper pixels.
-        boolean useDarkStatusIcons = false;
-        if (deviceWallpaper && Build.VERSION.SDK_INT >= 27) {
-            try {
-                WallpaperColors colors = WallpaperManager.getInstance(this)
-                        .getWallpaperColors(WallpaperManager.FLAG_SYSTEM);
-                useDarkStatusIcons = colors != null
-                        && (colors.getColorHints() & WallpaperColors.HINT_SUPPORTS_DARK_TEXT) != 0;
-            } catch (RuntimeException unavailable) {
-                // Some OEMs restrict wallpaper-color access; retain safe fallback.
-            }
+        // Edge-to-edge Home uses a native dark scrim; drawer/night are already
+        // opaque and dark. White system icons remain readable without querying
+        // wallpaper pixels, new permissions or whole-image color guesses.
+        if (homeStatusContrast != null) {
+            homeStatusContrast.setVisibility(deviceWallpaper ? View.VISIBLE : View.GONE);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
-                int bits = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                         | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                controller.setSystemBarsAppearance(useDarkStatusIcons
-                        ? WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, bits);
+                controller.setSystemBarsAppearance(0, mask);
             }
         } else {
-            getWindow().getDecorView().setSystemUiVisibility(useDarkStatusIcons
-                    ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0);
+            View decor = getWindow().getDecorView();
+            int flags = decor.getSystemUiVisibility();
+            decor.setSystemUiVisibility(flags
+                    & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         }
     }
 
