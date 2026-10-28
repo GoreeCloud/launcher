@@ -494,11 +494,15 @@ public final class LauncherActivity extends Activity {
                 startActivity(new Intent(this, SettingsActivity.class)));
         drawerSettingsAction.setContentDescription("Launcher Settings");
         drawerSettingsAction.setBackground(background(0xC7EFF4F5, 18));
-        searchRow.addView(drawerSettingsAction, new LinearLayout.LayoutParams(dp(46), -1));
+        LinearLayout.LayoutParams drawerSettingsParams = new LinearLayout.LayoutParams(dp(46), -1);
+        drawerSettingsParams.leftMargin = dp(8);
+        searchRow.addView(drawerSettingsAction, drawerSettingsParams);
         drawerSortAction = action("⇅", this::showDrawerSort);
         drawerSortAction.setContentDescription("Sort apps");
         drawerSortAction.setBackground(background(0xC7EFF4F5, 18));
-        searchRow.addView(drawerSortAction, new LinearLayout.LayoutParams(dp(46), -1));
+        LinearLayout.LayoutParams drawerSortParams = new LinearLayout.LayoutParams(dp(46), -1);
+        drawerSortParams.leftMargin = dp(5);
+        searchRow.addView(drawerSortAction, drawerSortParams);
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) { showApps(); }
@@ -1276,16 +1280,19 @@ public final class LauncherActivity extends Activity {
     }
 
     private void showDrawerSort() {
-        PopupMenu sorting = new PopupMenu(this, drawerSortAction);
-        sorting.getMenu().add("Name A–Z").setOnMenuItemClickListener(item -> {
-            prefs.edit().putString("drawer_sort", "az").apply();
-            showApps(); return true;
-        });
-        sorting.getMenu().add("Name Z–A").setOnMenuItemClickListener(item -> {
-            prefs.edit().putString("drawer_sort", "za").apply();
-            showApps(); return true;
-        });
-        sorting.show();
+        // An anchored popup obscured the first row of apps on real phones.
+        // Use an explicit single-choice Android dialog with current selection.
+        String[] options = {"Name A–Z", "Name Z–A"};
+        int selected = "za".equals(prefs.getString("drawer_sort", "az")) ? 1 : 0;
+        new AlertDialog.Builder(this)
+            .setTitle("Sort apps")
+            .setSingleChoiceItems(options, selected, (dialog, which) -> {
+                prefs.edit().putString("drawer_sort", which == 1 ? "za" : "az").apply();
+                dialog.dismiss();
+                showApps();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     private void showActions(View target, Entry app) {
