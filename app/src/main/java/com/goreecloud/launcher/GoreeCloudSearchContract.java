@@ -2,11 +2,51 @@ package com.goreecloud.launcher;
 
 import java.net.URI;
 import java.util.Locale;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /** Contract owned by GoreeCloud/search, not a guessed third-party gateway. */
 public final class GoreeCloudSearchContract {
     public static final String ENDPOINT = "https://search.goreecloud.com/api/search";
     public static final int MAX_QUERY_LENGTH = 500;
+    public static final String RESULTS_HEADING = "GoreeCloud Search — sourced results, not AI text:";
+
+    /** Exact offsets of first-party result URLs, not arbitrary AI-generated text. */
+    public static final class SourcedLink {
+        public final int start;
+        public final int end;
+        public final String url;
+
+        private SourcedLink(int start, int end, String url) {
+            this.start = start;
+            this.end = end;
+            this.url = url;
+        }
+    }
+
+    /**
+     * Only a trusted, first-party formatted response is eligible for link spans.
+     * A title or snippet cannot create a new line because safePreviewText flattens
+     * untrusted whitespace, and URLs are independently validated at tap time.
+     */
+    public static List<SourcedLink> sourcedResultLinks(String response) {
+        if (response == null || !response.startsWith(RESULTS_HEADING)) {
+            return Collections.emptyList();
+        }
+        List<SourcedLink> links = new ArrayList<>();
+        int cursor = RESULTS_HEADING.length();
+        while (cursor < response.length() && links.size() < 3) {
+            int end = response.indexOf('\n', cursor);
+            if (end < 0) end = response.length();
+            String line = response.substring(cursor, end);
+            if (safeResultUrl(line)) {
+                links.add(new SourcedLink(cursor, end, line));
+            }
+            cursor = end + 1;
+        }
+        return links;
+    }
     private GoreeCloudSearchContract() {}
 
     public static boolean validQuery(String question) {

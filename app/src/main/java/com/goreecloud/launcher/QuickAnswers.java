@@ -85,7 +85,7 @@ public final class QuickAnswers {
       }
       JSONArray results=new JSONObject(raw.toString()).optJSONArray("results");
       if(results==null||results.length()==0)return "No matching GoreeCloud Search results.";
-      StringBuilder answer=new StringBuilder("GoreeCloud Search — sourced results, not AI text:");
+      StringBuilder answer=new StringBuilder(GoreeCloudSearchContract.RESULTS_HEADING);
       int shown=0;
       for(int i=0;i<results.length()&&shown<3;i++){
         JSONObject item=results.optJSONObject(i);if(item==null)continue;
