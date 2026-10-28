@@ -443,7 +443,9 @@ public final class SettingsActivity extends Activity {
 
     /** Separate optional Settings actions without stacking solid color slabs. */
     private void addCompactAction(LinearLayout card, Button button) {
-        LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, dp(48));
+        button.setMinHeight(dp(48));
+        button.setPadding(dp(12), dp(7), dp(12), dp(7));
+        LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, -2);
         row.topMargin = dp(7);
         card.addView(button, row);
     }
