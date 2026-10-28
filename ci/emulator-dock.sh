@@ -315,8 +315,33 @@ sleep 1
 found_labels=false
 for attempt in 1 2 3 4 5 6; do
   dump_screen "glass-labels-settings-$attempt"
-  if grep -Fq 'text="Show dock icon labels"' "$EVIDENCE/glass-labels-settings-$attempt.xml"; then
+  # Use the actual Android UI hierarchy and visible bounds, not a brittle
+  # textual grep of a one-line XML dump. Avoid taps behind system bars.
+  if python3 - "$EVIDENCE/glass-labels-settings-$attempt.xml" <<'PYLABEL'
+import re, sys, xml.etree.ElementTree as ET
+for node in ET.parse(sys.argv[1]).getroot().iter():
+    if node.attrib.get("text") != "Show dock icon labels": continue
+    if node.attrib.get("class") != "android.widget.Switch": continue
+    coords = re.findall(r"[0-9]+", node.attrib.get("bounds", ""))
+    if len(coords) != 4: continue
+    x1, y1, x2, y2 = map(int, coords)
+    if x2 > x1 and 150 <= y1 < y2 <= 2240:
+        print("PASS dock-label switch accessible at", (x1, y1, x2, y2))
+        sys.exit(0)
+sys.exit(1)
+PYLABEL
+  then
     tap_label "glass-labels-settings-$attempt" "Show dock icon labels"
+    sleep 1
+    dump_screen glass-labels-enabled-settings
+    python3 - "$EVIDENCE/glass-labels-enabled-settings.xml" <<'PYENABLED'
+import sys, xml.etree.ElementTree as ET
+switches=[node for node in ET.parse(sys.argv[1]).getroot().iter()
+          if node.attrib.get("text") == "Show dock icon labels"]
+if len(switches) != 1 or switches[0].attrib.get("checked") != "true":
+    raise SystemExit("Dock icon labels switch did not become checked")
+print("PASS icon-label preference visually checked")
+PYENABLED
     found_labels=true
     break
   fi
