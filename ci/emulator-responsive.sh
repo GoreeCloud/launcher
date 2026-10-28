@@ -286,10 +286,10 @@ with open(sys.argv[2], "rb") as image:
     data = image.read(24)
 height = struct.unpack(">II", data[16:24])[1]
 time = next((n for n in root.iter()
-    if re.fullmatch(r"\\d{1,2}:\\d{2}", n.attrib.get("text", ""))), None)
+    if re.fullmatch(r"\d{1,2}:\d{2}", n.attrib.get("text", ""))), None)
 if time is None:
     raise SystemExit("No live Home time node in landscape screenshot")
-bounds = re.fullmatch(r"\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\]",
+bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
     time.attrib.get("bounds", ""))
 if not bounds:
     raise SystemExit("Landscape Home time has no valid bounds")
