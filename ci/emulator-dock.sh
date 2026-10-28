@@ -253,7 +253,7 @@ PY
 open_dock_appearance() {
   local context="$1" attempt screenshot
   dump_screen "glass-home-before-$context"
-  tap_label "glass-home-before-$context" "All apps"
+  launcher_swipe_up
   sleep 1
   dump_screen "glass-drawer-$context"
   tap_label "glass-drawer-$context" "Launcher Settings"
@@ -284,8 +284,8 @@ choose_dock_material() {
   adb shell input keyevent 4
   sleep 1
   dump_screen "glass-return-$selected"
-  assert_text "glass-return-$selected" "All apps"
-  tap_label "glass-return-$selected" "Home"
+  assert_text "glass-return-$selected" "Search apps"
+  launcher_swipe_down
   sleep 1
   dump_screen "glass-dock-$selected"
   assert_text "glass-dock-$selected" "Live Home clock and date"
