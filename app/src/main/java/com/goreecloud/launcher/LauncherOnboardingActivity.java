@@ -50,6 +50,16 @@ public final class LauncherOnboardingActivity extends Activity {
         ScrollView scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(0xFFF2F6F8);
+        // When large-text setup scrolls, do not render headings beneath
+        // Android's status icons. Clip at the actual system-bar inset.
+        scroll.setClipToPadding(true);
+        scroll.setOnApplyWindowInsetsListener((v,insets)->{
+            int top = Build.VERSION.SDK_INT >= 30
+                ? insets.getInsets(WindowInsets.Type.statusBars()).top
+                : insets.getSystemWindowInsetTop();
+            if (v.getPaddingTop() != top) v.setPadding(0,top,0,0);
+            return insets;
+        });
         FrameLayout page = new FrameLayout(this);
         page.addView(scroll, new FrameLayout.LayoutParams(-1,-1));
         setContentView(page);
@@ -67,7 +77,7 @@ public final class LauncherOnboardingActivity extends Activity {
         }
         LinearLayout root=new LinearLayout(this);
         root.setOrientation(1);
-        root.setPadding(dp(20),dp(44),dp(20),dp(24));
+        root.setPadding(dp(20),dp(24),dp(20),dp(24));
         scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
         TextView brand = label("GoreeCloud Launcher",25);
         brand.setTypeface(null, android.graphics.Typeface.BOLD);
@@ -152,7 +162,7 @@ public final class LauncherOnboardingActivity extends Activity {
         // entire setup content to scroll underneath it.
         if (getResources().getConfiguration().fontScale >= 1.6f) {
             root.removeView(actions);
-            root.setPadding(dp(20),dp(44),dp(20),dp(24));
+            root.setPadding(dp(20),dp(24),dp(20),dp(24));
             LinearLayout actionSurface = new LinearLayout(this);
             actionSurface.setOrientation(LinearLayout.VERTICAL);
             actionSurface.setPadding(dp(12),dp(10),dp(12),dp(10));
