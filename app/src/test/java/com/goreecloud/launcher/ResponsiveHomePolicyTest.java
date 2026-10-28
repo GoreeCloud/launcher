@@ -12,6 +12,18 @@ public final class ResponsiveHomePolicyTest {
         assertEquals(80, ResponsiveHomePolicy.drawerTileHeightDp(false, 1f));
     }
 
+    @Test public void dockFitsIconsAndOptionalLabelsAtAnySupportedFontScale() {
+        assertEquals(68, ResponsiveHomePolicy.dockHeightDp(false, 1f));
+        assertEquals(68, ResponsiveHomePolicy.dockHeightDp(false, 2f));
+        assertEquals(108, ResponsiveHomePolicy.dockHeightDp(true, 1f));
+        assertEquals(124, ResponsiveHomePolicy.dockHeightDp(true, 1.45f));
+        assertEquals(146, ResponsiveHomePolicy.dockHeightDp(true, 2f));
+        assertEquals(186, ResponsiveHomePolicy.dockHeightDp(true, 4f));
+        assertEquals(108, ResponsiveHomePolicy.dockHeightDp(true, Float.NaN));
+        assertTrue(ResponsiveHomePolicy.dockHeightDp(true, 2f) >
+                   ResponsiveHomePolicy.dockHeightDp(true, 1f));
+    }
+
     @Test public void portraitDefaultKeepsDockVisibleInFixedLayout() {
         assertFalse(ResponsiveHomePolicy.shouldScroll(false, 1.0f));
         assertFalse(ResponsiveHomePolicy.shouldScroll(false, 1.29f));

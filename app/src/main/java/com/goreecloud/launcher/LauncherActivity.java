@@ -1186,12 +1186,21 @@ public final class LauncherActivity extends Activity {
 
     private void showDock() {
         dock.removeAllViews();
+        boolean labels = prefs.getBoolean("dock_labels", false);
+        int heightDp = ResponsiveHomePolicy.dockHeightDp(labels, systemFontScale);
+        android.view.ViewGroup.LayoutParams frame = dock.getLayoutParams();
+        if (frame != null && frame.height != dp(heightDp)) {
+            frame.height = dp(heightDp);
+            dock.setLayoutParams(frame);
+        }
+        // Lens has five dp of vertical padding on each side.
+        int tileHeight = dp(heightDp - 10);
         for (String key : dockOrder) {
             Entry app = find(key);
             if (app == null) continue;
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, tileHeight, 1);
             params.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(tile(app, prefs.getBoolean("dock_labels", false), dp(44), true), params);
+            dock.addView(tile(app, labels, dp(44), true), params);
         }
         int occupied = dock.getChildCount();
         for (int i = occupied; i < 5; i++) {
@@ -1203,7 +1212,7 @@ public final class LauncherActivity extends Activity {
             });
             blank.setContentDescription("Add app to dock");
             blank.setBackground(background(0x57404758, 40));
-            dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
+            dock.addView(blank, new LinearLayout.LayoutParams(0, tileHeight, 1));
         }
     }
 
