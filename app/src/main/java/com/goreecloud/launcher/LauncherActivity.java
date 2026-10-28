@@ -604,7 +604,7 @@ public final class LauncherActivity extends Activity {
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(8), dp(5), dp(8), dp(5));
-        dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
+        dock.setBackground(GoreeVisuals.translucentDock(getResources(), DockMaterial.normalize(prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED)))); // GC Lens
         LinearLayout.LayoutParams dockParams = new LinearLayout.LayoutParams(-1, dp(68));
         dockParams.bottomMargin = dp(6);
         root.addView(dock, dockParams);
