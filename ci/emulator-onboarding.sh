@@ -2,14 +2,50 @@
 # Fresh-install QA handshake: onboarding is part of product, not a blocking dialog.
 # Exercise all three pages and finish, retaining defaults for regression runs.
 accept_onboarding_if_present() {
-  local f=/tmp/goreecloud-onboarding.xml step label point
-  for attempt in 1 2 3; do
+  local f=/tmp/goreecloud-onboarding.xml step label point recovery
+  # The disposable emulator's stock Pixel Launcher can ANR over a freshly
+  # started onboarding Activity. Dismiss only that exact system dialog using
+  # its real UI bounds; never treat an obscured onboarding page as success.
+  for attempt in 1 2 3 4 5 6 7 8; do
+    rm -f "$f"
     adb shell uiautomator dump /sdcard/goreecloud-onboarding.xml >/dev/null 2>&1 || true
     adb pull /sdcard/goreecloud-onboarding.xml "$f" >/dev/null 2>&1 || true
     if grep -Fq 'text="Setup 1 of 3"' "$f" 2>/dev/null; then break; fi
-    sleep 1
+    recovery=$(python3 - "$f" <<'PYRECOVER'
+import re,sys,xml.etree.ElementTree as ET
+try:
+    nodes=list(ET.parse(sys.argv[1]).getroot().iter())
+except (OSError,ET.ParseError):
+    sys.exit(0)
+if not any("Pixel Launcher isn't responding" in n.attrib.get("text","") for n in nodes):
+    sys.exit(0)
+for n in nodes:
+    if n.attrib.get("class")!="android.widget.Button" or n.attrib.get("text")!="Close app":
+        continue
+    m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get("bounds",""))
+    if m:
+        x1,y1,x2,y2=map(int,m.groups())
+        print((x1+x2)//2,(y1+y2)//2)
+        break
+PYRECOVER
+)
+    if [ -n "$recovery" ]; then
+      echo "Recovering disposable emulator from stock Pixel Launcher ANR"
+      adb shell input tap $recovery
+      sleep 2
+      adb shell am start -n com.goreecloud.launcher/.LauncherActivity >/dev/null
+    fi
+    sleep 2
   done
-  if ! grep -Fq 'text="Setup 1 of 3"' "$f" 2>/dev/null; then return 0; fi
+  if ! grep -Fq 'text="Setup 1 of 3"' "$f" 2>/dev/null; then
+    # A missing Setup heading is valid only after onboarding has completed.
+    # A still-visible onboarding Activity means the UI was not reachable.
+    if adb shell dumpsys activity activities | grep -q 'topResumedActivity=.*LauncherOnboardingActivity'; then
+      echo "Onboarding remained foreground but UI was inaccessible" >&2
+      return 1
+    fi
+    return 0
+  fi
   grep -Fq 'text="Your Home, your way"' "$f"
   echo "PASS first-run onboarding opened"
   for step in 1 2 3; do
