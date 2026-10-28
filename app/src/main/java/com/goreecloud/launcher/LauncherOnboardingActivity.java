@@ -92,7 +92,7 @@ public final class LauncherOnboardingActivity extends Activity {
         LinearLayout.LayoutParams bodyParams=new LinearLayout.LayoutParams(-1,-2);
         bodyParams.topMargin=dp(18);
         root.addView(body,bodyParams);
-        TextView stepLabel = label("SETUP  "+(step+1)+" OF 3",12);
+        TextView stepLabel = label("Setup "+(step+1)+" of 3",12);
         stepLabel.setTextColor(0xFF126979);
         stepLabel.setLetterSpacing(0.1f);
         body.addView(stepLabel);
