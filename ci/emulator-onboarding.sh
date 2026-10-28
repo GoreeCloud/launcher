@@ -25,6 +25,12 @@ accept_onboarding_if_present() {
       echo "Onboarding step $step did not appear" >&2
       return 1
     }
+    # Preserve actual emulator screenshots of every onboarding page for
+    # manual GC UI audit, not only XML assertions.
+    mkdir -p build/emulator-evidence
+    adb shell screencap -p /sdcard/goreecloud-onboarding-step.png
+    adb pull /sdcard/goreecloud-onboarding-step.png "build/emulator-evidence/onboarding-step-$step.png" >/dev/null
+    cp "$f" "build/emulator-evidence/onboarding-step-$step.xml"
     label=Next
     [ "$step" = 3 ] && label=Finish
     point=$(python3 - "$f" "$label" <<'PY'
