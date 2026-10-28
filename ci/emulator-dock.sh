@@ -246,3 +246,52 @@ ordered=[name for _,name in sorted(tiles)]
 if ordered != expected: raise SystemExit("Dock order not persisted: "+str(ordered))
 print("PASS custom dock order survives process restart")
 PY
+
+
+# Glass Lens integration: actual Settings taps and Home screenshots, not only
+# parsing a saved string. Every change must survive returning to Home.
+open_dock_appearance() {
+  local context="$1" attempt screenshot
+  dump_screen "glass-home-before-$context"
+  tap_label "glass-home-before-$context" "All apps"
+  sleep 1
+  dump_screen "glass-drawer-$context"
+  tap_label "glass-drawer-$context" "Launcher Settings"
+  sleep 1
+  for attempt in 1 2 3 4 5 6; do
+    screenshot="glass-settings-$context-$attempt"
+    dump_screen "$screenshot"
+    if grep -Fq 'content-desc="Dock appearance:' "$EVIDENCE/$screenshot.xml"; then
+      tap_label "$screenshot" "Dock appearance: $context"
+      sleep 1
+      dump_screen "glass-choices-$context"
+      assert_text "glass-choices-$context" "Frosted Glass"
+      assert_text "glass-choices-$context" "Clear Glass"
+      assert_text "glass-choices-$context" "Solid"
+      return 0
+    fi
+    adb shell input swipe 450 1640 450 610 380
+    sleep 1
+  done
+  echo "Dock appearance setting unreachable on Android emulator" >&2
+  return 1
+}
+choose_dock_material() {
+  local before="$1" selected="$2"
+  open_dock_appearance "$before"
+  tap_label "glass-choices-$before" "$selected"
+  sleep 1
+  adb shell input keyevent 4
+  sleep 1
+  dump_screen "glass-return-$selected"
+  assert_text "glass-return-$selected" "All apps"
+  tap_label "glass-return-$selected" "Home"
+  sleep 1
+  dump_screen "glass-dock-$selected"
+  assert_text "glass-dock-$selected" "Live Home clock and date"
+  assert_shortcut_count "glass-dock-$selected" 5
+}
+choose_dock_material "Frosted Glass" "Clear Glass"
+choose_dock_material "Clear Glass" "Solid"
+choose_dock_material "Solid" "Frosted Glass"
+echo "PASS Frosted/Clear/Solid selection, persistence and Home dock capture"
