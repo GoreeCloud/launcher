@@ -1193,6 +1193,14 @@ public final class LauncherActivity extends Activity {
 
     private void showDock() {
         dock.removeAllViews();
+        boolean showLabels = prefs.getBoolean("dock_labels", false);
+        int heightDp = ResponsiveHomePolicy.dockHeightDp(showLabels, systemFontScale);
+        android.view.ViewGroup.LayoutParams frame = dock.getLayoutParams();
+        if (frame != null && frame.height != dp(heightDp)) {
+            frame.height = dp(heightDp);
+            dock.setLayoutParams(frame);
+        }
+        int tileHeight = dp(heightDp - 10); // Lens has 5dp top/bottom padding.
         for (String key : dockOrder) {
             Entry app = find(key);
             if (app == null) continue;
