@@ -1,12 +1,16 @@
 # GoreeCloud Launcher
 
-I am building GoreeCloud Launcher as my native Android home-screen and application launcher in the privacy-first GoreeCloud ecosystem. **This remains an early native Android foundation with bounded emulator verification, not a physically-device-verified, released, or Stable product.**
+I am building GoreeCloud Launcher as my native Android home-screen and application launcher in the privacy-first GoreeCloud ecosystem. **The development feature stack remains an Android-native QA candidate, not a released or Stable product. Founder phone screenshots provide real-device visual feedback, but do not constitute full physical/OEM, TalkBack, security or production-release acceptance.**
 
 The canonical founder-directed product records are in GoreeCloud Google Drive:
 - [Planned capabilities](https://drive.google.com/file/d/1ossnWKM42HDieuee5jihvmIky1WkaEUG/view)
 - [Verified implemented features](https://drive.google.com/file/d/1aZiSsnF4MhbFwUkXH3v7SHhqgJONcQUz/view)
 - [Competitive objectives](https://drive.google.com/file/d/1KNpn-2XEG_CoVqhH7zq8VXRi-Cr5F-kZ/view)
 - [Release Seal readiness gate](docs/seal-readiness.md) — evidence-based acceptance checklist; **not Sealed** while hardware, accessibility and release requirements remain incomplete.
+
+## Development branch and release boundary
+
+I keep the merged `main` foundation separate from the **unmerged feature stack** built through [PRs #30–#37](https://github.com/GoreeCloud/launcher/pulls) and subsequent verified corrections, including [PR #44](https://github.com/GoreeCloud/launcher/pull/44). The features described below are development-source capabilities, **not** claims about a Stable or generally distributed release. QA installers have per-run isolated package names and ephemeral debug signatures; they are not update-compatible production APKs.
 
 ## Foundation in source
 
@@ -16,10 +20,10 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 - Local application search and direct launching.
 - Long-press to pin/unpin up to five dock apps, move visible dock shortcuts left/right via native context actions, move Home shortcuts earlier/later or to adjacent pages, or open Android application information.
 - Dock order and pins are saved privately on device. Unavailable applications retain their saved positions, and visible app shortcuts can be reordered without changing missing-app placeholders.
-- Basic preferences for grid columns and icon labels, using on-device private preferences.
+- Native Settings for Home/drawer columns, rows, icon sizing, labels, gestures and a skippable three-step onboarding flow, using on-device private preferences.
 - Manual, versioned local workspace backups through the Android system document picker; v2 preserves user-selected dock order and restore also accepts canonical sorted v1 backups. Restore requires format/integrity checks and explicit replacement confirmation. Backups contain app identifiers, not passwords, and are not encrypted.
 
-This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, automated/cloud backup, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. The bounded Android 15 emulator suite has verified basic Home/app launching, workspace shortcut persistence, user-consented default Home selection and cancellation, and manual export/import/restore through the Android Downloads provider. Android 8 (API 26), Android 9 (API 28), and Android 15 (API 35) have passed bounded emulator checks; intermediate versions, physical devices, OEM variants and comprehensive accessibility acceptance remain unverified.
+This is not the full planned launcher. The current **unmerged feature branch** also contains wallpaper-backed Home, original offline GoreeCloud wallpaper choices, a persistent five-app dock, bounded drag-to-place Home shortcuts, Android system widget hosting and picker, native onboarding, Universal Search and a launcher-only optional PIN gate. Folders, arbitrary icon rearrangement, widget resizing, complete workspace profiles, icon packs, automated/cloud backup, notification badges, work-profile management and live data feeds remain outside verified scope. The Android 8/9, 15 and 16 emulator suites cover bounded behavior, but no combination of emulator passes establishes broad physical-device, OEM or screen-reader acceptance.
 
 ## Build
 
@@ -55,8 +59,8 @@ These are **single-emulator test cases**, not cross-version or hardware certific
 
 ## GoreeCloud UI
 
-The visual foundation uses GC UI [native design principles](https://github.com/GoreeCloud/gc-ui): quiet Canvas, solid Surface, tonal Lens dock and Iris colors, adapted through Android native views. Full GC UI compliance needs dedicated visual, accessibility, and device review.
+GC UI ([authoritative native design system](https://github.com/GoreeCloud/gc-ui)) governs visual design. The Android candidate uses Canvas, Surface and a tonal Lens dock. Its newer Settings visual changes and responsive UI are [under separate review](https://github.com/GoreeCloud/launcher/pulls). I do **not** claim complete GC UI compliance from a source change or passing screenshot test; physical-device, large-font, landscape, TalkBack and visual consistency review remain necessary.
 
 ## Privacy and acceptance
 
-No network, usage-statistics, contacts, notification-listener, accessibility-service, device-admin, or broad QUERY_ALL_PACKAGES permission is requested. Remaining acceptance includes dock behavior on physical/OEM devices, arbitrary device application visibility, permission-denied and storage-provider variations, real TalkBack/switch-access and physical keyboard sessions, orientation, different screen sizes, OEM restrictions, security/performance checks and distribution signing. Do not label capabilities verified without evidence from build and device execution.
+On the **unmerged search feature branch**, the Android manifest declares `INTERNET`, `READ_CONTACTS`, `READ_CALL_LOG` and `SET_WALLPAPER`. It does **not** request broad `QUERY_ALL_PACKAGES`, usage-statistics, notification-listener, accessibility-service or device-admin access. Contacts/call-history sources are off by default and subject to separate explicit Android permissions; call-log access may be unavailable without an eligible dialer role. File search uses a user-selected Storage Access Framework folder. A question is transmitted to its selected HTTPS search/AI provider **only after Ask is tapped**; the first-party GoreeCloud gateway requires authorized NetBird access. Optional external AI providers use separately configured keys protected by Android Keystore. First-party search shows sourced previews rather than an AI-generated answer, and opening an HTTP(S) result requires a separate tap. The native PIN gate protects **launcher-mediated** app launches, not system-wide access. Remaining acceptance includes denied permissions, real NetBird connectivity, provider variations, physical/OEM devices, TalkBack/switch access, installation compatibility, performance/security and production signing. Do not label a capability verified without evidence from the applicable test.
