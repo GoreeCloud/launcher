@@ -124,7 +124,7 @@ public final class SettingsActivity extends Activity {
 
         LinearLayout surface = new LinearLayout(this);
         surface.setOrientation(LinearLayout.VERTICAL);
-        surface.setPadding(dp(20), dp(20), dp(20), dp(18));
+        surface.setPadding(dp(18), dp(18), dp(18), dp(16));
         surface.setBackground(panel(0xFFFFFFFF, 26));
         body.addView(surface, new LinearLayout.LayoutParams(-1, -2));
         surface.addView(text("Home grid", 20, true, TEXT));
@@ -135,7 +135,7 @@ public final class SettingsActivity extends Activity {
 
         TextView gridLabel = text("", 15, true, 0xFF2C227C);
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2);
-        gp.topMargin = dp(22);
+        gp.topMargin = dp(14);
         surface.addView(gridLabel, gp);
 
         SeekBar slider = new SeekBar(this);
@@ -151,7 +151,7 @@ public final class SettingsActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
-        surface.addView(slider, new LinearLayout.LayoutParams(-1, dp(56)));
+        surface.addView(slider, new LinearLayout.LayoutParams(-1, dp(44)));
         addRowsSetting(surface, "Home grid rows", "home_rows");
 
         View divider = new View(this);
@@ -168,7 +168,7 @@ public final class SettingsActivity extends Activity {
         labels.setChecked(prefs.getBoolean("labels", true));
         labels.setOnCheckedChangeListener((button, checked) ->
             prefs.edit().putBoolean("labels", checked).apply());
-        surface.addView(labels, new LinearLayout.LayoutParams(-1, dp(60)));
+        surface.addView(labels, new LinearLayout.LayoutParams(-1, dp(52)));
         surface.addView(text("Show app names beneath Home and drawer shortcuts.", 13, false, MUTED));
 
         TextView iconSizeLabel = text("Home icon size: " + prefs.getInt("icon_size", 48) + " dp",
@@ -189,7 +189,7 @@ public final class SettingsActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar bar) {}
             @Override public void onStopTrackingTouch(SeekBar bar) {}
         });
-        surface.addView(iconSize, new LinearLayout.LayoutParams(-1, dp(56)));
+        surface.addView(iconSize, new LinearLayout.LayoutParams(-1, dp(44)));
 
         addSectionHeader(body, "APP DRAWER");
         LinearLayout drawerCard = settingsCard(body);
@@ -251,19 +251,19 @@ public final class SettingsActivity extends Activity {
         Button grantContacts = backupButton("Allow Contacts access…", false);
         grantContacts.setOnClickListener(v -> requestPermissions(
                 new String[]{android.Manifest.permission.READ_CONTACTS}, CONTACT_PERMISSION));
-        searchCard.addView(grantContacts, new LinearLayout.LayoutParams(-1, dp(55)));
+        addCompactAction(searchCard, grantContacts);
         Button calls = backupButton("Call history permission…", false);
         calls.setOnClickListener(v -> requestCallHistoryIfEligible());
-        searchCard.addView(calls, new LinearLayout.LayoutParams(-1, dp(55)));
+        addCompactAction(searchCard, calls);
         Button folder = backupButton("Choose searchable folder…", false);
         folder.setOnClickListener(v -> chooseSearchFolder());
-        searchCard.addView(folder, new LinearLayout.LayoutParams(-1, dp(55)));
+        addCompactAction(searchCard, folder);
         Button quick=backupButton("Configure AI quick answers",false);
         quick.setOnClickListener(v->startActivity(new Intent(this,QuickAnswerSettingsActivity.class)));
-        searchCard.addView(quick,new LinearLayout.LayoutParams(-1,dp(55)));
+        addCompactAction(searchCard, quick);
         Button testSearch = backupButton("Open Universal Search", true);
         testSearch.setOnClickListener(v -> startActivity(new Intent(this, UniversalSearchActivity.class)));
-        searchCard.addView(testSearch, new LinearLayout.LayoutParams(-1, dp(55)));
+        addCompactAction(searchCard, testSearch);
 
         addSectionHeader(body, "APP LOCK");
         LinearLayout lockCard=settingsCard(body);
@@ -276,11 +276,11 @@ public final class SettingsActivity extends Activity {
         Button pinSettings=backupButton("Set or change App Lock PIN",true);
         pinSettings.setOnClickListener(v->LauncherAppLock.setup(this,()->
             Toast.makeText(this,"App Lock PIN saved",Toast.LENGTH_SHORT).show()));
-        lockCard.addView(pinSettings,new LinearLayout.LayoutParams(-1,dp(56)));
+        addCompactAction(lockCard, pinSettings);
         Button manageLocks=backupButton("Manage locked apps",false);
         manageLocks.setContentDescription("Manage locked apps with PIN verification");
         manageLocks.setOnClickListener(v->showLockedApps());
-        lockCard.addView(manageLocks,new LinearLayout.LayoutParams(-1,dp(56)));
+        addCompactAction(lockCard, manageLocks);
 
         addSectionHeader(body, "ONBOARDING");
         LinearLayout setupCard = settingsCard(body);
@@ -433,10 +433,19 @@ public final class SettingsActivity extends Activity {
         Button button = new Button(this);
         button.setText(caption);
         button.setAllCaps(false);
-        button.setTextSize(16);
-        button.setTextColor(primary ? 0xFFFFFFFF : 0xFF2C227C);
-        button.setBackground(panel(primary ? IRIS : 0xFFE8E6FF, 18));
+        button.setTextSize(15);
+        button.setTextColor(primary ? 0xFFFFFFFF : IRIS);
+        GradientDrawable shape = panel(primary ? IRIS : 0xFFF8FAFB, 14);
+        if (!primary) shape.setStroke(dp(1), 0xFFC8D9DE);
+        button.setBackground(shape);
         return button;
+    }
+
+    /** Separate optional Settings actions without stacking solid color slabs. */
+    private void addCompactAction(LinearLayout card, Button button) {
+        LinearLayout.LayoutParams row = new LinearLayout.LayoutParams(-1, dp(48));
+        row.topMargin = dp(7);
+        card.addView(button, row);
     }
 
     private void showLockedApps() {
@@ -616,20 +625,20 @@ public final class SettingsActivity extends Activity {
             @Override public void onStartTrackingTouch(SeekBar b) {}
             @Override public void onStopTrackingTouch(SeekBar b) {}
         });
-        section.addView(bar, new LinearLayout.LayoutParams(-1, dp(56)));
+        section.addView(bar, new LinearLayout.LayoutParams(-1, dp(44)));
     }
 
     private void addSectionHeader(LinearLayout body, String title) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
-        params.topMargin = dp(28);
-        params.bottomMargin = dp(12);
+        params.topMargin = dp(22);
+        params.bottomMargin = dp(10);
         body.addView(section(title), params);
     }
 
     private LinearLayout settingsCard(LinearLayout body) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(20), dp(20), dp(20), dp(20));
+        card.setPadding(dp(18), dp(18), dp(18), dp(18));
         card.setBackground(panel(0xFFFFFFFF, 26));
         body.addView(card, new LinearLayout.LayoutParams(-1, -2));
         return card;
