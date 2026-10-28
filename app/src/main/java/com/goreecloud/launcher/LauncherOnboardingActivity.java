@@ -12,6 +12,8 @@ import android.view.Gravity;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.view.WindowInsets;
 import android.widget.ScrollView;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -48,7 +50,9 @@ public final class LauncherOnboardingActivity extends Activity {
         ScrollView scroll=new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(0xFFF2F6F8);
-        setContentView(scroll);
+        FrameLayout page = new FrameLayout(this);
+        page.addView(scroll, new FrameLayout.LayoutParams(-1,-1));
+        setContentView(page);
         // Onboarding uses a light GC Canvas; system-bar icons must be dark.
         if (Build.VERSION.SDK_INT >= 30) {
             WindowInsetsController bars = getWindow().getInsetsController();
@@ -143,6 +147,34 @@ public final class LauncherOnboardingActivity extends Activity {
         footer.setGravity(Gravity.CENTER);
         footer.setTextColor(0xFF546778);
         root.addView(footer);
+        // At 200% text size the third step cannot fit vertically. Pin the
+        // navigation row above Android's gesture area while allowing the
+        // entire setup content to scroll underneath it.
+        if (getResources().getConfiguration().fontScale >= 1.6f) {
+            root.removeView(actions);
+            root.setPadding(dp(20),dp(44),dp(20),dp(140));
+            LinearLayout actionSurface = new LinearLayout(this);
+            actionSurface.setOrientation(LinearLayout.VERTICAL);
+            actionSurface.setPadding(dp(12),dp(10),dp(12),dp(10));
+            actionSurface.setBackground(GoreeVisuals.card(getResources(),Color.WHITE,20));
+            actionSurface.addView(actions,new LinearLayout.LayoutParams(-1,-2));
+            FrameLayout.LayoutParams floating = new FrameLayout.LayoutParams(
+                    -1,-2,Gravity.BOTTOM);
+            floating.setMargins(dp(12),0,dp(12),dp(16));
+            page.addView(actionSurface,floating);
+            actionSurface.setOnApplyWindowInsetsListener((view,insets)->{
+                int bottom = Build.VERSION.SDK_INT >= 30
+                    ? insets.getInsets(WindowInsets.Type.navigationBars()).bottom
+                    : insets.getSystemWindowInsetBottom();
+                FrameLayout.LayoutParams lp=(FrameLayout.LayoutParams)view.getLayoutParams();
+                int required=dp(12)+bottom;
+                if(lp.bottomMargin!=required){
+                    lp.bottomMargin=required;
+                    view.setLayoutParams(lp);
+                }
+                return insets;
+            });
+        }
     }
     private void heading(String title){
         TextView heading=label(title,22);
