@@ -305,3 +305,33 @@ choose_dock_material "Frosted Glass" "Clear Glass"
 choose_dock_material "Clear Glass" "Solid"
 choose_dock_material "Solid" "Frosted Glass"
 echo "PASS Frosted/Clear/Solid selection, persistence and Home dock capture"
+
+# Optional labels must remain legible on the default light glass material.
+launcher_swipe_up
+sleep 1
+dump_screen glass-labels-drawer
+tap_label glass-labels-drawer "Launcher Settings"
+sleep 1
+found_labels=false
+for attempt in 1 2 3 4 5 6; do
+  dump_screen "glass-labels-settings-$attempt"
+  if grep -Fq 'text="Show dock icon labels"' "$EVIDENCE/glass-labels-settings-$attempt.xml"; then
+    tap_label "glass-labels-settings-$attempt" "Show dock icon labels"
+    found_labels=true
+    break
+  fi
+  adb shell input swipe 450 1640 450 610 380
+  sleep 1
+done
+if [ "$found_labels" != true ]; then
+  echo "Dock icon label toggle unreachable" >&2
+  exit 1
+fi
+adb shell input keyevent 4
+sleep 1
+launcher_swipe_down
+sleep 1
+dump_screen glass-frosted-with-labels
+assert_text glass-frosted-with-labels "Launcher QA Fixture"
+assert_text glass-frosted-with-labels "Launcher Fixture Notes"
+echo "PASS native glass dock labels are visible with Frosted material"
