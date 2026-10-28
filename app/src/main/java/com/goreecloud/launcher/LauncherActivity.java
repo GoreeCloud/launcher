@@ -1204,9 +1204,9 @@ public final class LauncherActivity extends Activity {
         for (String key : dockOrder) {
             Entry app = find(key);
             if (app == null) continue;
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, tileHeight, 1);
             params.setMargins(dp(2), 0, dp(2), 0);
-            dock.addView(tile(app, prefs.getBoolean("dock_labels", false), dp(44), true), params);
+            dock.addView(tile(app, showLabels, dp(44), true), params);
         }
         int occupied = dock.getChildCount();
         for (int i = occupied; i < 5; i++) {
@@ -1217,8 +1217,11 @@ public final class LauncherActivity extends Activity {
                 showApps();
             });
             blank.setContentDescription("Add app to dock");
-            blank.setBackground(background(0x57404758, 40));
-            dock.addView(blank, new LinearLayout.LayoutParams(0, dp(56), 1));
+            String material = DockMaterial.normalize(
+                prefs.getString(DockMaterial.KEY, DockMaterial.FROSTED));
+            blank.setBackground(background(DockMaterial.SOLID.equals(material)
+                ? 0x57404758 : 0x4CFFFFFF, 40));
+            dock.addView(blank, new LinearLayout.LayoutParams(0, tileHeight, 1));
         }
     }
 
