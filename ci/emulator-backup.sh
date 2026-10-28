@@ -57,6 +57,22 @@ seek_setting() {
   for attempt in $(seq 1 18); do
     dump_screen "$snapshot"
     if grep -Fq "text=\"$target\"" "$EVIDENCE/$snapshot.xml"; then
+      # Do not tap a switch whose UIAutomator center is beneath status icons.
+      local center_y
+      center_y=$(python3 - "$EVIDENCE/$snapshot.xml" "$target" <<'PYLOC'
+import re,sys,xml.etree.ElementTree as ET
+for n in ET.parse(sys.argv[1]).getroot().iter():
+    if n.attrib.get("text") != sys.argv[2]: continue
+    m=re.fullmatch(r'\[(\d+),(\d+)\]\[(\d+),(\d+)\]',n.attrib.get("bounds",""))
+    if m: print((int(m.group(2))+int(m.group(4)))//2)
+    break
+PYLOC
+)
+      if [ -n "$center_y" ] && [ "$center_y" -lt 180 ]; then
+        adb shell input swipe 430 500 430 970 460
+        sleep 1
+        continue
+      fi
       assert_text "$snapshot" "$target"
       return 0
     fi
