@@ -113,6 +113,25 @@ for attempt in 1 2 3 4; do
   launcher_swipe_up
 done
 assert_text responsive-drawer "Search apps"
+# A sort button must open an accessible choice dialog, not a menu obscuring
+# the first app row. Exercise both orders and preserve the native drawer.
+tap_label responsive-drawer "Sort apps"
+sleep 1
+dump_screen responsive-sort-open
+assert_text responsive-sort-open "Sort apps"
+assert_text responsive-sort-open "Name A–Z"
+assert_text responsive-sort-open "Name Z–A"
+tap_label responsive-sort-open "Name Z–A"
+sleep 1
+dump_screen responsive-sort-descending
+assert_text responsive-sort-descending "Search apps"
+tap_label responsive-sort-descending "Sort apps"
+sleep 1
+dump_screen responsive-sort-restore
+tap_label responsive-sort-restore "Name A–Z"
+sleep 1
+dump_screen responsive-drawer
+assert_text responsive-drawer "Search apps"
 # Exercise an in-progress local search, not just the All Apps selection.
 # Use the actual EditText bounds rather than a density-specific coordinate.
 python3 - "$EVIDENCE/responsive-drawer.xml" <<'PYCHECK'
