@@ -18,6 +18,12 @@ public final class ResponsiveHomePolicy {
         return fontScale >= 1.75f ? 180 : 112;
     }
 
+    /** Drawer rows fit their icons and labels, not the full screen height. */
+    public static int drawerTileHeightDp(boolean hasLabels, float fontScale) {
+        if (!hasLabels) return 80;
+        return Math.max(108, Math.min(176, 68 + labelHeightDp(fontScale)));
+    }
+
     public static int shortcutHeightDp(boolean hasLabels, boolean scrollableHome) {
         return shortcutHeightDp(hasLabels, scrollableHome, 1.0f);
     }

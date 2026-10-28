@@ -58,7 +58,7 @@ public final class QuickAnswerSettingsActivity extends Activity {
       }
     });
     if("GoreeCloud Search".equals(selected)){
-      content.addView(line("GoreeCloud Search quick answers are unavailable until a supported service API is published. No endpoint or credential has been assumed.",15));
+      content.addView(line("GoreeCloud Search uses the official HTTPS gateway. Authorized NetBird access is required. Requests are explicit; results are sourced search snippets, not generated AI answers.",15));
       return;
     }
     String id=QuickAnswers.code(selected);

@@ -31,17 +31,17 @@ public final class QuickAnswers {
     final String provider=selected(a), id=code(provider);
     final String model=a.getSharedPreferences("launcher",Context.MODE_PRIVATE)
       .getString("model_"+id,"").trim();
-    final String apiKey=ApiKeyVault.load(a,id);
-    if("goreecloud".equals(id)){
-      callback.result("GoreeCloud Search quick-answer API isn't configured yet.");
-      return;
-    }
-    if(!model.matches("[a-zA-Z0-9._-]{2,100}") || apiKey.isEmpty()){
+    final boolean goreecloud = "goreecloud".equals(id);
+    final String apiKey=goreecloud ? "" : ApiKeyVault.load(a,id);
+    if(!goreecloud && (!model.matches("[a-zA-Z0-9._-]{2,100}") || apiKey.isEmpty())){
       callback.result("Configure the provider model and API key in Launcher Settings.");
       return;
     }
-    if(question.trim().length()<2 || question.length()>2400){
-      callback.result("Please enter a question under 2,400 characters.");
+    if(goreecloud ? !GoreeCloudSearchContract.validQuery(question)
+            : question.trim().length()<2 || question.length()>2400){
+      callback.result(goreecloud
+          ? "GoreeCloud Search requires a printable question of 2–500 characters."
+          : "Please enter a question under 2,400 characters.");
       return;
     }
     if(!BUSY.compareAndSet(false,true)){
@@ -49,7 +49,8 @@ public final class QuickAnswers {
     }
     WORK.execute(()->{
       String result;
-      try{result=fetch(id,model,apiKey,question.trim());}
+      try{result=goreecloud ? fetchGoreeCloud(question.trim())
+              : fetch(id,model,apiKey,question.trim());}
       catch(Exception ignored){result="Request failed. Check your provider settings or connection.";}
       finally{BUSY.set(false);}
       final String answer=result;
@@ -58,6 +59,49 @@ public final class QuickAnswers {
       });
     });
   }
+  private static String fetchGoreeCloud(String question) throws Exception {
+    JSONObject payload = new JSONObject().put("query",question).put("category","general")
+      .put("range","").put("page",1).put("language","all").put("safesearch",1);
+    HttpURLConnection c=(HttpURLConnection)new URL(GoreeCloudSearchContract.ENDPOINT).openConnection();
+    c.setConnectTimeout(12000);c.setReadTimeout(18000);
+    c.setRequestMethod("POST");c.setDoOutput(true);c.setInstanceFollowRedirects(false);
+    c.setRequestProperty("Content-Type","application/json");
+    c.setRequestProperty("Accept","application/json");
+    try {
+      try(OutputStream out=c.getOutputStream()){
+        out.write(payload.toString().getBytes(StandardCharsets.UTF_8));
+      }
+      int status=c.getResponseCode();
+      if(status==403)return "GoreeCloud Search requires authorized NetBird access.";
+      if(status==429)return "GoreeCloud Search rate limit reached. Try again later.";
+      if(status<200||status>=300)return "GoreeCloud Search returned HTTP "+status+".";
+      StringBuilder raw=new StringBuilder();
+      try(InputStreamReader in=new InputStreamReader(c.getInputStream(),StandardCharsets.UTF_8)){
+        char[] buf=new char[2048];int n;
+        while((n=in.read(buf))>0){
+          if(raw.length()+n>512000)return "GoreeCloud Search response exceeded size limit.";
+          raw.append(buf,0,n);
+        }
+      }
+      JSONArray results=new JSONObject(raw.toString()).optJSONArray("results");
+      if(results==null||results.length()==0)return "No matching GoreeCloud Search results.";
+      StringBuilder answer=new StringBuilder(GoreeCloudSearchContract.RESULTS_HEADING);
+      int shown=0;
+      for(int i=0;i<results.length()&&shown<3;i++){
+        JSONObject item=results.optJSONObject(i);if(item==null)continue;
+        String url=item.optString("url","");
+        if(!GoreeCloudSearchContract.safeResultUrl(url))continue;
+        shown++;
+        answer.append("\n\n").append(shown).append(". ")
+          .append(GoreeCloudSearchContract.safePreviewText(item.optString("title","Result"),140))
+          .append("\n")
+          .append(GoreeCloudSearchContract.safePreviewText(item.optString("description",""),240))
+          .append("\n").append(url);
+      }
+      return shown==0?"No matching safe GoreeCloud Search results.":answer.toString();
+    }finally{c.disconnect();}
+  }
+
   private static String fetch(String id,String model,String key,String question)throws Exception{
     String endpoint;
     JSONObject body=new JSONObject();

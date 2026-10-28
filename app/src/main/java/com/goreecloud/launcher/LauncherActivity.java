@@ -2,8 +2,6 @@ package com.goreecloud.launcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.WallpaperManager;
-import android.app.WallpaperColors;
 import android.appwidget.AppWidgetHost;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
@@ -70,6 +68,7 @@ public final class LauncherActivity extends Activity {
     private float systemFontScale;
     private GridLayout grid;
     private LinearLayout rootSurface;
+    private View homeStatusContrast; // Decorative, never interactive
     private LinearLayout pageControls;
     private TextView pageLabel;
     private TextView sectionLabel;
@@ -169,6 +168,15 @@ public final class LauncherActivity extends Activity {
             if (!search.isEmpty()) query.setText(search);
         }
         refresh();
+        // A process restart can inherit a compact ScrollView's previous
+        // position from the Android task. A newly opened HOME should display
+        // the full clock rather than begin under the status bar; rotation with
+        // a saved Activity state still preserves the user's scroll position.
+        if (state == null && fullPageScroll != null) {
+            fullPageScroll.post(() -> {
+                if (!isFinishing() && !isDestroyed()) fullPageScroll.scrollTo(0, 0);
+            });
+        }
         if (state == null && !prefs.getBoolean("onboarding_completed_v1", false)) {
             startActivity(new Intent(this, LauncherOnboardingActivity.class));
         }
@@ -280,6 +288,11 @@ public final class LauncherActivity extends Activity {
         if (intent != null && Intent.ACTION_MAIN.equals(intent.getAction())
                 && intent.hasCategory(Intent.CATEGORY_HOME) && grid != null) {
             setMode(false);
+            // Returning HOME is a fresh top-of-desktop gesture, not a request
+            // to restore an offscreen landscape scroll offset.
+            if (fullPageScroll != null) {
+                fullPageScroll.post(() -> fullPageScroll.scrollTo(0, 0));
+            }
         }
     }
 
@@ -369,6 +382,32 @@ public final class LauncherActivity extends Activity {
             return insets;
         });
         FrameLayout activityFrame = new FrameLayout(this);
+        // Paint the wallpaper vignette BELOW the content. A foreground vignette
+        // could obscure the Home clock when a scroll position crosses the
+        // system-bar region, especially in landscape or with large type.
+        // A native top vignette protects status glyph contrast on bright
+        // wallpaper patches even when the wallpaper-wide color hint is dark.
+        View contrast = new View(this);
+        homeStatusContrast = contrast;
+        contrast.setClickable(false);
+        contrast.setFocusable(false);
+        contrast.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        contrast.setBackground(new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+                new int[]{0xC0000000, 0x88000000, 0x00000000}));
+        contrast.setOnApplyWindowInsetsListener((v, insets) -> {
+            int top = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                    ? insets.getInsets(WindowInsets.Type.statusBars()).top
+                    : insets.getSystemWindowInsetTop();
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) v.getLayoutParams();
+            int height = Math.max(dp(48), top + dp(40));
+            if (lp.height != height) {
+                lp.height = height;
+                v.setLayoutParams(lp);
+            }
+            return insets;
+        });
+        activityFrame.addView(contrast,
+                new FrameLayout.LayoutParams(-1, dp(72), Gravity.TOP));
         activityFrame.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
         dragSurface = new FrameLayout(this);
         dragSurface.setVisibility(View.GONE);
@@ -455,11 +494,15 @@ public final class LauncherActivity extends Activity {
                 startActivity(new Intent(this, SettingsActivity.class)));
         drawerSettingsAction.setContentDescription("Launcher Settings");
         drawerSettingsAction.setBackground(background(0xC7EFF4F5, 18));
-        searchRow.addView(drawerSettingsAction, new LinearLayout.LayoutParams(dp(46), -1));
+        LinearLayout.LayoutParams drawerSettingsParams = new LinearLayout.LayoutParams(dp(46), -1);
+        drawerSettingsParams.leftMargin = dp(8);
+        searchRow.addView(drawerSettingsAction, drawerSettingsParams);
         drawerSortAction = action("⇅", this::showDrawerSort);
         drawerSortAction.setContentDescription("Sort apps");
         drawerSortAction.setBackground(background(0xC7EFF4F5, 18));
-        searchRow.addView(drawerSortAction, new LinearLayout.LayoutParams(dp(46), -1));
+        LinearLayout.LayoutParams drawerSortParams = new LinearLayout.LayoutParams(dp(46), -1);
+        drawerSortParams.leftMargin = dp(5);
+        searchRow.addView(drawerSortAction, drawerSortParams);
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             public void onTextChanged(CharSequence s, int start, int before, int count) { showApps(); }
@@ -709,32 +752,31 @@ public final class LauncherActivity extends Activity {
             if (fullPageScroll != null) fullPageScroll.setBackground(
                     GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
         }
-        getWindow().setStatusBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
+        // Older Android versions may not lay out app views behind the status
+        // bar, so use an opaque dark platform bar when the overlay is outside
+        // its drawing area. On modern edge-to-edge devices the vignette handles it.
+        getWindow().setStatusBarColor(drawer || (deviceWallpaper && Build.VERSION.SDK_INT < 35)
+                ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
         getWindow().setNavigationBarColor(drawer ? 0xFF191B29 : android.graphics.Color.TRANSPARENT);
-        // On a light user's wallpaper, white system status icons become unreadable.
-        // Follow Android's wallpaper contrast hint without requesting wallpaper pixels.
-        boolean useDarkStatusIcons = false;
-        if (deviceWallpaper && Build.VERSION.SDK_INT >= 27) {
-            try {
-                WallpaperColors colors = WallpaperManager.getInstance(this)
-                        .getWallpaperColors(WallpaperManager.FLAG_SYSTEM);
-                useDarkStatusIcons = colors != null
-                        && (colors.getColorHints() & WallpaperColors.HINT_SUPPORTS_DARK_TEXT) != 0;
-            } catch (RuntimeException unavailable) {
-                // Some OEMs restrict wallpaper-color access; retain safe fallback.
-            }
+        // Edge-to-edge Home uses a native dark scrim; drawer/night are already
+        // opaque and dark. White system icons remain readable without querying
+        // wallpaper pixels, new permissions or whole-image color guesses.
+        if (homeStatusContrast != null) {
+            homeStatusContrast.setVisibility(deviceWallpaper ? View.VISIBLE : View.GONE);
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
-                int bits = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                         | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                controller.setSystemBarsAppearance(useDarkStatusIcons
-                        ? WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS : 0, bits);
+                controller.setSystemBarsAppearance(0, mask);
             }
         } else {
-            getWindow().getDecorView().setSystemUiVisibility(useDarkStatusIcons
-                    ? View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : 0);
+            View decor = getWindow().getDecorView();
+            int flags = decor.getSystemUiVisibility();
+            decor.setSystemUiVisibility(flags
+                    & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
+                    & ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
         }
     }
 
@@ -1032,11 +1074,12 @@ public final class LauncherActivity extends Activity {
                 Math.max(dp(22), slotWidth - dp(12)));
         int preferredRows = StarterAppPolicy.boundedRows(
                 prefs.getInt(drawerMode ? "drawer_rows" : "home_rows", 5));
-        int rowHeight = compactLayout
-                ? dp(ResponsiveHomePolicy.shortcutHeightDp(names, true, systemFontScale))
-                : Math.max(dp(88), Math.min(dp(150),
-                    (getResources().getDisplayMetrics().heightPixels
-                        - dp(drawerMode ? 146 : 300)) / preferredRows));
+        int rowHeight = drawerMode
+                ? dp(ResponsiveHomePolicy.drawerTileHeightDp(names, systemFontScale))
+                : compactLayout
+                    ? dp(ResponsiveHomePolicy.shortcutHeightDp(names, true, systemFontScale))
+                    : Math.max(dp(88), Math.min(dp(150),
+                        (getResources().getDisplayMetrics().heightPixels - dp(300)) / preferredRows));
         for (int i = 0; i < shown.size(); i++) {
             View tile = tile(shown.get(i), names, iconSize, false);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams(
@@ -1237,16 +1280,19 @@ public final class LauncherActivity extends Activity {
     }
 
     private void showDrawerSort() {
-        PopupMenu sorting = new PopupMenu(this, drawerSortAction);
-        sorting.getMenu().add("Name A–Z").setOnMenuItemClickListener(item -> {
-            prefs.edit().putString("drawer_sort", "az").apply();
-            showApps(); return true;
-        });
-        sorting.getMenu().add("Name Z–A").setOnMenuItemClickListener(item -> {
-            prefs.edit().putString("drawer_sort", "za").apply();
-            showApps(); return true;
-        });
-        sorting.show();
+        // An anchored popup obscured the first row of apps on real phones.
+        // Use an explicit single-choice Android dialog with current selection.
+        String[] options = {"Name A–Z", "Name Z–A"};
+        int selected = "za".equals(prefs.getString("drawer_sort", "az")) ? 1 : 0;
+        new AlertDialog.Builder(this)
+            .setTitle("Sort apps")
+            .setSingleChoiceItems(options, selected, (dialog, which) -> {
+                prefs.edit().putString("drawer_sort", which == 1 ? "za" : "az").apply();
+                dialog.dismiss();
+                showApps();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     private void showActions(View target, Entry app) {

@@ -9,6 +9,12 @@ import android.content.ComponentName;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextPaint;
+import android.text.method.LinkMovementMethod;
+import android.text.style.ClickableSpan;
+import android.view.View;
 import android.os.Bundle;
 import android.provider.CallLog;
 import android.provider.ContactsContract;
@@ -144,7 +150,7 @@ public final class UniversalSearchActivity extends Activity {
         TextView answer=label("",15,false);
         item("Ask "+provider+" for a quick answer",()->{
             answer.setText("Requesting answer from "+provider+"…");
-            QuickAnswers.ask(this,q,answer::setText);
+            QuickAnswers.ask(this,q,text -> showQuickAnswer(answer,provider,text));
         });
         results.addView(answer);
         if(prefs.getBoolean("search_web",true)) {
@@ -152,6 +158,44 @@ public final class UniversalSearchActivity extends Activity {
             item("Search the web for “"+q+"”",()->web(q));
         }
     }
+    /** Tappable, verified first-party result URLs; no automatic web requests. */
+    private void showQuickAnswer(TextView answer, String provider, String text) {
+        if (!"GoreeCloud Search".equals(provider)) {
+            answer.setText(text);
+            return;
+        }
+        List<GoreeCloudSearchContract.SourcedLink> links =
+                GoreeCloudSearchContract.sourcedResultLinks(text);
+        if (links.isEmpty()) {
+            answer.setText(text);
+            return;
+        }
+        SpannableString rich = new SpannableString(text);
+        for (GoreeCloudSearchContract.SourcedLink link : links) {
+            final String target = link.url;
+            rich.setSpan(new ClickableSpan() {
+                @Override public void onClick(View view) {
+                    // Recheck at tap time; only HTTP(S) links from a formatted
+                    // first-party result may leave the Launcher.
+                    if (!GoreeCloudSearchContract.safeResultUrl(target)) {
+                        notice();
+                        return;
+                    }
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(target));
+                    intent.addCategory(Intent.CATEGORY_BROWSABLE);
+                    open(intent);
+                }
+                @Override public void updateDrawState(TextPaint paint) {
+                    paint.setColor(0xFFB9E5FF);
+                    paint.setUnderlineText(true);
+                }
+            }, link.start, link.end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        answer.setLinksClickable(true);
+        answer.setMovementMethod(LinkMovementMethod.getInstance());
+        answer.setText(rich, TextView.BufferType.SPANNABLE);
+    }
+
     private void contacts(String q){
         Uri uri=ContactsContract.Contacts.CONTENT_URI;
         String[] columns={ContactsContract.Contacts._ID,ContactsContract.Contacts.LOOKUP_KEY,

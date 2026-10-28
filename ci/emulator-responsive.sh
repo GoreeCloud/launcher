@@ -113,6 +113,25 @@ for attempt in 1 2 3 4; do
   launcher_swipe_up
 done
 assert_text responsive-drawer "Search apps"
+# A sort button must open an accessible choice dialog, not a menu obscuring
+# the first app row. Exercise both orders and preserve the native drawer.
+tap_label responsive-drawer "Sort apps"
+sleep 1
+dump_screen responsive-sort-open
+assert_text responsive-sort-open "Sort apps"
+assert_text responsive-sort-open "Name A–Z"
+assert_text responsive-sort-open "Name Z–A"
+tap_label responsive-sort-open "Name Z–A"
+sleep 1
+dump_screen responsive-sort-descending
+assert_text responsive-sort-descending "Search apps"
+tap_label responsive-sort-descending "Sort apps"
+sleep 1
+dump_screen responsive-sort-restore
+tap_label responsive-sort-restore "Name A–Z"
+sleep 1
+dump_screen responsive-drawer
+assert_text responsive-drawer "Search apps"
 # Exercise an in-progress local search, not just the All Apps selection.
 # Use the actual EditText bounds rather than a density-specific coordinate.
 python3 - "$EVIDENCE/responsive-drawer.xml" <<'PYCHECK'
@@ -278,6 +297,26 @@ sleep 5
 dump_screen responsive-landscape-top
 assert_png_orientation responsive-landscape-top landscape
 assert_text responsive-landscape-top "Home page 1 of 2"
+# Confirm first-entry clock text is not initially hidden by system-bar chrome.
+python3 - "$EVIDENCE/responsive-landscape-top.xml" "$EVIDENCE/responsive-landscape-top.png" <<'PY'
+import re, struct, sys, xml.etree.ElementTree as ET
+root = ET.parse(sys.argv[1]).getroot()
+with open(sys.argv[2], "rb") as image:
+    data = image.read(24)
+height = struct.unpack(">II", data[16:24])[1]
+time = next((n for n in root.iter()
+    if re.fullmatch(r"\d{1,2}:\d{2}", n.attrib.get("text", ""))), None)
+if time is None:
+    raise SystemExit("No live Home time node in landscape screenshot")
+bounds = re.fullmatch(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]",
+    time.attrib.get("bounds", ""))
+if not bounds:
+    raise SystemExit("Landscape Home time has no valid bounds")
+top = int(bounds.group(2))
+if top < int(height * .07):
+    raise SystemExit("Home time overlaps landscape system bar: " + str(top))
+print("PASS landscape Home clock clear of system bar", top)
+PY
 # Landscape has a vertically scrolling Home surface. A single swipe is not
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
