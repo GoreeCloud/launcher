@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- GC UI semantic light roles, neutral product fallback; accent is not hardcoded purple. -->
+    <color name="gc_ui_canvas">#F1F5F9</color>
+    <color name="gc_ui_surface">#FFFFFF</color>
+    <color name="gc_ui_surface_tonal">#E2E8F0</color>
+    <color name="gc_ui_on_surface">#1F2937</color>
+    <color name="gc_ui_on_surface_muted">#475569</color>
+    <color name="gc_ui_primary">#374151</color>
+    <color name="gc_ui_on_primary">#FFFFFF</color>
+    <color name="gc_ui_primary_container">#E5E7EB</color>
+    <color name="gc_ui_on_primary_container">#111827</color>
+</resources>
