@@ -3,7 +3,9 @@ set -Eeuo pipefail
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
-trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true' ERR
+# Capture only runtime exceptions from this disposable emulator on failure.
+# No personal-device logcat, credentials, or broad system logs are published.
+trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true; adb logcat -d -s AndroidRuntime:E > "$EVIDENCE/android-runtime-on-error.log" 2>/dev/null || true' ERR
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
