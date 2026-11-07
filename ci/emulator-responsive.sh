@@ -286,9 +286,22 @@ assert_text responsive-landscape-top "Home workspace"
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
 # elements are fully visible above the Android navigation bar.
+# Derive a safe vertical swipe lane from the actual selected Home/All apps
+# bounding boxes. The old x=680 path started *inside* the floating Home
+# button (x=643..1189 on the hosted 2400x1080 AVD), so no scrolling occurred.
+# A failed/no-safe-lane derivation must fail rather than waive dock visibility.
+scroll_coords="$(python3 - "$EVIDENCE/responsive-landscape-top.xml"     "$EVIDENCE/responsive-landscape-top.png" <<'PYSCROLL'
+import sys
+sys.path.insert(0, "ci")
+from check_floating_primary_nav import check_files, landscape_scroll_gesture
+print(*landscape_scroll_gesture(check_files(sys.argv[1], sys.argv[2])))
+PYSCROLL
+)"
+read -r scroll_x scroll_start scroll_end <<< "$scroll_coords"
+echo "PASS landscape scroll lane outside floating nav: x=$scroll_x y=$scroll_start..$scroll_end"
 dock_reached=false
 for attempt in 1 2 3 4 5 6; do
-  adb shell input swipe 680 800 680 145 600
+  adb shell input swipe "$scroll_x" "$scroll_start" "$scroll_x" "$scroll_end" 600
   sleep 2
   dump_screen responsive-landscape-dock
   if python3 - "$EVIDENCE/responsive-landscape-dock.xml" "$EVIDENCE/responsive-landscape-dock.png" <<'PY'
