@@ -314,18 +314,6 @@ public final class LauncherActivity extends Activity {
             modes.setLayoutParams(modesParams);
             return insets;
         });
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
-                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
-                controller.setSystemBarsAppearance(light, light);
-            }
-        } else {
-            getWindow().getDecorView().setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        }
-
         LinearLayout heading = new LinearLayout(this);
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1,
@@ -453,7 +441,21 @@ public final class LauncherActivity extends Activity {
 
         // Apply insets after both independent surfaces exist; a rotating or
         // large-font Home can scroll without moving primary nav off-screen.
+        // The PhoneWindow decor view does not exist until the content has
+        // been attached. Calling getInsetsController() during onCreate before
+        // setContentView() crashes the Launcher on API 35/36.
         setContentView(chrome);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                    | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(light, light);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        }
         chrome.requestApplyInsets();
     }
 
