@@ -57,6 +57,25 @@ class FloatingNavGeometryTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "obscured"):
             module.check(hierarchy(shelf="[40,602][280,642]"), 320, 760)
 
+    def test_landscape_scroll_avoids_both_floating_tabs(self):
+        n = module.check(hierarchy(
+            home="[643,835][1189,961]", apps="[1210,835][1756,961]",
+            shelf="[50,700][300,760]"), 2400, 1080)
+        x, y_start, y_end = module.landscape_scroll_gesture(n)
+        self.assertLess(x, min(n["home"][0], n["apps"][0]))
+        self.assertEqual((y_start, y_end), (777, 162))
+        rtl = module.check(hierarchy(
+            home="[1210,835][1756,961]", apps="[643,835][1189,961]",
+            shelf="[50,700][300,760]"), 2400, 1080)
+        self.assertEqual(module.landscape_scroll_gesture(rtl), (x, y_start, y_end))
+
+    def test_landscape_scroll_fails_closed_without_safe_side_lane(self):
+        n = module.check(hierarchy(
+            home="[8,620][150,680]", apps="[160,620][312,680]",
+            shelf="[40,560][280,585]"), 320, 760)
+        with self.assertRaisesRegex(ValueError, "No unobstructed"):
+            module.landscape_scroll_gesture(n)
+
     def test_rejects_missing_real_actions(self):
         with self.assertRaisesRegex(ValueError, "exactly one"):
             module.check(ET.Element("hierarchy"), 320, 760)
