@@ -256,7 +256,7 @@ public final class LauncherActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setFocusableInTouchMode(true);
         rootSurface = root;
-        root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
+        root.setBackgroundColor(0xFFF4F3FC); // Launcher-authored canvas, not mandated brand hue
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
         systemFontScale = getResources().getConfiguration().fontScale;
@@ -277,8 +277,24 @@ public final class LauncherActivity extends Activity {
         } else {
             insetSurface = root;
         }
-        insetSurface.setPadding(dp(20), dp(16), dp(20), dp(12));
-        // Preserve GC UI gutters while also respecting status/navigation bars on API 26+.
+        // Keep primary Home/All apps navigation fixed independently of the Home
+        // page scroller and the optional user-pinned shortcut shelf.
+        FrameLayout chrome = new FrameLayout(this);
+        chrome.setBackgroundColor(0xFFF4F3FC); // Launcher-specific authored canvas
+        chrome.addView(insetSurface, new FrameLayout.LayoutParams(-1, -1));
+        final LinearLayout modes = new LinearLayout(this);
+        final int navigationHeightDp = BottomPrimaryNavPolicy.barHeightDp(systemFontScale);
+        final FrameLayout.LayoutParams modesParams = new FrameLayout.LayoutParams(
+                dp(BottomPrimaryNavPolicy.barWidthDp(
+                    Math.round(getResources().getDisplayMetrics().widthPixels
+                        / getResources().getDisplayMetrics().density))),
+                dp(navigationHeightDp), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+        modesParams.leftMargin = dp(20);
+        modesParams.rightMargin = dp(20);
+        modesParams.bottomMargin = dp(12);
+        insetSurface.setPadding(dp(20), dp(16), dp(20),
+                dp(BottomPrimaryNavPolicy.contentClearanceDp(systemFontScale)));
+        // Preserve gutters while respecting system bars on API 26+.
         insetSurface.setOnApplyWindowInsetsListener((view, insets) -> {
             int top, bottom, left, right;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -290,10 +306,14 @@ public final class LauncherActivity extends Activity {
                 left = insets.getSystemWindowInsetLeft();
                 right = insets.getSystemWindowInsetRight();
             }
-            view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right, dp(12) + bottom);
+            view.setPadding(dp(20) + left, dp(16) + top, dp(20) + right,
+                    dp(BottomPrimaryNavPolicy.contentClearanceDp(systemFontScale)) + bottom);
+            modesParams.bottomMargin = dp(12) + bottom;
+            modesParams.leftMargin = dp(20) + left;
+            modesParams.rightMargin = dp(20) + right;
+            modes.setLayoutParams(modesParams);
             return insets;
         });
-        setContentView(insetSurface);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             WindowInsetsController controller = getWindow().getInsetsController();
             if (controller != null) {
@@ -328,17 +348,18 @@ public final class LauncherActivity extends Activity {
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         heading.addView(settings, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
-        LinearLayout modes = new LinearLayout(this);
         modes.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(52));
-        modesParams.topMargin = dp(8);
-        root.addView(modes, modesParams);
+        modes.setPadding(dp(8), dp(7), dp(8), dp(7));
+        modes.setElevation(dp(14));
+        modes.setBackground(background(0xFFECEAF8, 28)); // Product-specific Lens
         homeTab = action("Home", () -> setMode(false));
         appsTab = action("All apps", () -> setMode(true));
-        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        int tabHeight = dp(BottomPrimaryNavPolicy.touchHeightDp(systemFontScale));
+        modes.addView(homeTab, new LinearLayout.LayoutParams(0, tabHeight, 1));
+        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, tabHeight, 1);
         appsTabParams.leftMargin = dp(8);
         modes.addView(appsTab, appsTabParams);
+        chrome.addView(modes, modesParams);
 
         query = new EditText(this);
         query.setSingleLine(true);
@@ -427,8 +448,13 @@ public final class LauncherActivity extends Activity {
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(6), dp(7), dp(6), dp(7));
-        dock.setBackground(background(0xFFECEAF8, 26)); // GC UI Lens tonal fallback
+        dock.setBackground(background(0xFFECEAF8, 26)); // Product-specific pinned shelf
         root.addView(dock, new LinearLayout.LayoutParams(-1, dp(90)));
+
+        // Apply insets after both independent surfaces exist; a rotating or
+        // large-font Home can scroll without moving primary nav off-screen.
+        setContentView(chrome);
+        chrome.requestApplyInsets();
     }
 
     private void refresh() {

@@ -21,6 +21,38 @@ The canonical founder-directed product records are in GoreeCloud Google Drive:
 
 This is not the full planned launcher. Drag-and-drop rearrangement, widgets, folders, full workspace profiles, icon packs, automated/cloud backup, rich gestures, notification badges, work-profile management and feeds are **not** yet implemented. The bounded Android 15 emulator suite has verified basic Home/app launching, workspace shortcut persistence, user-consented default Home selection and cancellation, and manual export/import/restore through the Android Downloads provider. Android 8 (API 26), Android 9 (API 28), and Android 15 (API 35) have passed bounded emulator checks; intermediate versions, physical devices, OEM variants and comprehensive accessibility acceptance remain unverified.
 
+## Floating primary navigation (source review)
+
+The founder requires primary navigation in all mobile apps to **float at the
+bottom**. This Android Launcher change is being reviewed separately from the
+GC UI web-lab docking change. A detached, inset-aware Home / All apps action
+bar is overlaid at the bottom of the active Activity, outside both the
+workspace scroller and the user's independent **Pinned apps** shortcut shelf.
+There are no duplicate primary tabs in the top header. Home and All apps keep
+their original actions, selected accessibility descriptions and keyboard
+focus, and the floating bar expands with system font scaling. The content
+reserves bottom clearance so it cannot end beneath the bar, including
+landscape/compact scroll mode.
+
+The colors of this native Launcher are **product choices**, never required
+GoreeCloud/GoreeCloud UI brand or operating-system colors. The design
+language provides semantic contrast, focus, shape and spacing conventions;
+each product is free to adopt its own hues.
+
+BottomPrimaryNavPolicyTest checks the bar's geometry and 44dp minimum
+touch size. The responsive Android emulator harness checks **actual**
+UIAutomator action bounds against screenshot dimensions at startup and
+after landscape/portrait rotations; it fails if Home/All apps appears near
+the top, becomes untappable, overlaps the pinned shelf, or loses the
+single-current-tab accessibility state. The geometry checker accepts
+both LTR and mirrored RTL destination order; actual translated RTL and
+screen-reader behavior still require device acceptance. The harness tests use disposable
+CI emulators only, **never** an authorized person's installed Home role.
+Before production/device use, obtain human review of accessibility
+(TalkBack, external keyboard, enlarged fonts, IME), gestures, orientations
+and OEM insets. Source or emulator passes do not mean this Launcher is
+installed, published or a finished premium design.
+
 ## Build
 
 Requires JDK 17, Android SDK platform 36, SDK Build Tools 36.0.0 and Gradle 9.6.0. Android Gradle Plugin 9.4.0 is declared in the root Gradle script.

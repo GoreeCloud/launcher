@@ -95,6 +95,7 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen responsive-initial
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-initial.xml" "$EVIDENCE/responsive-initial.png"
 assert_text responsive-initial "Home workspace"
 assert_text responsive-initial "Home tab, selected"
 assert_text responsive-initial "All apps tab"
@@ -169,11 +170,13 @@ adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
 sleep 3
 dump_screen responsive-drawer-landscape
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-drawer-landscape.xml" "$EVIDENCE/responsive-drawer-landscape.png"
 assert_text responsive-drawer-landscape "All apps tab, selected"
 assert_filtered_notes_eventually responsive-drawer-landscape
 adb shell settings put system user_rotation 0
 sleep 3
 dump_screen responsive-drawer-portrait
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-drawer-portrait.xml" "$EVIDENCE/responsive-drawer-portrait.png"
 assert_text responsive-drawer-portrait "All apps tab, selected"
 assert_filtered_notes_eventually responsive-drawer-portrait
 # Returning Home must clear transient search before the existing placement test.
