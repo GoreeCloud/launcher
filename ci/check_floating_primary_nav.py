@@ -73,6 +73,30 @@ def check(tree, width, height):
     return {"home": home, "apps": apps, "width": width, "height": height}
 
 
+
+def landscape_scroll_gesture(nav):
+    """Choose a swipe lane outside the floating primary nav from actual UI bounds.
+
+    Fixed center-screen swipes can start on Home/All apps and never reach the
+    underlying ScrollView. Fail closed when the real nav has no usable side lane.
+    """
+    width, height = nav["width"], nav["height"]
+    left = min(nav["home"][0], nav["apps"][0])
+    right = max(nav["home"][2], nav["apps"][2])
+    margin = max(12, int(width * 0.03))
+    if left >= margin * 2 + 24:
+        x = left // 2
+    elif width - right >= margin * 2 + 24:
+        x = (right + width) // 2
+    else:
+        raise ValueError("No unobstructed landscape scroll lane beside floating nav")
+    start = int(height * 0.72)
+    end = int(height * 0.15)
+    if not (margin <= x <= width - margin and start > end > 0):
+        raise ValueError("Invalid landscape scroll geometry")
+    return x, start, end
+
+
 def check_files(xml_path, png_path):
     tree = ET.parse(xml_path).getroot()
     with open(png_path, "rb") as source:
