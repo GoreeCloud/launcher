@@ -5,12 +5,14 @@ on:
     paths:
       - '.github/workflows/android-keyboard.yml'
       - 'ci/emulator-keyboard.sh'
+      - 'ci/emulator-admission.sh'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
   push:
     branches: [main]
     paths:
       - '.github/workflows/android-keyboard.yml'
       - 'ci/emulator-keyboard.sh'
+      - 'ci/emulator-admission.sh'
       - 'app/src/main/java/com/goreecloud/launcher/LauncherActivity.java'
 
 permissions:
