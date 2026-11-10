@@ -19,11 +19,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
 dump_screen() {
-  local name="$1"
-  adb shell uiautomator dump /sdcard/launcher-hierarchy.xml
-  adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null
-  adb shell screencap -p /sdcard/launcher-screen.png
-  adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
+  dump_disposable_home_snapshot "$1"
 }
 assert_text() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
