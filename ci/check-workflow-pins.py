@@ -21,6 +21,14 @@ WORKFLOWS = (
     "android-dock.yml",
     "android-responsive.yml",
     "android-settings-accessibility.yml",
+    "android-api36.yml",
+    "android-availability.yml",
+    "android-backup.yml",
+    "android-emulator.yml",
+    "android-evaluation.yml",
+    "android-icon-refresh.yml",
+    "android-keyboard.yml",
+    "android-legacy.yml",
 )
 USES = re.compile(r"(?m)^\s*(?:-\s*)?uses:\s*([^\s#]+)")
 CHECKOUT = re.compile(
@@ -32,7 +40,7 @@ CHECKOUT = re.compile(
 def validate(name: str, content: str) -> None:
     actual = USES.findall(content)
     expected = set(PINS) - (
-        {"reactivecircus/android-emulator-runner"} if name == "android.yml" else set()
+        {"reactivecircus/android-emulator-runner"} if name in {"android.yml", "android-evaluation.yml"} else set()
     )
     if len(actual) != len(expected):
         raise ValueError(f"{name}: missing, duplicate, or extra action reference")
@@ -51,6 +59,7 @@ def validate(name: str, content: str) -> None:
 def main() -> None:
     for name in WORKFLOWS:
         validate(name, (BASE / name).read_text(encoding="utf-8"))
+    # Exercise the existing and expanded pinned action sets.
     sample = (BASE / "android-dock.yml").read_text(encoding="utf-8")
     for bad in (
         sample.replace(PINS["actions/checkout"], "v4", 1),
@@ -61,7 +70,20 @@ def main() -> None:
         except ValueError:
             continue
         raise SystemExit("FAIL: action policy accepted an unsafe regression")
-    print("PASS: exact action pins and ephemeral checkout credentials on 5 Launcher workflows")
+    legacy = (BASE / "android-legacy.yml").read_text(encoding="utf-8")
+    evaluation = (BASE / "android-evaluation.yml").read_text(encoding="utf-8")
+    for name, mutant in (
+        ("android-legacy.yml", legacy.replace(PINS["actions/checkout"], "v4", 1)),
+        ("android-legacy.yml", legacy.replace("persist-credentials: false",
+            "persist-credentials: true", 1)),
+        ("android-evaluation.yml", evaluation + "  - uses: actions/setup-python@v6\\n"),
+    ):
+        try:
+            validate(name, mutant)
+        except ValueError:
+            continue
+        raise SystemExit("FAIL: expanded action policy accepted unsafe regression")
+    print("PASS: exact action pins and ephemeral checkout credentials on 13 Launcher workflows")
 
 
 if __name__ == "__main__":
