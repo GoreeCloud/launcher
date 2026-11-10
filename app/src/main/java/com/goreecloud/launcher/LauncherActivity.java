@@ -162,7 +162,11 @@ public final class LauncherActivity extends Activity {
                     HomeGesturePolicy.Action gesture = HomeGesturePolicy.resolve(
                         event.getRawX() - gestureStartX, event.getRawY() - gestureStartY,
                         dp(96), drawerOpen,
-                        prefs.getBoolean("swipe_up_drawer", true),
+                        // Compact layouts use a full-page ScrollView. Treating
+                        // its upward gesture as OPEN_DRAWER prevents reaching
+                        // the pinned dock after rotation or font enlargement.
+                        // The fixed All apps button remains an explicit route.
+                        !compactLayout && prefs.getBoolean("swipe_up_drawer", true),
                         prefs.getBoolean("swipe_down_close", true), atTop);
                     gestureEligible = false;
                     if (gesture != HomeGesturePolicy.Action.NONE) {
