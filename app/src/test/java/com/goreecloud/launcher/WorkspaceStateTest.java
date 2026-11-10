@@ -95,6 +95,21 @@ public final class WorkspaceStateTest {
         assertEquals(0, state.pageFor("pkg/.Source"));
     }
 
+    @Test public void malformedUtf8AndPaddedTokensCannotInventWorkspaceShortcuts() {
+        WorkspaceState state = new WorkspaceState();
+        assertTrue(state.place("org.good/.Main"));
+        String valid = state.encode();
+        // _w is Base64url for a single invalid UTF-8 0xff byte. The legacy
+        // decoder turned it into a replacement-character shortcut.
+        String padded = java.util.Base64.getUrlEncoder().encodeToString(
+                "org.extra/.Other".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        WorkspaceState restored = WorkspaceState.decode("_w." + padded + "." + valid);
+        assertEquals(1, restored.pageCount());
+        assertEquals(1, restored.currentItems().size());
+        assertEquals("org.good/.Main", restored.currentItems().get(0));
+        assertEquals(valid, restored.encode());
+    }
+
     @Test public void corruptedLayoutRecoversWithoutDuplicateApps() {
         assertEquals(1, WorkspaceState.decode("not base64!!!!").pageCount());
         WorkspaceState state = new WorkspaceState();
