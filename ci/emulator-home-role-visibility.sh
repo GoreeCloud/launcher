@@ -47,3 +47,28 @@ find_settings_role_controls() {
   printf 'Home-role Settings controls not both visible after bounded scrolling: %s\n' "$snapshot" >&2
   return 1
 }
+
+# Emulator ADB can briefly report 'device offline' after an Android role
+# dialog transition. Re-capture the entire hierarchy/screenshot pair, never
+# substitute an old screenshot or claim acceptance when evidence is missing.
+dump_disposable_home_snapshot() {
+  local name="$1" attempt
+  for attempt in 1 2 3 4; do
+    if adb shell uiautomator dump /sdcard/launcher-hierarchy.xml \
+       && adb pull /sdcard/launcher-hierarchy.xml "$EVIDENCE/$name.xml" >/dev/null \
+       && adb shell screencap -p /sdcard/launcher-screen.png \
+       && adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null; then
+      [[ -s "$EVIDENCE/$name.xml" && -s "$EVIDENCE/$name.png" ]] || {
+        echo "Empty Home-role snapshot artifact: $name" >&2
+        return 1
+      }
+      return 0
+    fi
+    if [[ "$attempt" -lt 4 ]]; then
+      echo "Transient Home-role emulator snapshot failure (attempt $attempt of 4)" >&2
+      sleep 2
+    fi
+  done
+  echo "Home-role snapshot unavailable after four retries: $name" >&2
+  return 1
+}
