@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
+      - 'ci/emulator-admission.sh'
       - 'ci/emulator-dock-accessibility.sh'
       - 'ci/emulator-hierarchy-retry.sh'
       - 'app/src/androidTest/**'
@@ -18,6 +19,7 @@ on:
     paths:
       - '.github/workflows/android-dock.yml'
       - 'ci/emulator-dock.sh'
+      - 'ci/emulator-admission.sh'
       - 'ci/emulator-dock-accessibility.sh'
       - 'ci/emulator-hierarchy-retry.sh'
       - 'app/src/androidTest/**'
