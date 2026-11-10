@@ -12,12 +12,14 @@ adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 # Cold-start UiAutomator occasionally produces no root at all on API 36.
 # Retry only freshly created valid hierarchies; never read stale XML.
 . ci/emulator-hierarchy-retry.sh
+. ci/emulator-screenshot-retry.sh
 
 dump_screen() {
   local name="$1"
   capture_hierarchy_with_retries "$name" "$EVIDENCE/$name.xml"
-  adb shell screencap -p /sdcard/launcher-screen.png
-  adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
+  # Screenshot transport can go offline after a successful hierarchy dump.
+  # Retry only freshly captured, bounded PNG evidence; never reuse stale files.
+  capture_emulator_screenshot_with_retries "$name"
 }
 assert_text() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
