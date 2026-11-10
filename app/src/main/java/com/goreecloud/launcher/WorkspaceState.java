@@ -12,6 +12,8 @@ import java.util.Set;
 public final class WorkspaceState {
     public static final int MAX_PAGES = 7;
     public static final int MAX_ITEMS_PER_PAGE = 24;
+    // 256 UTF-16 units are at most 768 UTF-8 bytes (1,024 unpadded base64url chars).
+    private static final int MAX_ENCODED_ID_CHARS = 1024;
     private final List<List<String>> pages = new ArrayList<>();
     private int selected;
 
@@ -46,7 +48,10 @@ public final class WorkspaceState {
         return -1;
     }
     public boolean place(String id) {
+        // StandardCharsets.UTF_8 replaces malformed surrogate code units on encode.
+        // Refuse a shortcut that would silently change identity after persistence.
         if (id == null || id.isEmpty() || id.length() > 256 ||
+                !id.equals(new String(id.getBytes(StandardCharsets.UTF_8), StandardCharsets.UTF_8)) ||
                 pageFor(id) == selected || pages.get(selected).size() >= MAX_ITEMS_PER_PAGE) {
             return false;
         }
@@ -105,6 +110,8 @@ public final class WorkspaceState {
             if (!serializedPages[p].isEmpty()) {
                 for (String token : serializedPages[p].split("\\.")) {
                     if (contents.size() >= MAX_ITEMS_PER_PAGE) break;
+                    // Reject oversized imported tokens before allocating decoded bytes.
+                    if (token.length() > MAX_ENCODED_ID_CHARS) continue;
                     try {
                         byte[] bytes = Base64.getUrlDecoder().decode(token);
                         String id = new String(bytes, StandardCharsets.UTF_8);
