@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-# Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
+# Pin all child ADB calls (including Python subprocess input commands) to the
+# disposable API35 hosted emulator. Refuse other devices before install/role/pm.
+export ANDROID_SERIAL=emulator-5554
+state="$(command adb -s "$ANDROID_SERIAL" get-state 2>/dev/null | tr -d '\r')" || {
+  echo 'Disposable availability emulator is unavailable' >&2; exit 2;
+}
+qemu="$(command adb -s "$ANDROID_SERIAL" shell getprop ro.kernel.qemu 2>/dev/null | tr -d '\r')" || exit 2
+api="$(command adb -s "$ANDROID_SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r')" || exit 2
+if [[ "$state" != device || "$qemu" != 1 || "$api" != 35 ]]; then
+  echo 'Refusing app availability QA outside the disposable Android 35 emulator' >&2
+  exit 2
+fi
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
 trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true' ERR
@@ -9,12 +20,12 @@ adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
 . ci/emulator-hierarchy-retry.sh
 . ci/emulator-menu-retry.sh
+. ci/emulator-screenshot-retry.sh
 
 dump_screen() {
   local name="$1"
   capture_hierarchy_with_retries "$name" "$EVIDENCE/$name.xml"
-  adb shell screencap -p /sdcard/launcher-screen.png
-  adb pull /sdcard/launcher-screen.png "$EVIDENCE/$name.png" >/dev/null
+  capture_emulator_screenshot_with_retries "$name"
 }
 assert_text() {
   python3 - "$EVIDENCE/$1.xml" "$2" <<'PY'
