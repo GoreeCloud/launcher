@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+source ci/emulator-admission.sh
+assert_disposable_launcher_emulator "35"
 # Operate only on disposable GitHub-hosted emulator fixture packages.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
