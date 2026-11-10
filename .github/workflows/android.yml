@@ -50,6 +50,8 @@ jobs:
           bash ci/test-emulator-menu-retry.sh
           for script in ci/emulator-hierarchy-retry.sh ci/emulator-app-availability.sh; do bash -n "$script"; done
           bash ci/test-emulator-hierarchy-retry.sh
+          for script in ci/emulator-admission.sh ci/test-emulator-admission.sh ci/emulator-backup.sh ci/emulator-dock.sh ci/emulator-dock-accessibility.sh ci/emulator-icon-refresh.sh ci/emulator-keyboard.sh; do bash -n "$script"; done
+          bash ci/test-emulator-admission.sh
           bash -n ci/emulator-screenshot-retry.sh
           bash -n ci/test-emulator-screenshot-retry.sh
           bash ci/test-emulator-screenshot-retry.sh
