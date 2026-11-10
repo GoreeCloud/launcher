@@ -1,6 +1,11 @@
 package com.goreecloud.launcher;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.appwidget.AppWidgetHost;
+import android.appwidget.AppWidgetHostView;
+import android.appwidget.AppWidgetManager;
+import android.appwidget.AppWidgetProviderInfo;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,6 +34,7 @@ import android.view.animation.DecelerateInterpolator;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.EditText;
 import android.widget.FrameLayout;
@@ -68,6 +74,15 @@ public final class LauncherActivity extends Activity {
     private TextView homeTab;
     private TextView appsTab;
     private LinearLayout dock;
+    private LinearLayout dashboard;
+    private LinearLayout widgetArea;
+    private LinearLayout topHeading;
+    private static final int EDIT_HOME_REQUEST = 810;
+    private static final int PICK_WIDGET_REQUEST = 811;
+    private static final int CONFIGURE_WIDGET_REQUEST = 812;
+    private static final int WIDGET_HOST_ID = 32019;
+    private AppWidgetHost widgetHost;
+    private int pendingWidgetId = -1;
     private TextView dockTitle;
     private FrameLayout homeViewport;
     private ScrollView viewportScroll;
@@ -120,6 +135,8 @@ public final class LauncherActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        widgetHost = new AppWidgetHost(this, WIDGET_HOST_ID);
+        if (state != null) pendingWidgetId = state.getInt("pendingWidgetId", -1);
         reloadPins();
         workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
         workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
@@ -141,6 +158,7 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onSaveInstanceState(Bundle outState) {
         outState.putBoolean("drawerOpen", drawerOpen);
+        outState.putInt("pendingWidgetId", pendingWidgetId);
         outState.putBoolean("choosingDockApp", choosingDockApp);
         outState.putBoolean("choosingHomeApp", choosingHomeApp);
         outState.putString("searchQuery", query == null ? "" : query.getText().toString());
@@ -190,8 +208,14 @@ public final class LauncherActivity extends Activity {
     }
 
     private boolean gestureStartedInWorkspace(float x, float y) {
-        // The fixed dock is part of Home: a swipe starting on an empty dock
-        // slot should open the app drawer just like a swipe on the workspace.
+        // In landscape and large-text mode the entire Home is a scrolling page.
+        // A swipe over icons must scroll that page, NOT unexpectedly open All apps.
+        // The fixed dock remains an explicit drawer-swipe starting region.
+        // The normal, non-scrolling Home still supports swipe-up anywhere on its
+        // workspace and swipe-down at the top of the drawer.
+        if (compactLayout && !drawerOpen) {
+            return containsScreenPoint(dock, x, y);
+        }
         return containsScreenPoint(homeViewport, x, y)
                 || (!drawerOpen && containsScreenPoint(dock, x, y));
     }
@@ -215,6 +239,9 @@ public final class LauncherActivity extends Activity {
 
     @Override protected void onStart() {
         super.onStart();
+        try { widgetHost.startListening(); } catch (RuntimeException ignored) {
+            // Widget hosting availability must never prevent Home startup.
+        }
         if (!packageReceiverActive) {
             IntentFilter filter = new IntentFilter();
             filter.addAction(Intent.ACTION_PACKAGE_ADDED);
@@ -236,6 +263,7 @@ public final class LauncherActivity extends Activity {
             unregisterReceiver(packageChanges);
             packageReceiverActive = false;
         }
+        if (widgetHost != null) widgetHost.stopListening();
         super.onStop();
     }
 
@@ -248,6 +276,7 @@ public final class LauncherActivity extends Activity {
             workspace = WorkspaceState.decode(prefs.getString("workspace_pages_v1", ""));
             workspace.selectPage(prefs.getInt("workspace_current_v1", 0));
             refresh();
+            renderWidgets();
         }
     }
 
@@ -256,7 +285,7 @@ public final class LauncherActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setFocusableInTouchMode(true);
         rootSurface = root;
-        root.setBackgroundColor(0xFFF4F3FC); // GC UI Canvas
+        root.setBackground(GoreeVisuals.atmosphere(false)); // GC UI Canvas
         // Landscape and larger accessibility fonts must not clip Home controls
         // behind the fixed dock. A full-page scrolling surface keeps them reachable.
         systemFontScale = getResources().getConfiguration().fontScale;
@@ -271,7 +300,7 @@ public final class LauncherActivity extends Activity {
             fullPageScroll = fullPage;
             fullPage.setFillViewport(true);
             fullPage.setClipToPadding(true);
-            fullPage.setBackgroundColor(0xFFF4F3FC);
+            fullPage.setBackground(GoreeVisuals.atmosphere(false));
             fullPage.addView(root, new ScrollView.LayoutParams(-1, -2));
             insetSurface = fullPage;
         } else {
@@ -307,16 +336,18 @@ public final class LauncherActivity extends Activity {
         }
 
         LinearLayout heading = new LinearLayout(this);
+        topHeading = heading;
         heading.setGravity(Gravity.CENTER_VERTICAL);
         root.addView(heading, new LinearLayout.LayoutParams(-1,
-                dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 60)));
+                dp(compactLayout ? Math.max(76, Math.round(48 * systemFontScale + 24)) : 48)));
 
         LinearLayout brand = new LinearLayout(this);
         brand.setOrientation(LinearLayout.VERTICAL);
-        TextView title = label("GoreeCloud", 25, true);
+        TextView title = label("GoreeCloud", 22, true);
+        title.setTextColor(0xFFFFFFFF);
         brand.addView(title);
         TextView subtitle = label("Your Android workspace", 12, false);
-        subtitle.setTextColor(0xFF5C596B);
+        subtitle.setTextColor(0xFFE4E3FF);
         brand.addView(subtitle);
         heading.addView(brand, new LinearLayout.LayoutParams(0, -2, 1));
         TextView settings = label("⚙", 26, false);
@@ -324,30 +355,43 @@ public final class LauncherActivity extends Activity {
         settings.setGravity(Gravity.CENTER);
         settings.setFocusable(true);
         markAsAccessibilityButton(settings);
-        settings.setBackground(background(0xFFFFFFFF, 18));
+        settings.setTextColor(0xFFFFFFFF);
+        settings.setBackground(background(0x735E58A3, 18));
         settings.setOnClickListener(v -> startActivity(new Intent(this, SettingsActivity.class)));
         heading.addView(settings, new LinearLayout.LayoutParams(dp(52), dp(48)));
 
         LinearLayout modes = new LinearLayout(this);
         modes.setGravity(Gravity.CENTER_VERTICAL);
-        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(52));
-        modesParams.topMargin = dp(8);
+        LinearLayout.LayoutParams modesParams = new LinearLayout.LayoutParams(-1, dp(42));
+        modesParams.topMargin = dp(5);
         root.addView(modes, modesParams);
         homeTab = action("Home", () -> setMode(false));
         appsTab = action("All apps", () -> setMode(true));
-        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(48), 1));
-        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(48), 1);
+        modes.addView(homeTab, new LinearLayout.LayoutParams(0, dp(38), 1));
+        LinearLayout.LayoutParams appsTabParams = new LinearLayout.LayoutParams(0, dp(38), 1);
         appsTabParams.leftMargin = dp(8);
         modes.addView(appsTab, appsTabParams);
+        heading.setOnLongClickListener(v -> { openHomeEditor(); return true; });
+
+        dashboard = HomeDashboardView.create(this, this::openHomeEditor, this::pickWidget);
+        LinearLayout.LayoutParams dashboardParams = new LinearLayout.LayoutParams(-1, -2);
+        dashboardParams.topMargin = dp(6);
+        root.addView(dashboard, dashboardParams);
+
+        widgetArea = new LinearLayout(this);
+        widgetArea.setOrientation(LinearLayout.VERTICAL);
+        root.addView(widgetArea, new LinearLayout.LayoutParams(-1, -2));
 
         query = new EditText(this);
         query.setSingleLine(true);
         query.setHint(R.string.search_hint);
         query.setTextSize(16);
         query.setPadding(dp(16), dp(9), dp(16), dp(9));
-        query.setBackground(background(0xFFFFFFFF, 18));
+        query.setTextColor(0xFF232243);
+        query.setHintTextColor(0xFF68677C);
+        query.setBackground(background(0xE9F5F3FF, 28));
         LinearLayout.LayoutParams search = new LinearLayout.LayoutParams(-1, dp(52));
-        search.topMargin = dp(16);
+        search.topMargin = dp(9);
         root.addView(query, search);
         query.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -401,34 +445,189 @@ public final class LauncherActivity extends Activity {
         emptyPanel = new LinearLayout(this);
         emptyPanel.setOrientation(LinearLayout.VERTICAL);
         emptyPanel.setGravity(Gravity.CENTER);
-        emptyPanel.setPadding(dp(20), dp(28), dp(20), dp(28));
-        emptyPanel.setBackground(background(0xFFE8E6FF, 26));
-        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(206), Gravity.CENTER);
+        emptyPanel.setPadding(dp(16), dp(12), dp(16), dp(12));
+        emptyPanel.setBackground(background(0xB1E8E6FF, 24));
+        FrameLayout.LayoutParams placeholder = new FrameLayout.LayoutParams(-1, dp(compactLayout ? 214 : 136), Gravity.CENTER);
         viewport.addView(emptyPanel, placeholder);
-        emptyTitle = label("", 22, true);
+        emptyTitle = label("", 17, true);
         emptyTitle.setGravity(Gravity.CENTER);
         emptyTitle.setTextColor(0xFF2C227C);
         emptyPanel.addView(emptyTitle);
-        empty = label("", 15, false);
+        empty = label("", 12, false);
         empty.setGravity(Gravity.CENTER);
         empty.setTextColor(0xFF514A76);
         LinearLayout.LayoutParams note = new LinearLayout.LayoutParams(-1, -2);
-        note.topMargin = dp(12);
+        note.topMargin = dp(6);
         emptyPanel.addView(empty, note);
         emptyAction = action("Add your first Home app", this::beginHomePicker);
         emptyAction.setTextColor(0xFFFFFFFF);
         emptyAction.setBackground(background(0xFF5145D9, 18));
         LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(-1, dp(48));
-        actionParams.topMargin = dp(20);
+        actionParams.topMargin = dp(8);
         emptyPanel.addView(emptyAction, actionParams);
 
-        dockTitle = label("Pinned apps", 16, true);
-        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(36)));
+        dockTitle = label("Pinned apps", 13, true);
+        dockTitle.setTextColor(0xFFECEBFF);
+        root.addView(dockTitle, new LinearLayout.LayoutParams(-1, dp(24)));
         dock = new LinearLayout(this);
         dock.setGravity(Gravity.CENTER);
         dock.setPadding(dp(6), dp(7), dp(6), dp(7));
-        dock.setBackground(background(0xFFECEAF8, 26)); // GC UI Lens tonal fallback
-        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(90)));
+        dock.setBackground(GoreeVisuals.translucentDock(getResources())); // GC Lens
+        root.addView(dock, new LinearLayout.LayoutParams(-1, dp(80)));
+        // Avoid an Activity-wide long-press handler: on small/large-font Homes a
+        // scroll starting on blank workspace was interpreted as Edit Home.
+        // Editing remains available through Customize and header long-press.
+        applyAppearance(false);
+        renderWidgets();
+    }
+
+    private void openHomeEditor() {
+        startActivityForResult(new Intent(this, HomeEditActivity.class), EDIT_HOME_REQUEST);
+    }
+
+    private void pickWidget() {
+        if (prefs.getString("home_widget_ids_v1", "").split(",").length >= 3
+                && !prefs.getString("home_widget_ids_v1", "").isEmpty()) {
+            Toast.makeText(this, "This preview supports three widgets", Toast.LENGTH_LONG).show();
+            return;
+        }
+        int id;
+        try { id = widgetHost.allocateAppWidgetId(); }
+        catch (RuntimeException unavailable) {
+            Toast.makeText(this, "Widgets are not available on this device", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        pendingWidgetId = id;
+        Intent picker = new Intent(AppWidgetManager.ACTION_APPWIDGET_PICK);
+        picker.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id);
+        try {
+            startActivityForResult(picker, PICK_WIDGET_REQUEST);
+        } catch (ActivityNotFoundException | SecurityException unavailable) {
+            widgetHost.deleteAppWidgetId(id);
+            pendingWidgetId = -1;
+            Toast.makeText(this, "Android widget picker is unavailable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override protected void onActivityResult(int request, int result, Intent data) {
+        super.onActivityResult(request, result, data);
+        if (request == EDIT_HOME_REQUEST) {
+            if (result == RESULT_OK && data != null
+                    && data.getBooleanExtra(HomeEditActivity.REQUEST_WIDGET, false)) {
+                pickWidget();
+            }
+            refresh();
+            return;
+        }
+        if (request != PICK_WIDGET_REQUEST && request != CONFIGURE_WIDGET_REQUEST) return;
+        int chosen = data == null ? pendingWidgetId : data.getIntExtra(
+                AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId);
+        int originallyAllocated = pendingWidgetId;
+        if (request == PICK_WIDGET_REQUEST && result == RESULT_OK && chosen > 0) {
+            AppWidgetProviderInfo info = AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen);
+            if (info != null && info.configure != null) {
+                Intent configure = new Intent(AppWidgetManager.ACTION_APPWIDGET_CONFIGURE);
+                configure.setComponent(info.configure);
+                configure.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, chosen);
+                pendingWidgetId = chosen;
+                try {
+                    startActivityForResult(configure, CONFIGURE_WIDGET_REQUEST);
+                    if (originallyAllocated > 0 && originallyAllocated != chosen)
+                        widgetHost.deleteAppWidgetId(originallyAllocated);
+                    return;
+                } catch (ActivityNotFoundException | SecurityException exception) {
+                    // Never retain an unconfigured provider as a working widget.
+                    result = RESULT_CANCELED;
+                }
+            }
+        }
+        pendingWidgetId = -1;
+        if (result == RESULT_OK && chosen > 0
+                && AppWidgetManager.getInstance(this).getAppWidgetInfo(chosen) != null) {
+            String saved = prefs.getString("home_widget_ids_v1", "");
+            if (!saved.isEmpty()) saved += ",";
+            prefs.edit().putString("home_widget_ids_v1", saved + chosen).apply();
+            setMode(false);
+            renderWidgets();
+        } else if (chosen > 0) {
+            widgetHost.deleteAppWidgetId(chosen);
+        }
+        if (originallyAllocated > 0 && originallyAllocated != chosen)
+            widgetHost.deleteAppWidgetId(originallyAllocated);
+    }
+
+    private void renderWidgets() {
+        if (widgetArea == null || widgetHost == null) return;
+        widgetArea.removeAllViews();
+        String raw = prefs.getString("home_widget_ids_v1", "");
+        if (raw.isEmpty()) return;
+        AppWidgetManager manager = AppWidgetManager.getInstance(this);
+        for (String token : raw.split(",")) {
+            int id;
+            try { id = Integer.parseInt(token); }
+            catch (NumberFormatException badId) { continue; }
+            AppWidgetProviderInfo info = manager.getAppWidgetInfo(id);
+            if (info == null) continue;
+            AppWidgetHostView view;
+            try { view = widgetHost.createView(this, id, info); }
+            catch (RuntimeException unavailable) { continue; }
+            LinearLayout panel = new LinearLayout(this);
+            panel.setOrientation(LinearLayout.VERTICAL);
+            panel.setBackground(background(0xA0EEEFFF, 22));
+            LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(-1, -2);
+            panelParams.bottomMargin = dp(8);
+            widgetArea.addView(panel, panelParams);
+            panel.addView(view, new LinearLayout.LayoutParams(-1,
+                    dp(Math.max(96, Math.min(220, info.minHeight > 0 ? info.minHeight : 142)))));
+            TextView remove = action("Remove widget", () ->
+                new AlertDialog.Builder(this).setTitle("Remove this widget?")
+                    .setMessage("The original app data will not be deleted.")
+                    .setPositiveButton("Remove", (dialog, which) -> removeWidget(id))
+                    .setNegativeButton("Cancel", null).show());
+            panel.addView(remove, new LinearLayout.LayoutParams(-1, dp(42)));
+        }
+    }
+
+    private void removeWidget(int id) {
+        String raw = prefs.getString("home_widget_ids_v1", "");
+        java.util.List<String> remaining = new java.util.ArrayList<>();
+        for (String token : raw.split(",")) {
+            if (!token.equals(Integer.toString(id)) && !token.isEmpty()) remaining.add(token);
+        }
+        prefs.edit().putString("home_widget_ids_v1", android.text.TextUtils.join(",", remaining)).apply();
+        widgetHost.deleteAppWidgetId(id);
+        renderWidgets();
+    }
+
+    private void applyAppearance(boolean drawer) {
+        String skin = prefs.getString("launcher_skin", "violet");
+        boolean deviceWallpaper = "wallpaper".equals(skin) && !drawer;
+        if (deviceWallpaper) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+            rootSurface.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            if (fullPageScroll != null) fullPageScroll.setBackgroundColor(
+                    android.graphics.Color.TRANSPARENT);
+        } else {
+            getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER);
+            android.graphics.drawable.Drawable visual = GoreeVisuals.atmosphere(
+                    drawer || "night".equals(skin));
+            rootSurface.setBackground(visual);
+            if (fullPageScroll != null) fullPageScroll.setBackground(
+                    GoreeVisuals.atmosphere(drawer || "night".equals(skin)));
+        }
+        getWindow().setStatusBarColor(drawer ? 0xFF242341 : 0xFF7E81CE);
+        getWindow().setNavigationBarColor(drawer ? 0xFF191A32 : 0xFF51528E);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                int bits = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                        | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controller.setSystemBarsAppearance(0, bits);
+            }
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(0);
+        }
     }
 
     private void refresh() {
@@ -573,11 +772,18 @@ public final class LauncherActivity extends Activity {
         boolean showDockOnHome = !allApps && prefs.getBoolean("dock_enabled", true);
         dock.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
         dockTitle.setVisibility(showDockOnHome ? View.VISIBLE : View.GONE);
+        // Space-first responsive Home: a decorative dashboard must not hide the
+        // real workspace, shortcut recovery, or dock in landscape/large text.
+        dashboard.setVisibility(allApps || compactLayout ? View.GONE : View.VISIBLE);
+        widgetArea.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        topHeading.setVisibility(allApps ? View.GONE : View.VISIBLE);
+        applyAppearance(allApps);
+        sectionLabel.setTextColor(0xFFF8F7FF);
         sectionLabel.setText(choosingDockApp && allApps ? "Choose an app for your dock"
                 : choosingHomeApp && allApps ? "Choose an app for Home"
                 : allApps ? "All applications" : "Home workspace");
-        homeTab.setBackground(background(allApps ? 0xFFE8E6FF : 0xFF5145D9, 18));
-        appsTab.setBackground(background(allApps ? 0xFF5145D9 : 0xFFE8E6FF, 18));
+        homeTab.setBackground(background(allApps ? 0xB0B8B0E4 : 0xFF6557E3, 22));
+        appsTab.setBackground(background(allApps ? 0xFF6557E3 : 0xB0B8B0E4, 22));
         homeTab.setTextColor(allApps ? 0xFF2C227C : 0xFFFFFFFF);
         appsTab.setTextColor(allApps ? 0xFFFFFFFF : 0xFF2C227C);
         homeTab.setSelected(!allApps);
@@ -663,7 +869,10 @@ public final class LauncherActivity extends Activity {
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setGravity(Gravity.CENTER);
         cell.setPadding(dp(2), dp(6), dp(2), dp(6));
-        cell.setBackground(background(0xFFFFFFFF, 18)); // GC UI Surface
+        boolean inDrawer = drawerOpen && !dockTile;
+        cell.setBackground(inDrawer ? background(0x154C487F, 20)
+                : dockTile ? background(0x0AFFFFFF, 18)
+                : background(0xA1EFEDFF, 20));
         cell.setContentDescription(app.name);
         cell.setFocusable(true);
         markTileAccessible(cell, app, dockTile);
@@ -672,6 +881,7 @@ public final class LauncherActivity extends Activity {
         cell.addView(image, new LinearLayout.LayoutParams(iconSize, iconSize));
         if (names) {
             TextView text = label(app.name, 12, false);
+            text.setTextColor(inDrawer ? 0xFFFFFFFF : 0xFF282444);
             text.setGravity(Gravity.CENTER);
             text.setMaxLines(2);
             text.setEllipsize(android.text.TextUtils.TruncateAt.END);
