@@ -7,6 +7,11 @@ trap 'rm -rf "$tmp"' EXIT
 cat >"$tmp/adb" <<'SH'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >>"$GC_ADB_FAKE_LOG"
+printf '%s\n' "${ANDROID_SERIAL:-unset}" >>"${GC_ADB_FAKE_LOG}.serials"
+if [[ "${ANDROID_SERIAL:-}" != emulator-5554 ]]; then
+  echo "Unsafe inherited ADB selector" >&2
+  exit 94
+fi
 case "$*" in
   "-s emulator-5554 get-state") printf '%s\n' "${GC_ADB_STATE:-device}" ;;
   "-s emulator-5554 shell getprop ro.kernel.qemu") printf '%s\n' "${GC_ADB_QEMU:-1}" ;;
@@ -52,7 +57,7 @@ for script in "${scripts[@]}"; do
   if ! grep -q '^install -r ' "$GC_ADB_FAKE_LOG"; then
     echo "Guard failed to admit authorized synthetic Android 35 target: $script" >&2; exit 1
   fi
-  if grep -q 'physical-serial' "$GC_ADB_FAKE_LOG"; then
+  if grep -vx 'emulator-5554' "${GC_ADB_FAKE_LOG}.serials"; then
     echo "Inherited real-device selector was not overridden: $script" >&2; exit 1
   fi
 done
