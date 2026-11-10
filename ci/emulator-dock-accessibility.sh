@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+source ci/emulator-admission.sh
+assert_disposable_launcher_emulator "35"
 # Disposable CI Android emulator only, after emulator-dock.sh has pinned/reordered fixtures.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
