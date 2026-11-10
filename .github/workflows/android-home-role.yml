@@ -6,6 +6,8 @@ on:
     paths:
       - '.github/workflows/android-home-role.yml'
       - 'ci/emulator-home-role.sh'
+      - 'ci/emulator-home-role-visibility.sh'
+      - 'ci/test-emulator-home-role-visibility.sh'
       - 'app/src/main/java/com/goreecloud/launcher/SettingsActivity.java'
 
 permissions:
