@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/android-icon-refresh.yml'
       - 'ci/emulator-icon-refresh.sh'
+      - 'ci/emulator-admission.sh'
       - 'ci/check-fixture-icon.py'
       - 'qa-fixture/build.gradle'
       - 'qa-fixture/src/main/AndroidManifest.xml'
@@ -17,6 +18,7 @@ on:
     paths:
       - '.github/workflows/android-icon-refresh.yml'
       - 'ci/emulator-icon-refresh.sh'
+      - 'ci/emulator-admission.sh'
       - 'ci/check-fixture-icon.py'
       - 'qa-fixture/build.gradle'
       - 'qa-fixture/src/main/AndroidManifest.xml'
