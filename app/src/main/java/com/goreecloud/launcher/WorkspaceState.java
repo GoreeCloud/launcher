@@ -106,8 +106,13 @@ public final class WorkspaceState {
                 for (String token : serializedPages[p].split("\\.")) {
                     if (contents.size() >= MAX_ITEMS_PER_PAGE) break;
                     try {
-                        String id = new String(Base64.getUrlDecoder().decode(token),
-                                StandardCharsets.UTF_8);
+                        byte[] bytes = Base64.getUrlDecoder().decode(token);
+                        String id = new String(bytes, StandardCharsets.UTF_8);
+                        // A corrupted UTF-8 byte sequence may decode to U+FFFD,
+                        // inventing a shortcut that was never saved. Accept only
+                        // the same canonical, unpadded token that encode() writes.
+                        if (!Base64.getUrlEncoder().withoutPadding().encodeToString(
+                                id.getBytes(StandardCharsets.UTF_8)).equals(token)) continue;
                         if (!id.isEmpty() && id.length() <= 256 && seen.add(id)) contents.add(id);
                     } catch (IllegalArgumentException ex) {
                         // Invalid imported/corrupted tokens are skipped without crashing Home.
