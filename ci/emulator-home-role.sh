@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-# Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
+# Pin all child ADB commands, including subprocess-created Python ADB, to
+# the disposable hosted emulator; refuse any physical/non-emulator target.
+export ANDROID_SERIAL=emulator-5554
+state="$(command adb -s "$ANDROID_SERIAL" get-state 2>/dev/null | tr -d '\r')" || {
+  echo 'Disposable Android emulator is unavailable' >&2; exit 2;
+}
+qemu="$(command adb -s "$ANDROID_SERIAL" shell getprop ro.kernel.qemu 2>/dev/null | tr -d '\r')" || exit 2
+api="$(command adb -s "$ANDROID_SERIAL" shell getprop ro.build.version.sdk 2>/dev/null | tr -d '\r')" || exit 2
+if [[ "$state" != device || "$qemu" != 1 || "$api" != 35 ]]; then
+  echo 'Refusing Home role QA on a non-disposable Android 35 emulator' >&2
+  exit 2
+fi
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
 trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true' ERR
@@ -61,6 +72,9 @@ PY
 }
 
 
+# Source fail-closed, bounded accessibility discovery of real Settings controls.
+source ci/emulator-home-role-visibility.sh
+
 # Test the real, consent-based Android system UI. Do NOT shell-grant HOME.
 adb shell cmd role get-role-holders --user 0 android.app.role.HOME > "$EVIDENCE/role-before.txt"
 if grep -Fq 'com.goreecloud.launcher' "$EVIDENCE/role-before.txt"; then
@@ -86,11 +100,7 @@ dump_screen home-before-consent
 assert_text home-before-consent "Home workspace"
 tap_label home-before-consent "Settings"
 sleep 2
-adb shell input swipe 445 1680 445 640 520
-sleep 2
-dump_screen settings-before-consent
-assert_text settings-before-consent "GoreeCloud is not the current default Home"
-assert_text settings-before-consent "Select default Home app"
+find_settings_role_controls settings-before-consent "GoreeCloud is not the current default Home" "Select default Home app"
 tap_label settings-before-consent "Select default Home app"
 sleep 3
 dump_screen home-role-consent
@@ -104,9 +114,7 @@ adb shell cmd role get-role-holders --user 0 android.app.role.HOME > "$EVIDENCE/
 if grep -Fq 'com.goreecloud.launcher' "$EVIDENCE/role-after-cancel.txt"; then
   echo "Home role unexpectedly changed after Cancel"; exit 1
 fi
-dump_screen settings-after-cancel
-assert_text settings-after-cancel "GoreeCloud is not the current default Home"
-assert_text settings-after-cancel "Select default Home app"
+find_settings_role_controls settings-after-cancel "GoreeCloud is not the current default Home" "Select default Home app"
 tap_label settings-after-cancel "Select default Home app"
 sleep 2
 dump_screen role-consent-retry
@@ -136,11 +144,7 @@ dump_screen home-selected
 assert_text home-selected "Home workspace"
 tap_label home-selected "Settings"
 sleep 2
-adb shell input swipe 445 1680 445 640 520
-sleep 1
-dump_screen settings-home-held
-assert_text settings-home-held "Current default Home: GoreeCloud"
-assert_text settings-home-held "Manage default Home apps"
+find_settings_role_controls settings-home-held "Current default Home: GoreeCloud" "Manage default Home apps"
 adb shell input keyevent 3
 sleep 2
 dump_screen home-after-consent
