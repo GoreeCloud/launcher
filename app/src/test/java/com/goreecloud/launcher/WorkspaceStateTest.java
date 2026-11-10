@@ -138,6 +138,44 @@ public final class WorkspaceStateTest {
                 WorkspaceState.decode(supplementary.encode()).encode());
     }
 
+    @Test public void maximumValidLocalWorkspacePersistsWithoutReset() {
+        WorkspaceState full = new WorkspaceState();
+        for (int page = 0; page < WorkspaceState.MAX_PAGES; page++) {
+            if (page > 0) assertTrue(full.addPage());
+            for (int item = 0; item < WorkspaceState.MAX_ITEMS_PER_PAGE; item++) {
+                String prefix = "page" + page + "-item" + item + "/";
+                // Every identifier remains valid at 256 UTF-16 units but uses
+                // nearly four base64url characters per unit after UTF-8 encode.
+                String id = prefix +
+                        String.valueOf((char) 0x0800).repeat(256 - prefix.length());
+                assertTrue("Valid max-sized ID should fit", full.place(id));
+            }
+        }
+        String saved = full.encode();
+        assertTrue("The old arbitrary limit discarded a valid Home state",
+                saved.length() > 100000);
+
+        WorkspaceState restarted = WorkspaceState.decode(saved);
+        assertEquals(WorkspaceState.MAX_PAGES, restarted.pageCount());
+        for (int page = 0; page < WorkspaceState.MAX_PAGES; page++) {
+            assertTrue(restarted.selectPage(page));
+            assertEquals(WorkspaceState.MAX_ITEMS_PER_PAGE, restarted.currentItems().size());
+            for (int item = 0; item < WorkspaceState.MAX_ITEMS_PER_PAGE; item++) {
+                String prefix = "page" + page + "-item" + item + "/";
+                assertEquals(prefix +
+                        String.valueOf((char) 0x0800).repeat(256 - prefix.length()),
+                        restarted.currentItems().get(item));
+            }
+        }
+        assertEquals("Every page and item must survive exact serialization", saved, restarted.encode());
+    }
+
+    @Test public void unreasonableImportedWorkspaceStillFailsClosed() {
+        // A valid 7x24 layout cannot serialize to this many characters.
+        assertEquals(1, WorkspaceState.decode("A".repeat(180000)).pageCount());
+        assertTrue(WorkspaceState.decode("A".repeat(180000)).currentItems().isEmpty());
+    }
+
     @Test public void corruptedLayoutRecoversWithoutDuplicateApps() {
         assertEquals(1, WorkspaceState.decode("not base64!!!!").pageCount());
         WorkspaceState state = new WorkspaceState();
