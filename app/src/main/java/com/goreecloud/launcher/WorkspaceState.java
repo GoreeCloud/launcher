@@ -14,6 +14,12 @@ public final class WorkspaceState {
     public static final int MAX_ITEMS_PER_PAGE = 24;
     // 256 UTF-16 units are at most 768 UTF-8 bytes (1,024 unpadded base64url chars).
     private static final int MAX_ENCODED_ID_CHARS = 1024;
+    // Include all 7x24 maximum-length valid tokens, page pipes and token dots.
+    // The old 100,000-character import cutoff rejected layouts this class
+    // could legitimately encode, causing them to reset on next Home startup.
+    private static final int MAX_SERIALIZED_CHARS =
+            MAX_PAGES * MAX_ITEMS_PER_PAGE * MAX_ENCODED_ID_CHARS +
+            MAX_PAGES * (MAX_ITEMS_PER_PAGE - 1) + (MAX_PAGES - 1);
     private final List<List<String>> pages = new ArrayList<>();
     private int selected;
 
@@ -101,7 +107,7 @@ public final class WorkspaceState {
     }
     public static WorkspaceState decode(String raw) {
         WorkspaceState state = new WorkspaceState();
-        if (raw == null || raw.isEmpty() || raw.length() > 100000) return state;
+        if (raw == null || raw.isEmpty() || raw.length() > MAX_SERIALIZED_CHARS) return state;
         state.pages.clear();
         Set<String> seen = new HashSet<>();
         String[] serializedPages = raw.split("\\|", -1);
