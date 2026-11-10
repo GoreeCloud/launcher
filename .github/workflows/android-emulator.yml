@@ -1,6 +1,11 @@
 name: Native Android emulator smoke
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/android-emulator.yml'
+      - 'ci/emulator-smoke.sh'
+      - 'ci/emulator-admission.sh'
 
 permissions:
   contents: read
