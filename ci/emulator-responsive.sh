@@ -3,7 +3,9 @@ set -Eeuo pipefail
 # Fresh GitHub-hosted emulator only; never execute role changes on physical/personal devices.
 EVIDENCE="build/emulator-evidence"
 mkdir -p "$EVIDENCE"
-trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true' ERR
+# Capture only runtime exceptions from this disposable emulator on failure.
+# No personal-device logcat, credentials, or broad system logs are published.
+trap 'adb shell dumpsys activity activities > "$EVIDENCE/activity-on-error.txt" || true; adb logcat -d -s AndroidRuntime:E > "$EVIDENCE/android-runtime-on-error.log" 2>/dev/null || true' ERR
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r qa-fixture/build/outputs/apk/debug/qa-fixture-debug.apk
 
@@ -95,6 +97,7 @@ adb shell cmd role add-role-holder --user 0 android.app.role.HOME com.goreecloud
 adb shell input keyevent 3
 sleep 4
 dump_screen responsive-initial
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-initial.xml" "$EVIDENCE/responsive-initial.png"
 assert_text responsive-initial "Home workspace"
 assert_text responsive-initial "Home tab, selected"
 assert_text responsive-initial "All apps tab"
@@ -169,11 +172,13 @@ adb shell settings put system accelerometer_rotation 0
 adb shell settings put system user_rotation 1
 sleep 3
 dump_screen responsive-drawer-landscape
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-drawer-landscape.xml" "$EVIDENCE/responsive-drawer-landscape.png"
 assert_text responsive-drawer-landscape "All apps tab, selected"
 assert_filtered_notes_eventually responsive-drawer-landscape
 adb shell settings put system user_rotation 0
 sleep 3
 dump_screen responsive-drawer-portrait
+python3 ci/check_floating_primary_nav.py "$EVIDENCE/responsive-drawer-portrait.xml" "$EVIDENCE/responsive-drawer-portrait.png"
 assert_text responsive-drawer-portrait "All apps tab, selected"
 assert_filtered_notes_eventually responsive-drawer-portrait
 # Returning Home must clear transient search before the existing placement test.
@@ -281,9 +286,22 @@ assert_text responsive-landscape-top "Home workspace"
 # enough to reach its footer on all emulator display densities and font sizes.
 # Continue scrolling a bounded number of times, and accept ONLY if both dock
 # elements are fully visible above the Android navigation bar.
+# Derive a safe vertical swipe lane from the actual selected Home/All apps
+# bounding boxes. The old x=680 path started *inside* the floating Home
+# button (x=643..1189 on the hosted 2400x1080 AVD), so no scrolling occurred.
+# A failed/no-safe-lane derivation must fail rather than waive dock visibility.
+scroll_coords="$(python3 - "$EVIDENCE/responsive-landscape-top.xml"     "$EVIDENCE/responsive-landscape-top.png" <<'PYSCROLL'
+import sys
+sys.path.insert(0, "ci")
+from check_floating_primary_nav import check_files, landscape_scroll_gesture
+print(*landscape_scroll_gesture(check_files(sys.argv[1], sys.argv[2])))
+PYSCROLL
+)"
+read -r scroll_x scroll_start scroll_end <<< "$scroll_coords"
+echo "PASS landscape scroll lane outside floating nav: x=$scroll_x y=$scroll_start..$scroll_end"
 dock_reached=false
 for attempt in 1 2 3 4 5 6; do
-  adb shell input swipe 680 800 680 145 600
+  adb shell input swipe "$scroll_x" "$scroll_start" "$scroll_x" "$scroll_end" 600
   sleep 2
   dump_screen responsive-landscape-dock
   if python3 - "$EVIDENCE/responsive-landscape-dock.xml" "$EVIDENCE/responsive-landscape-dock.png" <<'PY'

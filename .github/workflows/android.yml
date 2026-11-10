@@ -32,6 +32,7 @@ jobs:
           bash ci/test-emulator-menu-retry.sh
           for script in ci/emulator-hierarchy-retry.sh ci/emulator-app-availability.sh; do bash -n "$script"; done
           bash ci/test-emulator-hierarchy-retry.sh
+          python3 ci/test_floating_primary_nav.py
       - name: Validate opt-in physical-device smoke guard
         run: |
           bash -n ci/physical-device-smoke.sh
