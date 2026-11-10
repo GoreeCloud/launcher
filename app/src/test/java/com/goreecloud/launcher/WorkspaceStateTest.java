@@ -110,6 +110,34 @@ public final class WorkspaceStateTest {
         assertEquals(valid, restored.encode());
     }
 
+    @Test public void refusesUnpairedSurrogatesWithoutMutatingWorkspace() {
+        WorkspaceState state = new WorkspaceState();
+        assertTrue(state.place("org.good/.Main"));
+        String original = state.encode();
+        // Android identifiers should survive storage with the same code units.
+        assertFalse(state.place("org.bad/." + (char) 0xD800));
+        assertFalse(state.place("org.bad/." + (char) 0xDC00));
+        assertEquals(original, state.encode());
+        assertEquals(-1, state.pageFor("org.bad/.?"));
+    }
+
+    @Test public void importsMaximumValidUtf8TokenButSkipsOversizedTokens() {
+        WorkspaceState state = new WorkspaceState();
+        String longest = String.valueOf((char) 0x0800).repeat(256); // 768 bytes, 1024 token chars
+        assertTrue(state.place(longest));
+        String valid = state.encode();
+        assertEquals(1024, valid.length());
+        WorkspaceState restored = WorkspaceState.decode("A".repeat(2048) + "." + valid);
+        assertEquals(1, restored.currentItems().size());
+        assertEquals(longest, restored.currentItems().get(0));
+        assertEquals(valid, restored.encode());
+        // Multi-code-unit UTF-8 characters remain lossless, unlike unmatched surrogates.
+        WorkspaceState supplementary = new WorkspaceState();
+        assertTrue(supplementary.place("org.good/." + new String(Character.toChars(0x1F603))));
+        assertEquals(supplementary.encode(),
+                WorkspaceState.decode(supplementary.encode()).encode());
+    }
+
     @Test public void corruptedLayoutRecoversWithoutDuplicateApps() {
         assertEquals(1, WorkspaceState.decode("not base64!!!!").pageCount());
         WorkspaceState state = new WorkspaceState();
