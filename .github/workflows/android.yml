@@ -54,6 +54,7 @@ jobs:
           bash ci/test-emulator-admission.sh
           for script in ci/emulator-legacy.sh ci/emulator-responsive.sh ci/emulator-smoke.sh ci/test-emulator-admission-matrix.sh; do bash -n "$script"; done
           bash ci/test-emulator-admission-matrix.sh
+          python3 ci/check-emulator-admission-inventory.py
           bash -n ci/emulator-screenshot-retry.sh
           bash -n ci/test-emulator-screenshot-retry.sh
           bash ci/test-emulator-screenshot-retry.sh
