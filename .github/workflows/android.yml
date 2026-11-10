@@ -50,6 +50,11 @@ jobs:
           bash ci/test-emulator-menu-retry.sh
           for script in ci/emulator-hierarchy-retry.sh ci/emulator-app-availability.sh; do bash -n "$script"; done
           bash ci/test-emulator-hierarchy-retry.sh
+          bash -n ci/emulator-screenshot-retry.sh
+          bash -n ci/test-emulator-screenshot-retry.sh
+          bash ci/test-emulator-screenshot-retry.sh
+          bash -n ci/test-availability-emulator-guard.sh
+          bash ci/test-availability-emulator-guard.sh
       - name: Validate opt-in physical-device smoke guard
         run: |
           bash -n ci/physical-device-smoke.sh
