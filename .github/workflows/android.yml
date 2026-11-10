@@ -24,6 +24,14 @@ jobs:
           bash -n ci/emulator-settings-font.sh
           bash -n ci/test-settings-emulator-guard.sh
           bash ci/test-settings-emulator-guard.sh
+      - name: Verify Home-role bounded visibility and safe emulator target
+        run: |
+          bash -n ci/emulator-home-role.sh
+          bash -n ci/emulator-home-role-visibility.sh
+          bash -n ci/test-emulator-home-role-visibility.sh
+          bash ci/test-emulator-home-role-visibility.sh
+          bash -n ci/test-emulator-home-role-capture.sh
+          bash ci/test-emulator-home-role-capture.sh
       - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad
         with:
           distribution: temurin
