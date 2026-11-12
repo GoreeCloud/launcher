@@ -35,10 +35,10 @@ import android.widget.Toast;
 
 /** Native GC UI-inspired, permission-free launcher settings. */
 public final class SettingsActivity extends Activity {
-    private static final int CANVAS = 0xFFF4F3FC;
-    private static final int TEXT = 0xFF211F30;
-    private static final int MUTED = 0xFF5C596B;
-    private static final int IRIS = 0xFF5145D9;
+    private static final int CANVAS = GcUiPalette.CANVAS;
+    private static final int TEXT = GcUiPalette.ON_SURFACE;
+    private static final int MUTED = GcUiPalette.ON_SURFACE_MUTED;
+    private GcUiPalette.Roles palette;
     private static final int EXPORT_FILE = 701;
     private static final int IMPORT_FILE = 702;
     private static final int SELECT_HOME_ROLE = 703;
@@ -49,6 +49,7 @@ public final class SettingsActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         prefs = getSharedPreferences("launcher", MODE_PRIVATE);
+        palette = GcUiPalette.resolve(prefs.getString(GcUiPalette.PREFERENCE_KEY, null));
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(CANVAS);
@@ -113,6 +114,31 @@ public final class SettingsActivity extends Activity {
         heading.addView(text("Home settings", 26, true, TEXT));
         heading.addView(text("Personalize your workspace", 13, false, MUTED));
 
+        addSectionHeader(body, "APPEARANCE");
+        LinearLayout appearanceCard = settingsCard(body);
+        appearanceCard.addView(text("Accent color", 20, true, TEXT));
+        appearanceCard.addView(text("Neutral is the default. An explicit selection takes precedence in Settings; Home styling is being migrated separately.", 13, false, MUTED));
+        int active = GcUiPalette.selectedIndex(prefs.getString(GcUiPalette.PREFERENCE_KEY, null));
+        Button accentChoice = backupButton("Accent: " + GcUiPalette.LABELS[active], false);
+        accentChoice.setContentDescription("Accent color: " + GcUiPalette.LABELS[active] + ". Choose a color.");
+        LinearLayout.LayoutParams accentParams = new LinearLayout.LayoutParams(-1, dp(56));
+        accentParams.topMargin = dp(14);
+        appearanceCard.addView(accentChoice, accentParams);
+        accentChoice.setOnClickListener(view -> {
+            int selected = GcUiPalette.selectedIndex(prefs.getString(GcUiPalette.PREFERENCE_KEY, null));
+            new AlertDialog.Builder(this)
+                .setTitle("Accent color")
+                .setSingleChoiceItems(GcUiPalette.LABELS, selected, (dialog, which) -> {
+                    if (which >= 0 && which < GcUiPalette.IDS.length) {
+                        prefs.edit().putString(GcUiPalette.PREFERENCE_KEY, GcUiPalette.IDS[which]).apply();
+                        dialog.dismiss();
+                        recreate();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+        });
+
         TextView layoutTitle = section("LAYOUT");
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(-1, -2);
         labelParams.topMargin = dp(24);
@@ -130,7 +156,7 @@ public final class SettingsActivity extends Activity {
         descriptionParams.topMargin = dp(6);
         surface.addView(description, descriptionParams);
 
-        TextView gridLabel = text("", 15, true, 0xFF2C227C);
+        TextView gridLabel = text("", 15, true, palette.onContainer);
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2);
         gp.topMargin = dp(22);
         surface.addView(gridLabel, gp);
@@ -151,7 +177,7 @@ public final class SettingsActivity extends Activity {
         surface.addView(slider, new LinearLayout.LayoutParams(-1, dp(56)));
 
         View divider = new View(this);
-        divider.setBackgroundColor(0xFFE9E7F3);
+        divider.setBackgroundColor(GcUiPalette.SURFACE_TONAL);
         LinearLayout.LayoutParams dv = new LinearLayout.LayoutParams(-1, dp(1));
         dv.topMargin = dp(8);
         dv.bottomMargin = dp(12);
@@ -168,7 +194,7 @@ public final class SettingsActivity extends Activity {
         surface.addView(text("Show app names beneath Home and drawer shortcuts.", 13, false, MUTED));
 
         TextView iconSizeLabel = text("Home icon size: " + prefs.getInt("icon_size", 48) + " dp",
-                15, true, 0xFF2C227C);
+                15, true, palette.onContainer);
         LinearLayout.LayoutParams iconLabelParams = new LinearLayout.LayoutParams(-1, -2);
         iconLabelParams.topMargin = dp(18);
         surface.addView(iconSizeLabel, iconLabelParams);
@@ -193,7 +219,7 @@ public final class SettingsActivity extends Activity {
         drawerCard.addView(text("Swipe up on Home or select All apps to browse everything.",
                 14, false, MUTED));
         TextView drawerGridLabel = text("Drawer grid columns: "
-                + prefs.getInt("drawer_columns", 4), 15, true, 0xFF2C227C);
+                + prefs.getInt("drawer_columns", 4), 15, true, palette.onContainer);
         LinearLayout.LayoutParams drawerGridParams = new LinearLayout.LayoutParams(-1, -2);
         drawerGridParams.topMargin = dp(14);
         drawerCard.addView(drawerGridLabel, drawerGridParams);
@@ -238,14 +264,14 @@ public final class SettingsActivity extends Activity {
         LinearLayout homeCard = new LinearLayout(this);
         homeCard.setOrientation(LinearLayout.VERTICAL);
         homeCard.setPadding(dp(20), dp(22), dp(20), dp(20));
-        homeCard.setBackground(panel(0xFFE8E6FF, 26));
+        homeCard.setBackground(panel(palette.container, 26));
         body.addView(homeCard, new LinearLayout.LayoutParams(-1, -2));
-        homeCard.addView(text("Open with GoreeCloud", 20, true, 0xFF2C227C));
-        TextView homeHint = text("Choose which launcher opens when you press the Android Home button.", 14, false, 0xFF514A76);
+        homeCard.addView(text("Open with GoreeCloud", 20, true, palette.onContainer));
+        TextView homeHint = text("Choose which launcher opens when you press the Android Home button.", 14, false, MUTED);
         LinearLayout.LayoutParams hnt = new LinearLayout.LayoutParams(-1, -2);
         hnt.topMargin = dp(8);
         homeCard.addView(homeHint, hnt);
-        homeRoleStatus = text("", 13, true, 0xFF2C227C);
+        homeRoleStatus = text("", 13, true, palette.onContainer);
         homeCard.addView(homeRoleStatus);
         updateHomeRoleStatus();
 
@@ -254,8 +280,8 @@ public final class SettingsActivity extends Activity {
         home.setText(R.string.home_settings);
         home.setAllCaps(false);
         home.setTextSize(16);
-        home.setTextColor(0xFFFFFFFF);
-        home.setBackground(panel(IRIS, 18));
+        home.setTextColor(palette.onPrimary);
+        home.setBackground(panel(palette.primary, 18));
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, dp(56));
         hp.topMargin = dp(22);
         homeCard.addView(home, hp);
@@ -370,8 +396,8 @@ public final class SettingsActivity extends Activity {
         button.setText(caption);
         button.setAllCaps(false);
         button.setTextSize(16);
-        button.setTextColor(primary ? 0xFFFFFFFF : 0xFF2C227C);
-        button.setBackground(panel(primary ? IRIS : 0xFFE8E6FF, 18));
+        button.setTextColor(primary ? palette.onPrimary : palette.onContainer);
+        button.setBackground(panel(primary ? palette.primary : palette.container, 18));
         return button;
     }
 

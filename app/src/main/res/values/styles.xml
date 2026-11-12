@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="GoreeLauncherTheme" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:colorAccent">#5145D9</item>
-        <item name="android:statusBarColor">#F4F3FC</item>
-        <item name="android:navigationBarColor">#F4F3FC</item>
+        <item name="android:colorAccent">@color/gc_ui_primary</item>
+        <item name="android:statusBarColor">@color/gc_ui_canvas</item>
+        <item name="android:navigationBarColor">@color/gc_ui_canvas</item>
         <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
