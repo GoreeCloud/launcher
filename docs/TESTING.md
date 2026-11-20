@@ -3,7 +3,7 @@
 CI should run isolated unit/type/build checks:
 - Web: `cd apps/web && npm install && npm test && npm run build`.
 - Linux: `python -m compileall -q apps/linux && python -m unittest discover -s apps/linux/tests`. Qt runtime tests require a native display session; these checks are intentionally limited.
-- Android: `cd apps/android && gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon`, with JDK 17, Gradle 9.4.1 and Android SDK platform 36.
+- Android: `cd apps/android && gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon`, with JDK 17, Gradle 9.4.1 and Android SDK platform 37.1.
 
 CI/build success would **not** establish on-device HOME role, icon, settings, thermal, accessibility, USB, work/private profile, uninstall fallback, or OEM navigation behavior.
 

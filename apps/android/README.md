@@ -1,6 +1,6 @@
 # GoreeCloud Launcher for Android
 
-Android 10+ (API 29) native HOME application proof-of-implementation. Build with Android Studio, JDK 17 and Gradle 9.4.1; Android SDK platform 36. `gradle :app:assembleDebug`.
+Android 10+ (API 29) native HOME application proof-of-implementation. Build with Android Studio, JDK 17 and Gradle 9.4.1; Android SDK platform 37.1. `gradle :app:assembleDebug`.
 
 Capabilities in source: HOME and LAUNCHER intent filters, LauncherApps current-user discovery, search, app launch, locally saved pinned tiles, 5-item quick-launch dock, Refresh and optional Home-role request.
 

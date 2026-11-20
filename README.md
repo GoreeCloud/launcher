@@ -12,7 +12,7 @@ This is **not** a fork of Nova Launcher, Samsung One UI Home, Lawnchair or AOSP 
 
 ## Quick starts
 
-**Android** — Open `apps/android` in Android Studio with Android SDK 36, JDK 17 and Gradle 9.4.1; run `gradle :app:assembleDebug` (or use Android Studio's Build action). Install the debug APK, start Launcher, and optionally select it as the default Home application in Android Settings. Always keep an alternative installed Home application during evaluation. The app has no Internet permission.
+**Android** — Open `apps/android` in Android Studio with Android SDK 37.1, JDK 17 and Gradle 9.4.1; run `gradle :app:assembleDebug` (or use Android Studio's Build action). Install the debug APK, start Launcher, and optionally select it as the default Home application in Android Settings. Always keep an alternative installed Home application during evaluation. The app has no Internet permission.
 
 **Linux** — Requires Python 3.10+, a Linux desktop session, and glibc 2.34+ when using PyPI's PySide6 wheels:
 

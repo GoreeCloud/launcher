@@ -6,7 +6,7 @@ plugins {
 }
 android {
     namespace = "com.goreecloud.launcher"
-    compileSdk = 36
+    compileSdk { version = release(37) { minorApiLevel = 1 } }
     defaultConfig {
         applicationId = "com.goreecloud.launcher"
         minSdk = 29
