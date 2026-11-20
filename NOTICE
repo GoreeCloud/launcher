@@ -1,0 +1,17 @@
+GoreeCloud Launcher — third-party notice
+
+Original GoreeCloud Launcher code: Copyright (c) 2026 GoreeCloud, MIT.
+
+The Android GC UI theme code and its generated palettes come from
+https://github.com/GoreeCloud/gc-ui at main as inspected on 2026-11-20.
+Copyright (c) 2026 GoreeCloud; licensed under MIT. Its own license terms are
+reproduced in LICENSE; code is maintained as vendored source here until a
+versioned consumable GoreeCloud UI artifact is published.
+
+No Nova Launcher, Samsung One UI Home, Lawnchair, AOSP Launcher3, icon pack,
+wallpaper or proprietary OEM application source is copied into this project.
+
+Build dependencies are not vendored: AndroidX (Apache-2.0), Kotlin (Apache-2.0),
+React (MIT), Vite (MIT), Qt for Python / Qt libraries (LGPLv3/GPL/commercial
+license options; check exact distribution terms), and PyGObject (LGPL terms).
+See docs/THIRD_PARTY.md before redistribution, especially Linux packaging.
