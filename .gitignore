@@ -1,0 +1,24 @@
+# Never commit credentials, generated output or user profiles
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+local.properties
+.gradle/
+**/build/
+**/.idea/
+**/.cxx/
+**/captures/
+**/.kotlin/
+node_modules/
+dist/
+coverage/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.apk
+*.aab
+.DS_Store

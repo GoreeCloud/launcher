@@ -1,0 +1,9 @@
+[project]
+name = "goreecloud-launcher-linux"
+version = "0.1.0a0"
+description = "Qt Quick Linux app launcher"
+requires-python = ">=3.10"
+license = "MIT"
+
+[tool.ruff]
+line-length = 100
