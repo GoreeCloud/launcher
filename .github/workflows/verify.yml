@@ -36,8 +36,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: 'temurin', java-version: '17' }
-      - uses: android-actions/setup-android@v3
-      - run: sdkmanager --install 'platforms;android-36'
+      # GitHub hosted Ubuntu runners already include Android cmdline-tools.
+      # setup-android@v3 currently requests the retired SDK "tools" package.
+      - name: Install Android SDK 36
+        run: |
+          sdkmanager --version
+          sdkmanager --install 'platforms;android-36' 'build-tools;36.0.0'
       - uses: gradle/actions/setup-gradle@v4
         with: { gradle-version: '9.4.1' }
       - run: gradle :app:assembleDebug :app:testDebugUnitTest --no-daemon --stacktrace
